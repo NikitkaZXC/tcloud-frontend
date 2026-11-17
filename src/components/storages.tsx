@@ -24,7 +24,7 @@ export function StorageList() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Хранилища</h1>
+        <h1 className="text-xl font-semibold">Хранилища</h1>
         {admin && <StorageForm />}
       </div>
       {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}

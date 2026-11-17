@@ -37,8 +37,8 @@ export function Layout() {
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-2">
-          <CloudIcon className="mr-2 size-5 shrink-0 text-primary" />
-          <span className="mr-6 font-heading text-xl font-semibold tracking-[0.2em]">tcloud</span>
+          <CloudIcon className="mr-2 size-5 shrink-0 text-sky-500" />
+          <span className="mr-4 font-semibold">tcloud</span>
           {links
             .filter((link) => link.show)
             .map(({ to, label, icon: Icon }) => (
@@ -47,8 +47,8 @@ export function Layout() {
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    'flex shrink-0 items-center gap-1.5 border-b border-transparent px-2.5 py-1.5 text-sm tracking-wider text-muted-foreground hover:text-foreground',
-                    isActive && 'border-primary text-primary hover:text-primary',
+                    'flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted',
+                    isActive && 'bg-muted text-foreground',
                   )
                 }
               >
@@ -57,7 +57,7 @@ export function Layout() {
               </NavLink>
             ))}
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className="hidden text-xs tracking-[0.15em] text-muted-foreground uppercase md:inline">
+            <span className="hidden text-sm text-muted-foreground md:inline">
               {me.data.login} · {me.data.role}
             </span>
             <Button variant="ghost" size="icon" onClick={logout} aria-label="Выйти">
