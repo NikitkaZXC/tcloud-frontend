@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { Layout } from '@/components/layout'
 import { AccountPage } from '@/pages/account'
+import { DashboardPage } from '@/pages/dashboard'
 import { FilesPage } from '@/pages/files'
 import { LoginPage } from '@/pages/login'
 import { TasksPage } from '@/pages/tasks'
@@ -13,7 +14,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/files" replace />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/files" element={<FilesPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/account" element={<AccountPage />} />

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { DownloadIcon, RotateCcwIcon, XIcon } from 'lucide-react'
 import { Link } from 'react-router'
+import { PageTitle } from '@/components/fx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,7 +23,7 @@ export function TasksPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Задачи</h1>
+        <PageTitle text="Задачи" />
         {finished.length > 0 && (
           <Button variant="outline" onClick={() => forgetTasks(finished)}>
             Убрать завершённые

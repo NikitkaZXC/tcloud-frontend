@@ -49,15 +49,27 @@ nginx отдаёт сборку и проксирует `/api` на `API_UPSTREA
   Скрыто только то, что по роли недоступно целиком: управление хранилищами и пользователями (admin), Telegram (root).
 - **Скачивание** — обычные ссылки на `/api/files/{id}/download` и `/api/tasks/{id}/archive` (cookie уходят сами).
   Превью фото/видео/аудио в карточке файла грузится оттуда же — из Telegram, только при открытии карточки.
+- **Дашборд** (`/dashboard`, стартовая страница): только данные, которые API уже отдаёт — `GET /api/health` (лампы
+  компонентов и кольцо «сколько в норме»), `GET /api/account` (premium, лимит файла), `GET /api/storages` (итоги
+  и полосы объёма по хранилищам, `src/lib/dashboard.ts`), отслеживаемые задачи и отправки (`useTasks`, `useSending`)
+  в виде терминальной ленты. Блок пользователей (`GET /api/users`) виден и запрашивается только у admin/root.
+- **Тема**: тёмная (основная, «хакерская»: почти чёрный фон, неон — циан `#00e5ff`, маджента `#ff2bd6`, жёлтый
+  `#f5e400`, зелёный `#39ff88`, красный `#ff3b5c`) и спокойная светлая с теми же акцентами более тёмных оттенков;
+  выбирается по системной настройке. Шрифты: Oswald (заголовки), JetBrains Mono (метки, статусы), Geist (текст) —
+  Oswald и JetBrains Mono грузятся с Google Fonts в `index.html`. Эффекты — CSS-классы `fx-*` в `src/index.css`
+  (фон-сетка со сканлиниями, glitch, мигающий курсор, появление строк и страниц, полосатый прогресс, неоновые лампы)
+  плюс `src/components/fx.tsx` (заголовок с «расшифровкой», счётчики) на `useProgress` (`src/hooks/use-fx.ts`).
+  Стили shadcn-компонентов донастроены по `data-slot` там же. При `prefers-reduced-motion: reduce` анимации
+  выключаются, текст и счётчики сразу показываются целиком.
 - **QR для входа в Telegram** рисуется локально (`qrcode.react`): токен входа нельзя отдавать внешним генераторам.
 
 ## Структура
 
 ```
 src/
-  lib/          api-клиент, типы ответов API, форматирование и пути, загрузка, список задач
-  hooks/        useMe, useStorages, useTasks, useAction (мутация + toast + инвалидация)
-  components/   layout, хранилища, папка, диалоги загрузки/файла, ключи, доступы; ui/ — shadcn
-  pages/        login, files, tasks, account, users, user, telegram
+  lib/          api-клиент, типы ответов API, форматирование и пути, загрузка, список задач, итоги дашборда, эффекты
+  hooks/        useMe, useStorages, useTasks, useAction (мутация + toast + инвалидация), useProgress (анимации)
+  components/   layout, эффекты (fx), хранилища, папка, диалоги загрузки/файла, ключи, доступы; ui/ — shadcn
+  pages/        login, dashboard, files, tasks, account, users, user, telegram
 docker/         шаблон конфига nginx
 ```

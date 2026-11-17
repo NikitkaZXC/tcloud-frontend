@@ -25,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <div className="fx-bg" aria-hidden />
         <App />
         <Toaster richColors />
       </BrowserRouter>

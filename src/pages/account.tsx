@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { LogOutIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { PageTitle } from '@/components/fx'
 import { ApiKeys } from '@/components/api-keys'
 import { Confirm } from '@/components/confirm'
 import { GrantList } from '@/components/grants'
@@ -22,9 +23,9 @@ export function AccountPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-xl font-semibold">
-        {me.login} <Badge variant="outline">{me.role}</Badge>
-      </h1>
+      <PageTitle text={me.login} className="normal-case">
+        <Badge variant="outline">{me.role}</Badge>
+      </PageTitle>
       <div className="grid gap-4 lg:grid-cols-2">
         <PasswordCard />
         <ApiKeys userId={me.id} />

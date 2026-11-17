@@ -1,6 +1,7 @@
 import { HardDriveIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
+import { PageTitle } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,7 @@ export function StorageList() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Хранилища</h1>
+        <PageTitle text="Хранилища" />
         {admin && <StorageForm />}
       </div>
       {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}

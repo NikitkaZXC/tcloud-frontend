@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { CloudIcon, FolderIcon, KeyRoundIcon, ListChecksIcon, LogOutIcon, SendIcon, UsersIcon } from 'lucide-react'
+import { CloudIcon, FolderIcon, GaugeIcon, KeyRoundIcon, ListChecksIcon, LogOutIcon, SendIcon, UsersIcon } from 'lucide-react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
@@ -16,10 +16,11 @@ export function Layout() {
   if (me.error instanceof ApiError && me.error.status === 401) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
-  if (me.isPending) return <div className="p-8 text-muted-foreground">Загрузка…</div>
+  if (me.isPending) return <div className="fx-cursor p-8 font-mono text-sm text-muted-foreground">[ ... ] загрузка</div>
   if (me.error) return <div className="p-8 text-destructive">{me.error.message}</div>
 
   const links = [
+    { to: '/dashboard', label: 'Дашборд', icon: GaugeIcon, show: true },
     { to: '/files', label: 'Файлы', icon: FolderIcon, show: true },
     { to: '/tasks', label: 'Задачи', icon: ListChecksIcon, show: true },
     { to: '/users', label: 'Пользователи', icon: UsersIcon, show: isAdmin(me.data) },
@@ -34,11 +35,11 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-svh bg-background">
+    <div className="min-h-svh">
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-2">
-          <CloudIcon className="mr-2 size-5 shrink-0 text-sky-500" />
-          <span className="mr-4 font-semibold">tcloud</span>
+          <CloudIcon className="mr-2 size-5 shrink-0 text-primary drop-shadow-[0_0_6px_var(--primary)]" />
+          <span className="fx-glitch fx-cursor mr-4 font-heading text-lg font-bold tracking-widest uppercase">tcloud</span>
           {links
             .filter((link) => link.show)
             .map(({ to, label, icon: Icon }) => (
@@ -47,8 +48,8 @@ export function Layout() {
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted',
-                    isActive && 'bg-muted text-foreground',
+                    'flex shrink-0 items-center gap-1.5 rounded-sm border-b-2 border-transparent px-2.5 py-1.5 font-mono text-xs tracking-tight text-muted-foreground uppercase transition-colors hover:bg-muted hover:text-primary',
+                    isActive && 'fx-neon border-primary bg-muted text-primary',
                   )
                 }
               >
@@ -57,7 +58,7 @@ export function Layout() {
               </NavLink>
             ))}
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className="hidden text-sm text-muted-foreground md:inline">
+            <span className="hidden font-mono text-xs text-muted-foreground md:inline">
               {me.data.login} · {me.data.role}
             </span>
             <Button variant="ghost" size="icon" onClick={logout} aria-label="Выйти">
@@ -67,7 +68,7 @@ export function Layout() {
         </div>
       </header>
       <TaskWatcher />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6">
         <Outlet />
       </main>
     </div>

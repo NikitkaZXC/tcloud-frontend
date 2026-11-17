@@ -19,7 +19,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ## Architecture
 
 - `src/lib/api.ts`: every call goes through `request`/`api.*` (prefix `/api`, `credentials: same-origin`, one refresh on 401, errors as `ApiError` with backend `code`). `src/lib/types.ts` mirrors backend response schemas (`src/application/schemas` there) — update it when the API changes.
-- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`.
+- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`, `account`.
 - Tasks are tracked by id in localStorage (`lib/tasks.ts`); the backend has no "my tasks" list on purpose.
 
 ## Gotchas
@@ -27,6 +27,8 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Proxies must keep the `Host` header (Vite default, nginx `$http_host`): the backend Origin check compares `Origin` with `Host`.
 - Do not duplicate backend access rules; show actions and surface `403`.
 - Telegram QR must be rendered locally, never via external QR services.
+- Theme effects live in `src/index.css` (`fx-*` classes, shadcn tweaks via `data-slot`) and `components/fx.tsx`; every animation must stay off under `prefers-reduced-motion` (CSS media block, `prefersReducedMotion()` in JS). Page titles use `PageTitle`.
+- Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins.
 
 ## Rules
 

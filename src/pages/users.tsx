@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { PlusIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
+import { PageTitle } from '@/components/fx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -21,7 +22,7 @@ export function UsersPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Пользователи</h1>
+        <PageTitle text="Пользователи" />
         <CreateUser />
       </div>
       {users.error && <p className="text-destructive">{users.error.message}</p>}

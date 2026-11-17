@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import { type FormEvent, useState } from 'react'
+import { PageTitle } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useAction } from '@/hooks/use-action'
 import { api } from '@/lib/api'
+import { healthChecks } from '@/lib/dashboard'
 import { formatBytes, formatDate } from '@/lib/format'
 import type { Account, Health, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
 
@@ -27,7 +29,7 @@ export function TelegramPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-xl font-semibold">Telegram</h1>
+      <PageTitle text="Telegram" />
       {status.error && <p className="text-destructive">{status.error.message}</p>}
       <div className="grid gap-4 lg:grid-cols-3">
         {status.data?.sessions.map((session) => <SessionCard key={session.session} state={session} />)}
@@ -137,14 +139,7 @@ function SessionCard({ state }: { state: TelegramSessionState }) {
 function SystemCard() {
   const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
   const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
-  const checks = health.data
-    ? [
-        ...(['db', 'redis', 'queue', 'antivirus', 'telegram', 'telegram_upload', 'telegram_download'] as const).map(
-          (k) => [k, health.data[k]] as const,
-        ),
-        ...Object.entries(health.data.workers).map(([k, v]) => [`worker ${k}`, v] as const),
-      ]
-    : []
+  const checks = health.data ? healthChecks(health.data) : []
 
   return (
     <Card>

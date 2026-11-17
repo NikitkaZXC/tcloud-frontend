@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { PageTitle } from '@/components/fx'
 import { ApiKeys } from '@/components/api-keys'
 import { Confirm } from '@/components/confirm'
 import { GrantList } from '@/components/grants'
@@ -56,7 +57,7 @@ export function UserPage() {
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold">{u.login}</h1>
+        <PageTitle text={u.login} className="normal-case" />
         <Badge variant="outline">{u.role}</Badge>
         {u.blocked && <Badge variant="destructive">заблокирован</Badge>}
         <span className="text-sm text-muted-foreground">последний вход: {formatDate(u.last_login_at)}</span>
