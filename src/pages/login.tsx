@@ -1,12 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { CloudIcon } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { CloudIcon, EyeIcon, EyeOffIcon, TriangleAlertIcon } from 'lucide-react'
+import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { api, errorMessage } from '@/lib/api'
+import { useCountdown } from '@/hooks/use-countdown'
+import { api } from '@/lib/api'
+import { describeError, retryAfterOf } from '@/lib/auth'
+import { formatDuration } from '@/lib/format'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -14,23 +17,32 @@ export function LoginPage() {
   const queryClient = useQueryClient()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
+  const [shown, setShown] = useState(false)
+  const [caps, setCaps] = useState(false)
   const [error, setError] = useState('')
+  const [until, setUntil] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const wait = useCountdown(until)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setError('')
+    setUntil(null)
     try {
       await api.post('/auth/signin', { login, password })
       queryClient.clear()
       navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true })
     } catch (e) {
-      setError(errorMessage(e))
+      setError(describeError(e))
+      const retry = retryAfterOf(e)
+      if (retry) setUntil(Date.now() + retry * 1000)
     } finally {
       setBusy(false)
     }
   }
+
+  const onKey = (event: KeyboardEvent) => setCaps(event.getModifierState('CapsLock'))
 
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
@@ -40,27 +52,56 @@ export function LoginPage() {
             <CloudIcon className="size-5 text-primary drop-shadow-[0_0_6px_var(--primary)]" />
             <span className="fx-glitch fx-cursor font-bold tracking-widest">tcloud</span>
           </CardTitle>
+          <p className="font-mono text-xs text-muted-foreground">&gt; вход в систему</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="grid gap-4">
+          <form onSubmit={submit} className="grid gap-4" aria-busy={busy}>
             <div className="grid gap-2">
               <Label htmlFor="login">Логин</Label>
-              <Input id="login" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} required />
+              <Input id="login" autoComplete="username" autoFocus value={login} onChange={(e) => setLogin(e.target.value)} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Пароль</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={shown ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={onKey}
+                  onKeyUp={onKey}
+                  onBlur={() => setCaps(false)}
+                  className="pr-9"
+                  aria-describedby={caps ? 'caps' : undefined}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute top-1/2 right-1 -translate-y-1/2"
+                  onClick={() => setShown(!shown)}
+                  aria-label={shown ? 'Скрыть пароль' : 'Показать пароль'}
+                  aria-pressed={shown}
+                >
+                  {shown ? <EyeOffIcon /> : <EyeIcon />}
+                </Button>
+              </div>
+              {caps && (
+                <p id="caps" className="flex items-center gap-1.5 font-mono text-xs text-neon-yellow">
+                  <TriangleAlertIcon className="size-3.5" /> включён Caps Lock
+                </p>
+              )}
             </div>
-            {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-            <Button type="submit" disabled={busy}>
-              Войти
+            {error && (
+              <div className="grid gap-1 border-l-2 border-destructive pl-3 font-mono text-xs text-destructive" role="alert">
+                <p>[ FAIL ] {error}</p>
+                {wait > 0 && <p className="text-muted-foreground">повторите через {formatDuration(wait)}</p>}
+              </div>
+            )}
+            <Button type="submit" disabled={busy || wait > 0}>
+              {busy ? 'Вход…' : wait > 0 ? `Подождите ${formatDuration(wait)}` : 'Войти'}
             </Button>
           </form>
         </CardContent>
