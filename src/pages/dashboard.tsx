@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { XIcon } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { CountUp, PageTitle, StatusLight, TermStatus } from '@/components/fx'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useProgress } from '@/hooks/use-fx'
@@ -10,9 +13,10 @@ import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
+import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { easeOut } from '@/lib/fx'
 import { TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
-import type { Account, Health, Task, User } from '@/lib/types'
+import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
 function Tile({ label, value, format, tone }: { label: string; value: number; format?: (value: number) => string; tone: string }) {
@@ -237,6 +241,53 @@ function UsersPanel() {
   )
 }
 
+function Checklist() {
+  const [hidden, setHidden] = useState(isDismissed)
+  const telegram = useQuery({ queryKey: ['telegram'], queryFn: () => api.get<{ sessions: TelegramSessionState[] }>('/telegram') })
+  const storages = useStorages()
+  if (hidden || !telegram.data || !storages.data) return null
+  const steps = checklist(telegram.data.sessions, storages.data)
+  if (steps.every((step) => step.done)) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between gap-2">
+          Первый запуск
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Скрыть чек-лист"
+            onClick={() => {
+              dismiss()
+              setHidden(true)
+            }}
+          >
+            <XIcon />
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ol className="fx-stagger grid gap-2 font-mono text-sm">
+          {steps.map((step, i) => (
+            <li key={step.key} className="flex flex-wrap items-center gap-2">
+              <TermStatus status={step.done ? 'ok' : 'wait'} />
+              <span className={step.done ? 'text-muted-foreground line-through' : ''}>
+                {i + 1}. {step.label}
+              </span>
+              {!step.done && (
+                <Button asChild size="sm" variant="outline" className="ml-auto">
+                  <Link to={step.to}>{step.action}</Link>
+                </Button>
+              )}
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function DashboardPage() {
   const { data: me } = useMe()
   const totals = storageTotals(useStorages().data ?? [])
@@ -245,6 +296,7 @@ export function DashboardPage() {
   return (
     <div className="grid gap-4">
       <PageTitle text="Дашборд" />
+      {me?.role === 'root' && <Checklist />}
       <div className="fx-stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="хранилища" value={totals.storages} tone="text-neon-cyan" />
         <Tile label="файлы" value={totals.files} tone="text-neon-magenta" />
