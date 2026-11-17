@@ -1,0 +1,69 @@
+import { DownloadIcon, ExternalLinkIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/format'
+import type { TFile } from '@/lib/types'
+
+function Preview({ file }: { file: TFile }) {
+  const src = downloadUrl(file)
+  if (file.kind === 'photo' || file.kind === 'animation') {
+    if (file.mime.startsWith('video/')) return <video src={src} autoPlay loop muted className="max-h-96 w-full rounded-md" />
+    return <img src={src} alt={file.name} className="max-h-96 w-full rounded-md object-contain" />
+  }
+  if (file.kind === 'video') return <video src={src} controls className="max-h-96 w-full rounded-md" />
+  if (file.kind === 'audio') return <audio src={src} controls className="w-full" />
+  return null
+}
+
+export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () => void }) {
+  const rows: [string, string][] = file
+    ? [
+        ['Путь', file.path],
+        ['UUID', file.uuid],
+        ['Размер', formatBytes(file.size)],
+        ['Тип', `${file.kind} · ${file.mime} · ${file.sent_as}`],
+        ...(file.width ? [['Размеры', `${file.width}×${file.height}`] as [string, string]] : []),
+        ...(file.duration ? [['Длительность', formatDuration(file.duration)] as [string, string]] : []),
+        ['Шифрование', file.encrypted ? 'да' : 'нет'],
+        ['SHA-256', file.sha256],
+        ['Поиск в Telegram', file.telegram.search],
+        ['Создан', formatDate(file.created_at)],
+        ['Изменён', formatDate(file.updated_at)],
+      ]
+    : []
+
+  return (
+    <Dialog open={!!file} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        {file && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="break-all pr-6">{file.name}</DialogTitle>
+            </DialogHeader>
+            <Preview file={file} />
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              {rows.map(([key, value]) => (
+                <div key={key} className="contents">
+                  <dt className="text-muted-foreground">{key}</dt>
+                  <dd className="break-all font-mono text-xs leading-5">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <a href={downloadUrl(file)} download={file.name}>
+                  <DownloadIcon /> Скачать
+                </a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={file.telegram.link} target="_blank" rel="noreferrer">
+                  <ExternalLinkIcon /> Открыть в Telegram
+                </a>
+              </Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}

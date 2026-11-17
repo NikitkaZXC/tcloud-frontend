@@ -1,0 +1,58 @@
+# tcloud-frontend
+
+Веб-интерфейс для [tcloud-backend](../tcloud-backend): хранилища, папки и файлы, загрузки с устройства и по ссылкам,
+задачи и архивы, пользователи и доступы, API-ключи, вход в Telegram (root).
+
+Vite + React 19 + TypeScript, Tailwind v4 + shadcn/ui, TanStack Query, react-router.
+
+## Запуск
+
+```bash
+npm install
+npm run dev        # http://localhost:5173, /api проксируется на http://127.0.0.1:8000 (API_URL=... чтобы сменить)
+npm test           # vitest
+npm run build      # tsc + сборка в dist/
+npm run lint       # oxlint
+```
+
+Бэкенд должен быть запущен (`make dev-up-all` или `make app` в tcloud-backend). Вход — логином и паролем пользователя
+tcloud (root: `ROOT_LOGIN`/`ROOT_PASSWORD` из `.env` бэкенда).
+
+## Docker
+
+```bash
+docker build -t tcloud-frontend .
+docker run -p 8080:80 -e API_UPSTREAM=http://app:8000 tcloud-frontend
+```
+
+nginx отдаёт сборку и проксирует `/api` на `API_UPSTREAM` без буферизации (большие загрузки и скачивания идут потоком,
+таймауты 1 ч, без лимита тела). Перед ним в проде нужен HTTPS: cookie авторизации — `Secure`.
+
+## Как устроено
+
+- **Один origin.** Фронт и API всегда на одном адресе (прокси Vite в dev, nginx в Docker), поэтому cookie `access`/`refresh`
+  работают без CORS. Прокси сохраняет заголовок `Host`: бэкенд сверяет `Origin` с `Host` (защита от CSRF), иначе
+  все POST/PUT/PATCH/DELETE получают `403 cross_site_request`.
+- **Авторизация** (`src/lib/api.ts`): на `401` один раз вызывается `POST /api/auth/refresh` и запрос повторяется;
+  не вышло — переход на `/login`. Параллельные запросы делят одно обновление.
+- **Загрузки** (`src/lib/upload.ts`): файл отправляется телом `POST /api/uploads` через XHR ради прогресса отправки,
+  по одному файлу за раз. По ссылкам — всегда `POST /api/uploads/batch` (до 100 строк, имя — из ссылки или «ссылка | имя»).
+- **Задачи** (`src/lib/tasks.ts`): у API нет списка своих задач (только по id или batch_id), поэтому id задач,
+  запущенных из браузера, хранятся в `localStorage` (`tcloud.tasks`). `TaskWatcher` в шапке опрашивает незавершённые
+  раз в 1,5 с, по завершении обновляет листинг и показывает уведомление; задачи, которых больше нет (404), забываются.
+- **Права** не дублируются на фронте: кнопки показываются всем, отказ бэкенда (`403`) приходит уведомлением.
+  Скрыто только то, что по роли недоступно целиком: управление хранилищами и пользователями (admin), Telegram (root).
+- **Скачивание** — обычные ссылки на `/api/files/{id}/download` и `/api/tasks/{id}/archive` (cookie уходят сами).
+  Превью фото/видео/аудио в карточке файла грузится оттуда же — из Telegram, только при открытии карточки.
+- **QR для входа в Telegram** рисуется локально (`qrcode.react`): токен входа нельзя отдавать внешним генераторам.
+
+## Структура
+
+```
+src/
+  lib/          api-клиент, типы ответов API, форматирование и пути, загрузка, список задач
+  hooks/        useMe, useStorages, useTasks, useAction (мутация + toast + инвалидация)
+  components/   layout, хранилища, папка, диалоги загрузки/файла, ключи, доступы; ui/ — shadcn
+  pages/        login, files, tasks, account, users, user, telegram
+docker/         шаблон конфига nginx
+```
