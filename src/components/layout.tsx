@@ -8,17 +8,20 @@ import {
   LogOutIcon,
   MenuIcon,
   SendIcon,
+  TerminalIcon,
   UsersIcon,
   XIcon,
 } from 'lucide-react'
 import { type ComponentType, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { CommandPalette } from '@/components/command-palette'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { ApiError, api } from '@/lib/api'
+import { openPalette } from '@/lib/commands'
 import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -79,6 +82,15 @@ function Sidebar({ me, onNavigate, onLogout }: { me: Me; onNavigate: () => void;
         <CloudIcon className="size-5 shrink-0 text-primary drop-shadow-[0_0_6px_var(--primary)]" />
         <span className="fx-glitch fx-cursor font-heading text-lg font-bold tracking-widest uppercase">tcloud</span>
       </Link>
+      <Button variant="outline" size="sm" className="justify-between text-muted-foreground" onClick={() => {
+          onNavigate()
+          openPalette()
+        }}>
+        <span className="flex items-center gap-2">
+          <TerminalIcon /> Команды
+        </span>
+        <kbd className="text-[10px]">Ctrl K</kbd>
+      </Button>
       <div className="grid gap-1">
         <Item to="/dashboard" label="Дашборд" icon={GaugeIcon} onNavigate={onNavigate} />
         <Link to="/files" onClick={onNavigate} aria-current={pathname === '/files' && !search ? 'page' : undefined} className={cn(item, pathname === '/files' && active)}>
@@ -166,6 +178,7 @@ export function Layout() {
       </DialogPrimitive.Root>
       <div className="min-w-0">
         <TaskWatcher />
+        <CommandPalette />
         <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6">
           <Outlet />
         </main>
