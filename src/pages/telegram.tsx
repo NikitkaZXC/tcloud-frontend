@@ -69,7 +69,7 @@ export function TelegramPage() {
               ))}
             </ol>
             {current ? (
-              <LoginStep key={current.session} state={current} index={sessions.indexOf(current)} total={sessions.length} />
+              <LoginStep key={current.session} state={current} updatedAt={status.dataUpdatedAt} index={sessions.indexOf(current)} total={sessions.length} />
             ) : (
               <div className="grid content-center justify-items-start gap-2 font-mono text-sm">
                 <TermStatus status="ok" />
@@ -131,12 +131,12 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
   )
 }
 
-function LoginStep({ state, index, total }: { state: TelegramSessionState; index: number; total: number }) {
+function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionState; updatedAt: number; index: number; total: number }) {
   const name = state.session
   const refresh = useRefreshTelegram()
   const step = state.login?.step
   const [mode, setMode] = useState<'qr' | 'phone'>(step === 'code' ? 'phone' : 'qr')
-  const [qr, setQr] = useState<{ url: string; expires_at: string } | null>(null)
+  const [qr, setQr] = useState<{ url: string; expires_at: string; at: number } | null>(null)
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
@@ -158,7 +158,7 @@ function LoginStep({ state, index, total }: { state: TelegramSessionState; index
 
   const startQr = useAction(guard(() => api.post<{ url: string; expires_at: string }>(`/telegram/${name}/qr`)), {
     onSuccess: (r) => {
-      setQr(r)
+      setQr({ ...r, at: Date.now() })
       setStopped(false)
       refresh()
     },
@@ -173,7 +173,9 @@ function LoginStep({ state, index, total }: { state: TelegramSessionState; index
   })
 
   const needQr =
-    mode === 'qr' && step !== 'password' && (step === 'code' || !qr || qrLeft === 0 || qrExpired(state.login, qr.expires_at, now))
+    mode === 'qr' &&
+    step !== 'password' &&
+    (!qr || qrLeft === 0 || (updatedAt > qr.at && (step === 'code' || qrExpired(state.login, qr.expires_at, now))))
   const auto = needQr && !stopped && wait === 0
 
   useEffect(() => {
@@ -233,7 +235,7 @@ function LoginStep({ state, index, total }: { state: TelegramSessionState; index
           </div>
           {mode === 'qr' ? (
             <div className="grid justify-items-start gap-2">
-              {qr && step === 'qr' && qrLeft > 0 ? (
+              {qr && qrLeft > 0 && !needQr ? (
                 <div className="grid justify-items-center gap-2 rounded-lg bg-white p-4">
                   <QRCodeSVG value={qr.url} size={192} />
                   <p className="text-center text-xs text-neutral-600">Telegram → Настройки → Устройства → Подключить устройство</p>
