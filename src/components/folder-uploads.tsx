@@ -2,7 +2,7 @@ import { XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
-import { formatBytes, parentPath } from '@/lib/format'
+import { formatBytes } from '@/lib/format'
 import { forgetTask, TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
 import type { Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
@@ -34,11 +34,13 @@ function taskStatus(task: Task): string {
 }
 
 export function FolderUploads({ path }: { path: string }) {
-  const sending = useSending().filter((item) => parentPath(item.path) === path)
+  const inside = (item: string) => item.startsWith(`${path}/`)
+  const name = (item: string) => item.slice(path.length + 1)
+  const sending = useSending().filter((item) => inside(item.path))
   const ids = useTrackedTasks()
   const tasks = useTasks(ids)
     .map((result) => result.data)
-    .filter((task): task is Task => !!task && !task.archive && parentPath(task.path) === path && (task.status === 'queued' || task.status === 'running' || task.status === 'failed'))
+    .filter((task): task is Task => !!task && !task.archive && inside(task.path) && (task.status === 'queued' || task.status === 'running' || task.status === 'failed'))
 
   if (sending.length + tasks.length === 0) return null
 
@@ -47,7 +49,7 @@ export function FolderUploads({ path }: { path: string }) {
       {sending.map((item) => (
         <Row
           key={item.id}
-          name={item.path.split('/').pop() ?? item.path}
+          name={name(item.path)}
           status={item.loaded ? `отправка на сервер, ${formatBytes(item.loaded)} / ${formatBytes(item.total)}` : 'ожидает отправки'}
           percent={item.loaded ? (item.loaded / Math.max(item.total, 1)) * 100 : null}
         />
@@ -55,7 +57,7 @@ export function FolderUploads({ path }: { path: string }) {
       {tasks.map((task) => (
         <Row
           key={task.id}
-          name={task.path.split('/').pop() ?? task.path}
+          name={name(task.path)}
           status={taskStatus(task)}
           percent={task.progress != null && task.status !== 'failed' ? task.progress * 100 : null}
           error={task.status === 'failed' ? (task.error?.message ?? TASK_STATUS.failed.label) : undefined}

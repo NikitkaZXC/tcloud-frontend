@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { api, errorMessage } from '@/lib/api'
+import type { Picked } from '@/lib/dir-upload'
 import { formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
@@ -87,17 +88,19 @@ export function UploadDialog({
   onClose,
 }: {
   folder: string
-  files: File[]
+  files: Picked[]
   onClose: () => void
 }) {
   const [options, setOptions] = useState(DEFAULTS)
+  const total = files.reduce((sum, item) => sum + item.file.size, 0)
 
   async function start() {
-    const queue = files.map((file) => ({ file, id: startSending(joinPath(folder, file.name), file.size) }))
+    const queue = files.map(({ file, path }) => ({ file, path: joinPath(folder, path), id: startSending(joinPath(folder, path), file.size) }))
     onClose()
-    for (const { file, id } of queue) {
+    toast.success(`В очереди на отправку: ${queue.length}`)
+    for (const { file, path, id } of queue) {
       try {
-        const task = await uploadFile(file, { ...options, path: joinPath(folder, file.name) }, (loaded) => updateSending(id, loaded))
+        const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded))
         trackTask(task.id)
       } catch (e) {
         toast.error(`${file.name}: ${errorMessage(e)}`)
@@ -112,12 +115,15 @@ export function UploadDialog({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Загрузка в {folder.split('/').slice(2).join('/') || 'корень'}</DialogTitle>
+          <p className="font-mono text-xs text-muted-foreground">
+            файлов: {files.length} · {formatBytes(total)}
+          </p>
         </DialogHeader>
         <ul className="grid max-h-48 gap-2 overflow-y-auto text-sm">
-          {files.map((file, i) => (
+          {files.map(({ file, path }, i) => (
             <li key={i} className="grid gap-1">
               <div className="flex justify-between gap-2">
-                <span className="truncate">{file.name}</span>
+                <span className="truncate">{path}</span>
                 <span className="shrink-0 text-muted-foreground">{formatBytes(file.size)}</span>
               </div>
             </li>

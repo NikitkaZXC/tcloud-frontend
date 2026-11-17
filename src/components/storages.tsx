@@ -1,4 +1,4 @@
-import { HardDriveIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { HardDriveIcon, HistoryIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
 import { PageTitle } from '@/components/fx'
@@ -14,8 +14,27 @@ import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
-import { formatBytes } from '@/lib/format'
+import { formatBytes, storageIdOf } from '@/lib/format'
+import { load } from '@/lib/prefs'
 import type { Storage } from '@/lib/types'
+
+export function ResumeLink() {
+  const storages = useStorages()
+  const path = load('last-folder')
+  if (!path) return null
+  const storage = storages.data?.find((s) => s.id === storageIdOf(path))
+  if (!storage) return null
+  const rest = path.split('/').slice(2).join('/')
+  return (
+    <Link to={`/files?path=${encodeURIComponent(path)}`} className="flex min-w-0 items-center gap-2 font-mono text-xs text-primary hover:underline">
+      <HistoryIcon className="size-4 shrink-0" />
+      <span className="truncate">
+        продолжить: {storage.name ?? storage.id}
+        {rest && ` / ${rest}`}
+      </span>
+    </Link>
+  )
+}
 
 export function StorageList() {
   const storages = useStorages()
@@ -28,6 +47,7 @@ export function StorageList() {
         <PageTitle text="Хранилища" />
         {admin && <StorageForm />}
       </div>
+      <ResumeLink />
       {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}
       {storages.error && <p className="text-destructive">{storages.error.message}</p>}
       {storages.data?.length === 0 && <p className="text-muted-foreground">Хранилищ пока нет.</p>}

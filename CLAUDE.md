@@ -21,6 +21,9 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - `src/lib/api.ts`: every call goes through `request`/`api.*` (prefix `/api`, `credentials: same-origin`, one refresh on 401, errors as `ApiError` with backend `code`). `src/lib/types.ts` mirrors backend response schemas (`src/application/schemas` there) — update it when the API changes.
 - Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`, `account`.
 - Tasks are tracked by id in localStorage (`lib/tasks.ts`); the backend has no "my tasks" list on purpose.
+- Other localStorage keys (`tcloud.view`, `tcloud.last-folder`, `tcloud.onboarding.dismissed`) go through `lib/prefs.ts` or try/catch; they are conveniences only.
+- Layout is a left sidebar (`components/layout.tsx`, drawer on mobile). The command palette (`components/command-palette.tsx`) drives `FolderView` through the `tcloud:folder-action` window event (`lib/commands.ts`).
+- Sign-in and Telegram errors are mapped from backend `code` in `lib/auth.ts` (`describeError`, `retryAfterOf`); the Telegram wizard step logic is there too.
 
 ## Gotchas
 
@@ -28,7 +31,9 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Do not duplicate backend access rules; show actions and surface `403`.
 - Telegram QR must be rendered locally, never via external QR services.
 - Theme effects live in `src/index.css` (`fx-*` classes, shadcn tweaks via `data-slot`) and `components/fx.tsx`; every animation must stay off under `prefers-reduced-motion` (CSS media block, `prefersReducedMotion()` in JS). Page titles use `PageTitle`.
-- Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins.
+- Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins; the first-run checklist (`telegram` query) only for root.
+- No thumbnails in the API: never load full images from `/download` in listings; previews only in the file card.
+- Uploads keep relative paths (folder upload); the backend creates parent folders. Bulk download = sequential links + zip per folder (no archive of an arbitrary file set in the API).
 
 ## Rules
 

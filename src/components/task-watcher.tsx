@@ -31,7 +31,13 @@ export function TaskWatcher() {
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
       const name = task.archive?.name ?? task.path.split('/').pop()
-      if (task.status === 'done') toast.success(`Готово: ${name}`)
+      if (task.status === 'done' && task.archive) {
+        const id = task.id
+        toast.success(`Архив готов: ${name}`, {
+          duration: 30000,
+          action: { label: 'Скачать', onClick: () => location.assign(`/api/tasks/${id}/archive`) },
+        })
+      } else if (task.status === 'done') toast.success(`Готово: ${name}`)
       if (task.status === 'failed') toast.error(`Ошибка: ${name} — ${task.error?.message ?? ''}`)
     }
   }, [ids, results, queryClient])

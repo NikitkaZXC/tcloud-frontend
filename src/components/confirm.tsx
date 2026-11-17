@@ -17,15 +17,19 @@ export function Confirm({
   action = 'Удалить',
   onConfirm,
   children,
+  open,
+  onOpenChange,
 }: {
   title: string
   description?: ReactNode
   action?: string
   onConfirm: () => void
   children: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

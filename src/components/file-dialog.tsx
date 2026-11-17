@@ -1,6 +1,7 @@
-import { DownloadIcon, ExternalLinkIcon, LockIcon } from 'lucide-react'
+import { CopyIcon, DownloadIcon, ExternalLinkIcon, LinkIcon, LockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { absoluteUrl, copy } from '@/lib/clipboard'
 import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/format'
 import type { TFile } from '@/lib/types'
 
@@ -57,6 +58,12 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
                 <a href={downloadUrl(file)} download={file.name}>
                   <DownloadIcon /> Скачать
                 </a>
+              </Button>
+              <Button variant="outline" onClick={() => copy(file.path, 'путь')}>
+                <CopyIcon /> Путь
+              </Button>
+              <Button variant="outline" onClick={() => copy(absoluteUrl(downloadUrl(file)), 'ссылка на скачивание')}>
+                <LinkIcon /> Ссылка
               </Button>
               <Button variant="outline" asChild>
                 <a href={file.telegram.link} target="_blank" rel="noreferrer">

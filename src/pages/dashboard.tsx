@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { ResumeLink } from '@/components/storages'
 import { CountUp, PageTitle, StatusLight, TermStatus } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -296,6 +297,7 @@ export function DashboardPage() {
   return (
     <div className="grid gap-4">
       <PageTitle text="Дашборд" />
+      <ResumeLink />
       {me?.role === 'root' && <Checklist />}
       <div className="fx-stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="хранилища" value={totals.storages} tone="text-neon-cyan" />
