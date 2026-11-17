@@ -115,7 +115,7 @@ export function UploadDialog({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Загрузка в {folder.split('/').slice(2).join('/') || 'корень'}</DialogTitle>
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             файлов: {files.length} · {formatBytes(total)}
           </p>
         </DialogHeader>

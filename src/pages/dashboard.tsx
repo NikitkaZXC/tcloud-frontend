@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { XIcon } from 'lucide-react'
+import { ArrowUpRightIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { ResumeLink } from '@/components/storages'
-import { CountUp, PageTitle, StatusLight, TermStatus } from '@/components/fx'
+import { CountUp, PageTitle, StatusChip, StatusLight } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -20,16 +20,14 @@ import { TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
-function Tile({ label, value, format, tone }: { label: string; value: number; format?: (value: number) => string; tone: string }) {
+function Stat({ label, value, format }: { label: string; value: number; format?: (value: number) => string }) {
   return (
-    <Card size="sm">
-      <CardContent className="grid gap-1">
-        <span className="font-mono text-xs text-muted-foreground uppercase">// {label}</span>
-        <span className={`fx-neon font-heading text-3xl font-bold ${tone}`}>
-          <CountUp value={value} format={format} />
-        </span>
-      </CardContent>
-    </Card>
+    <div className="grid content-center gap-1 px-5 py-4 text-center">
+      <span className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+        <CountUp value={value} format={format} />
+      </span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
   )
 }
 
@@ -38,19 +36,20 @@ function Gauge({ ratio }: { ratio: number }) {
   const length = 2 * Math.PI * 40
   return (
     <svg viewBox="0 0 100 100" className="size-28 shrink-0 -rotate-90" role="img" aria-label={`${Math.round(ratio * 100)}% в норме`}>
-      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--muted)" strokeWidth="8" />
+      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--well)" strokeWidth="8" />
       <circle
         cx="50"
         cy="50"
         r="40"
         fill="none"
-        stroke={ratio === 1 ? 'var(--neon-green)' : 'var(--neon-red)'}
+        stroke={ratio === 1 ? 'var(--success)' : 'var(--destructive)'}
+        strokeLinecap="round"
         strokeWidth="8"
         strokeDasharray={length}
         strokeDashoffset={length * (1 - ratio * easeOut(progress))}
         style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
       />
-      <text x="50" y="50" className="rotate-90 fill-foreground font-mono text-base" style={{ transformOrigin: '50px 50px' }} textAnchor="middle" dominantBaseline="central">
+      <text x="50" y="50" className="rotate-90 fill-foreground text-base font-bold tabular-nums" style={{ transformOrigin: '50px 50px' }} textAnchor="middle" dominantBaseline="central">
         {Math.round(ratio * 100)}%
       </text>
     </svg>
@@ -67,29 +66,29 @@ function SystemPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2">
-          Система {health.data && <TermStatus status={health.data.ok ? 'ok' : 'fail'} />}
+          Система {health.data && <StatusChip status={health.data.ok ? 'ok' : 'fail'} label={health.data.ok ? 'в норме' : 'сбой'} />}
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {health.isPending && <TermStatus status="wait" />}
+        {health.isPending && <StatusChip status="wait" label="проверка" />}
         {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
         {checks.length > 0 && (
           <div className="flex items-center gap-4">
             <Gauge ratio={ok / checks.length} />
-            <ul className="fx-stagger grid min-w-0 flex-1 gap-1.5 font-mono text-xs">
+            <ul className="fx-stagger grid min-w-0 flex-1 gap-2 text-sm">
               {checks.map(([key, value]) => (
                 <li key={key} className="flex items-center gap-2">
                   <StatusLight ok={value} />
                   <span className="truncate">{HEALTH_LABELS[key] ?? key}</span>
-                  <span className={value ? 'ml-auto text-muted-foreground' : 'ml-auto text-neon-red'}>{value ? 'online' : 'down'}</span>
+                  <span className={value ? 'ml-auto text-xs text-muted-foreground' : 'ml-auto text-xs font-semibold text-destructive'}>{value ? 'в сети' : 'недоступен'}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
         {account.data && (
-          <p className="font-mono text-xs text-muted-foreground">
-            premium: {account.data.premium ? 'да' : 'нет'} · лимит файла: {formatBytes(account.data.file_limit)}
+          <p className="fx-dotted border-t pt-3 text-xs text-muted-foreground">
+            Premium: {account.data.premium ? 'да' : 'нет'} · лимит файла: {formatBytes(account.data.file_limit)}
           </p>
         )}
       </CardContent>
@@ -107,30 +106,23 @@ function StorageUsage() {
         <CardTitle>Хранилища</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {storages.isPending && <TermStatus status="wait" />}
+        {storages.isPending && <StatusChip status="wait" label="загрузка" />}
         {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
-        {storages.data?.length === 0 && <p className="font-mono text-xs text-muted-foreground">&gt; хранилищ нет</p>}
+        {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">Хранилищ пока нет</p>}
         <ul className="fx-stagger grid gap-3">
-          {storages.data?.map((storage, i) => (
+          {storages.data?.map((storage) => (
             <li key={storage.id} className="grid gap-1">
               <div className="flex items-center gap-2 text-sm">
                 <StatusLight ok={storage.available} />
-                <Link to={`/files?path=${encodeURIComponent(storage.path)}`} className="min-w-0 flex-1 truncate hover:underline">
+                <Link to={`/files?path=${encodeURIComponent(storage.path)}`} className="min-w-0 flex-1 truncate font-semibold hover:underline">
                   {storage.name ?? storage.id}
                 </Link>
-                <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                  {storage.files ?? '—'} ф · {formatBytes(storage.total_size)}
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {storage.files ?? '—'} файлов · {formatBytes(storage.total_size)}
                 </span>
               </div>
-              <div className="h-1.5 bg-muted">
-                <div
-                  className="fx-grow h-full"
-                  style={{
-                    width: `${max ? ((storage.total_size ?? 0) / max) * 100 : 0}%`,
-                    background: `var(--chart-${(i % 5) + 1})`,
-                    boxShadow: 'var(--glow)',
-                  }}
-                />
+              <div className="fx-track">
+                <div className="fx-meter" style={{ width: `${max ? ((storage.total_size ?? 0) / max) * 100 : 0}%` }} />
               </div>
             </li>
           ))}
@@ -159,23 +151,23 @@ function Feed() {
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center justify-between gap-2">
           Активность
-          <span className="flex gap-3 font-mono text-xs font-normal normal-case">
-            <span className="text-neon-yellow">run {counts.running + sending.length}</span>
-            <span className="text-muted-foreground">queue {counts.queued}</span>
-            <span className="text-neon-green">ok {counts.done}</span>
-            <span className="text-neon-red">fail {counts.failed + counts.cancelled}</span>
+          <span className="flex flex-wrap gap-1.5 text-xs font-semibold tabular-nums">
+            <span className="fx-chip text-warning">в работе {counts.running + sending.length}</span>
+            <span className="fx-chip text-muted-foreground">в очереди {counts.queued}</span>
+            <span className="fx-chip text-success">готово {counts.done}</span>
+            <span className="fx-chip text-destructive">ошибки {counts.failed + counts.cancelled}</span>
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="fx-stagger grid max-h-96 gap-2 overflow-y-auto bg-background/60 p-3 font-mono text-xs ring-1 ring-border">
+        <ul className="fx-stagger fx-well grid max-h-96 gap-3 overflow-y-auto rounded-2xl p-3 text-sm">
           {sending.map((item) => (
             <li key={`s${item.id}`} className="grid gap-1">
               <div className="flex items-center gap-2">
-                <TermStatus status="wait" />
+                <StatusChip status="wait" label="отправка" />
                 <span className="min-w-0 flex-1 truncate">{item.path.split('/').pop()}</span>
-                <span className="shrink-0 text-muted-foreground">
-                  отправка {formatBytes(item.loaded)} / {formatBytes(item.total)}
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {formatBytes(item.loaded)} / {formatBytes(item.total)}
                 </span>
               </div>
               <Progress value={(item.loaded / Math.max(item.total, 1)) * 100} />
@@ -186,9 +178,9 @@ function Feed() {
             return (
               <li key={task.id} className="grid gap-1">
                 <div className="flex items-center gap-2">
-                  <TermStatus status={status} />
+                  <StatusChip status={status} />
                   <span className="min-w-0 flex-1 truncate">{task.archive?.name ?? task.path.split('/').pop()}</span>
-                  <span className={status === 'fail' ? 'shrink-0 text-neon-red' : 'shrink-0 text-muted-foreground'}>
+                  <span className={status === 'fail' ? 'shrink-0 text-xs text-destructive' : 'shrink-0 text-xs text-muted-foreground tabular-nums'}>
                     {text}
                     {task.status === 'running' && task.progress != null && ` · ${(task.progress * 100).toFixed(0)}%`}
                   </span>
@@ -197,11 +189,13 @@ function Feed() {
               </li>
             )
           })}
-          {sending.length + tasks.length === 0 && <li className="fx-cursor text-muted-foreground">&gt; задач нет</li>}
+          {sending.length + tasks.length === 0 && <li className="py-2 text-center text-muted-foreground">Задач нет</li>}
         </ul>
-        <Link to="/tasks" className="mt-2 inline-block font-mono text-xs text-primary hover:underline">
-          &gt; все задачи
-        </Link>
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <Link to="/tasks">
+            Все задачи <ArrowUpRightIcon />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   )
@@ -222,18 +216,18 @@ function UsersPanel() {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Пользователи
-          <span className="fx-neon font-heading text-2xl text-neon-magenta">
+          <span className="text-3xl font-extrabold text-primary">
             <CountUp value={list.length} />
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
-        <ul className="fx-stagger grid gap-1.5 font-mono text-xs">
+        <ul className="fx-stagger grid text-sm">
           {rows.map(([label, count]) => (
-            <li key={label} className="flex justify-between gap-2">
+            <li key={label} className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
               <span className="text-muted-foreground">{label}</span>
-              <span className={label === 'blocked' && count ? 'text-neon-red' : ''}>{count}</span>
+              <span className={label === 'blocked' && count ? 'font-semibold text-destructive tabular-nums' : 'font-semibold tabular-nums'}>{count}</span>
             </li>
           ))}
         </ul>
@@ -269,10 +263,10 @@ function Checklist() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ol className="fx-stagger grid gap-2 font-mono text-sm">
+        <ol className="fx-stagger grid gap-2 text-sm">
           {steps.map((step, i) => (
             <li key={step.key} className="flex flex-wrap items-center gap-2">
-              <TermStatus status={step.done ? 'ok' : 'wait'} />
+              <StatusChip status={step.done ? 'ok' : 'wait'} label={step.done ? 'готово' : 'нужно'} />
               <span className={step.done ? 'text-muted-foreground line-through' : ''}>
                 {i + 1}. {step.label}
               </span>
@@ -295,16 +289,28 @@ export function DashboardPage() {
   const active = useTasks(useTrackedTasks()).filter((r) => r.data?.status === 'queued' || r.data?.status === 'running').length + useSending().length
 
   return (
-    <div className="grid gap-4">
-      <PageTitle text="Дашборд" />
-      <ResumeLink />
+    <div className="grid gap-5">
+      <header className="relative isolate grid gap-2 py-6 md:py-10">
+        <span className="absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+          <span className="fx-numeral -top-2 right-0 text-[clamp(5rem,16vw,12rem)]">{formatBytes(totals.size)}</span>
+        </span>
+        <span className="fx-orb top-2 -left-6 size-36" aria-hidden />
+        <PageTitle text="Дашборд" className="text-4xl md:text-5xl" />
+        <p className="text-sm text-muted-foreground">Хранилища, задачи и состояние системы</p>
+        <ResumeLink />
+      </header>
       {me?.role === 'root' && <Checklist />}
-      <div className="fx-stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="хранилища" value={totals.storages} tone="text-neon-cyan" />
-        <Tile label="файлы" value={totals.files} tone="text-neon-magenta" />
-        <Tile label="объём" value={totals.size} format={formatBytes} tone="text-neon-green" />
-        <Tile label="в работе" value={active} tone="text-neon-yellow" />
-      </div>
+      <section aria-label="Сводка" className="fx-panel flex items-stretch">
+        <span className="fx-vlabel hidden border-r fx-dotted px-3 py-4 text-center sm:block" aria-hidden>
+          сводка
+        </span>
+        <div className="fx-stagger grid flex-1 grid-cols-2 lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0 [&>*:not(:first-child)]:border-l [&>*:nth-child(3)]:border-l-0 lg:[&>*:nth-child(3)]:border-l">
+          <Stat label="хранилища" value={totals.storages} />
+          <Stat label="файлы" value={totals.files} />
+          <Stat label="объём" value={totals.size} format={formatBytes} />
+          <Stat label="в работе" value={active} />
+        </div>
+      </section>
       <div className="fx-stagger grid gap-4 lg:grid-cols-3">
         <SystemPanel />
         <StorageUsage />

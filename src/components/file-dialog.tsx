@@ -49,7 +49,7 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
               {rows.map(([key, value]) => (
                 <div key={key} className="contents">
                   <dt className="text-muted-foreground">{key}</dt>
-                  <dd className="break-all font-mono text-xs leading-5">{value}</dd>
+                  <dd className="break-all text-xs leading-5 tabular-nums">{value}</dd>
                 </div>
               ))}
             </dl>

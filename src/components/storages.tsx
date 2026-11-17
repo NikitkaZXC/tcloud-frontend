@@ -26,7 +26,7 @@ export function ResumeLink() {
   if (!storage) return null
   const rest = path.split('/').slice(2).join('/')
   return (
-    <Link to={`/files?path=${encodeURIComponent(path)}`} className="flex min-w-0 items-center gap-2 font-mono text-xs text-primary hover:underline">
+    <Link to={`/files?path=${encodeURIComponent(path)}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold text-primary hover:underline">
       <HistoryIcon className="size-4 shrink-0" />
       <span className="truncate">
         продолжить: {storage.name ?? storage.id}

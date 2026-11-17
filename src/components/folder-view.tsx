@@ -389,8 +389,8 @@ export function FolderView({ path }: { path: string }) {
       onDrop={onDrop}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10 font-mono text-primary">
-          &gt; отпустите, чтобы загрузить файлы или папки
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-background/60 font-semibold text-primary backdrop-blur-md">
+          Отпустите, чтобы загрузить файлы или папки
         </div>
       )}
       <Crumbs path={path} name={storage?.name ?? storageId} />
@@ -459,7 +459,7 @@ export function FolderView({ path }: { path: string }) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Фильтр по имени — нажмите /"
               aria-label="Фильтр по имени"
-              className="pl-8 font-mono"
+              className="pl-8"
             />
           </div>
           <Select value={sort.key} onValueChange={(key) => setSort({ ...sort, key: key as SortKey })}>
@@ -494,8 +494,8 @@ export function FolderView({ path }: { path: string }) {
       )}
 
       {picked.length > 0 && (
-        <div role="toolbar" aria-label="Выбранные" className="sticky top-14 z-10 flex flex-wrap items-center gap-2 border border-primary bg-background/95 px-3 py-2 font-mono text-xs shadow-[var(--glow)] md:top-2">
-          <span className="text-primary">выбрано: {picked.length}</span>
+        <div role="toolbar" aria-label="Выбранные" className="fx-glass sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-full px-3 py-2 text-xs md:top-3">
+          <span className="px-1 font-semibold text-primary tabular-nums">Выбрано: {picked.length}</span>
           <Button size="sm" variant="outline" onClick={bulkDownload}>
             <DownloadIcon /> Скачать
           </Button>
@@ -516,12 +516,12 @@ export function FolderView({ path }: { path: string }) {
         </div>
       )}
 
-      {listing.isPending && <p className="fx-cursor font-mono text-sm text-muted-foreground">&gt; загрузка</p>}
+      {listing.isPending && <p className="text-sm text-muted-foreground">Загрузка…</p>}
       {listing.error && <p className="text-destructive">{listing.error.message}</p>}
       {empty && (
-        <div className="grid justify-items-center gap-3 rounded-xl border border-dashed p-10 text-center">
-          <UploadIcon className="size-8 text-primary drop-shadow-[0_0_6px_var(--primary)]" />
-          <p className="font-heading text-lg tracking-wide uppercase">Папка пуста</p>
+        <div className="fx-panel grid justify-items-center gap-3 p-10 text-center">
+          <UploadIcon className="size-8 text-primary drop-shadow-[0_0_8px_var(--violet)]" />
+          <p className="text-lg font-bold">Папка пуста</p>
           <p className="max-w-md text-sm text-muted-foreground">
             Перетащите сюда файлы или целые папки, вставьте файл из буфера (Ctrl+V) или выберите на устройстве.
           </p>
@@ -536,10 +536,10 @@ export function FolderView({ path }: { path: string }) {
         </div>
       )}
       {!empty && listing.data && order.length === 0 && (
-        <p className="py-6 text-center font-mono text-sm text-muted-foreground">&gt; ничего не найдено по «{query}»</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">Ничего не найдено по «{query}»</p>
       )}
       {!empty && order.length > 0 && view === 'list' && (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="fx-panel overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -596,7 +596,7 @@ export function FolderView({ path }: { path: string }) {
       {!empty && order.length > 0 && view === 'grid' && (
         <ul className="fx-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {folders.map((folder) => (
-            <li key={folder.id} className={cn('relative grid gap-2 rounded-xl border p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(folderKey(folder.path)) && 'border-primary')}>
+            <li key={folder.id} className={cn('fx-panel grid gap-2 p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(folderKey(folder.path)) && 'shadow-[var(--glow)]!')}>
               <div className="absolute top-2 left-2">{check(folderKey(folder.path), folder.name)}</div>
               <Link to={link(folder.path)} className="grid justify-items-center gap-2 pt-3 text-center hover:underline">
                 <FolderIcon className="size-10 text-primary" />
@@ -608,13 +608,13 @@ export function FolderView({ path }: { path: string }) {
           {shownFiles.map((file) => {
             const Icon = KIND_ICONS[file.kind] ?? FileIcon
             return (
-              <li key={file.uuid} className={cn('relative grid gap-2 rounded-xl border p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(fileKey(file.uuid)) && 'border-primary')}>
+              <li key={file.uuid} className={cn('fx-panel grid gap-2 p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(fileKey(file.uuid)) && 'shadow-[var(--glow)]!')}>
                 <div className="absolute top-2 left-2">{check(fileKey(file.uuid), file.name)}</div>
                 {file.encrypted && <LockIcon className="absolute top-2 right-2 size-3 text-muted-foreground" aria-label="зашифрован" />}
                 <button type="button" onClick={() => setOpened(file)} className="grid justify-items-center gap-2 pt-3 text-center hover:underline">
                   <Icon className="size-10 text-muted-foreground" />
                   <span className="w-full truncate text-sm">{file.name}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{formatBytes(file.size)}</span>
                 </button>
                 <div className="flex justify-center">{fileButtons(file)}</div>
               </li>

@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { LogOutIcon } from 'lucide-react'
+import { ArrowUpRightIcon, LogOutIcon } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { PageTitle, TermStatus } from '@/components/fx'
+import { PageTitle, StatusChip } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,7 +47,7 @@ export function TelegramPage() {
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center justify-between gap-2">
               Вход в Telegram
-              <span className="font-mono text-xs font-normal text-muted-foreground normal-case">
+              <span className="fx-chip text-muted-foreground tabular-nums">
                 {done} / {sessions.length} сессий
               </span>
             </CardTitle>
@@ -55,7 +55,7 @@ export function TelegramPage() {
               tcloud держит три отдельных устройства Telegram, в каждое входят отдельно. Готовые шаги пропускаются, следующий начинается сам.
             </p>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+          <CardContent className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
             <ol className="grid content-start gap-1">
               {sessions.map((session, i) => (
                 <StepRow
@@ -71,10 +71,14 @@ export function TelegramPage() {
             {current ? (
               <LoginStep key={current.session} state={current} updatedAt={status.dataUpdatedAt} index={sessions.indexOf(current)} total={sessions.length} />
             ) : (
-              <div className="grid content-center justify-items-start gap-2 font-mono text-sm">
-                <TermStatus status="ok" />
+              <div className="grid content-center justify-items-start gap-3 text-sm">
+                <StatusChip status="ok" label="все сессии готовы" />
                 <p>Все сессии авторизованы — можно создавать хранилища и загружать файлы.</p>
-                <Link to="/files" className="text-primary hover:underline">&gt; к хранилищам</Link>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/files">
+                    К хранилищам <ArrowUpRightIcon />
+                  </Link>
+                </Button>
               </div>
             )}
           </CardContent>
@@ -102,18 +106,18 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
   return (
     <li
       aria-current={active ? 'step' : undefined}
-      className={cn('flex items-center gap-2 border-l-2 border-transparent px-2 py-1.5', active && 'fx-neon border-primary bg-muted')}
+      className={cn('flex items-center gap-3 rounded-2xl px-3 py-2 transition-colors', active && 'bg-accent shadow-[inset_0_1px_0_var(--edge),0_0_0_1px_color-mix(in_oklab,var(--violet)_30%,transparent)]')}
     >
-      <span className="font-mono text-xs text-muted-foreground">
+      <span className="text-xs font-semibold text-muted-foreground tabular-nums">
         {index + 1} / {total}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-sm">{state.session}</p>
+        <p className="text-sm font-semibold">{state.session}</p>
         <p className="truncate text-xs text-muted-foreground">{ROLES[state.session]}</p>
       </div>
       {state.authorized ? (
         <>
-          <TermStatus status="ok" />
+          <StatusChip status="ok" label="вошли" />
           <Confirm title={`Выйти из сессии ${state.session}?`} action="Выйти" onConfirm={() => logout.mutate()}>
             <Button variant="ghost" size="icon-sm" aria-label={`Выйти из сессии ${state.session}`}>
               <LogOutIcon />
@@ -121,7 +125,7 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
           </Confirm>
         </>
       ) : active ? (
-        <TermStatus status="wait" />
+        <StatusChip status="wait" label="сейчас" />
       ) : (
         <Button variant="ghost" size="sm" onClick={onPick}>
           Войти
@@ -197,12 +201,12 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
 
   return (
     <section aria-label={`Шаг ${index + 1} из ${total}: ${name}`} className="grid content-start gap-3">
-      <p className="font-mono text-xs text-muted-foreground">
-        &gt; шаг {index + 1} / {total} · сессия <span className="text-primary">{name}</span>
+      <p className="text-xs text-muted-foreground">
+        Шаг {index + 1} / {total} · сессия <span className="font-semibold text-primary">{name}</span>
       </p>
       {loginError && <p className="text-sm text-destructive" role="alert">{loginError}</p>}
       {wait > 0 && (
-        <p className="font-mono text-xs text-neon-yellow" role="status">
+        <p className="text-xs font-semibold text-warning" role="status">
           flood_wait: Telegram просит подождать {formatDuration(wait)}
         </p>
       )}
@@ -236,13 +240,13 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
           {mode === 'qr' ? (
             <div className="grid justify-items-start gap-2">
               {qr && qrLeft > 0 && !needQr ? (
-                <div className="grid justify-items-center gap-2 rounded-lg bg-white p-4">
+                <div className="grid justify-items-center gap-2 rounded-2xl bg-white p-4 shadow-[0_12px_32px_-12px_var(--drop)]">
                   <QRCodeSVG value={qr.url} size={192} />
                   <p className="text-center text-xs text-neutral-600">Telegram → Настройки → Устройства → Подключить устройство</p>
-                  <p className="font-mono text-xs text-neutral-500">обновится через {qrLeft} с</p>
+                  <p className="text-xs text-neutral-600 tabular-nums">обновится через {qrLeft} с</p>
                 </div>
               ) : (
-                <p className="fx-cursor font-mono text-xs text-muted-foreground">{stopped ? '> QR не получен' : '> запрашиваю QR'}</p>
+                <StatusChip status={stopped ? 'fail' : 'wait'} label={stopped ? 'QR не получен' : 'запрашиваю QR…'} />
               )}
               {stopped && (
                 <Button onClick={() => startQr.mutate()} disabled={startQr.isPending || wait > 0}>

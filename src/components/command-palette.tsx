@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { SearchIcon } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -99,12 +100,10 @@ export function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent showCloseButton={false} aria-describedby={undefined} className="top-[20%] translate-y-0 gap-0 p-0 font-mono sm:max-w-lg">
+      <DialogContent showCloseButton={false} aria-describedby={undefined} className="top-[20%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogTitle className="sr-only">Командная строка</DialogTitle>
-        <div className="flex items-center gap-2 border-b px-3 py-2">
-          <span className="fx-neon text-primary" aria-hidden>
-            &gt;
-          </span>
+        <div className="flex items-center gap-2 border-b px-4 py-2.5">
+          <SearchIcon className="size-4 shrink-0 text-primary" aria-hidden />
           <input
             autoFocus
             role="combobox"
@@ -120,11 +119,11 @@ export function CommandPalette() {
             }}
             onKeyDown={onKey}
             placeholder="перейти, загрузить, найти…"
-            className="h-8 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="h-9 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
-          <kbd className="text-[10px] text-muted-foreground">esc</kbd>
+          <kbd className="fx-chip h-5 px-1.5 text-[10px] text-muted-foreground">Esc</kbd>
         </div>
-        <ul id={listId} role="listbox" aria-label="Команды" className="max-h-80 overflow-y-auto p-1 text-sm">
+        <ul id={listId} role="listbox" aria-label="Команды" className="max-h-80 overflow-y-auto p-1.5 text-sm">
           {shown.map((command, i) => (
             <li
               key={command.id}
@@ -136,16 +135,16 @@ export function CommandPalette() {
               ref={(el) => {
                 if (i === current) el?.scrollIntoView({ block: 'nearest' })
               }}
-              className={cn('flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5', i === current && 'fx-neon bg-muted text-primary')}
+              className={cn('flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 transition-colors', i === current && 'bg-primary/15 text-foreground shadow-[inset_0_1px_0_var(--edge)]')}
             >
-              <span className="w-24 shrink-0 truncate text-[10px] text-muted-foreground uppercase">{command.group}</span>
+              <span className="w-24 shrink-0 truncate text-[11px] font-semibold text-muted-foreground">{command.group}</span>
               <span className="min-w-0 flex-1 truncate">{command.label}</span>
               {command.hint && <span className="max-w-40 truncate text-xs text-muted-foreground">{command.hint}</span>}
             </li>
           ))}
-          {shown.length === 0 && <li className="fx-cursor px-2 py-3 text-muted-foreground">command not found</li>}
+          {shown.length === 0 && <li className="px-3 py-4 text-center text-muted-foreground">Ничего не найдено</li>}
         </ul>
-        <p className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">↑↓ выбор · enter запуск · ctrl+k открыть/закрыть</p>
+        <p className="border-t px-4 py-2 text-[11px] text-muted-foreground">↑↓ выбор · enter запуск · ctrl+k открыть/закрыть</p>
       </DialogContent>
     </Dialog>
   )
