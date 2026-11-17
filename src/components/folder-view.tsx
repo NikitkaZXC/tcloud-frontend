@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
 import { FileDialog } from '@/components/file-dialog'
+import { FolderUploads } from '@/components/folder-uploads'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -179,6 +180,8 @@ export function FolderView({ path }: { path: string }) {
           </Confirm>
         )}
       </div>
+
+      <FolderUploads path={path} />
 
       {listing.isPending && <p className="text-muted-foreground">Загрузка…</p>}
       {listing.error && <p className="text-destructive">{listing.error.message}</p>}

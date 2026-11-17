@@ -1,5 +1,50 @@
+import { useSyncExternalStore } from 'react'
 import { ApiError, refreshSession, withQuery } from './api'
 import type { Task, UploadOptions } from './types'
+
+export interface Sending {
+  id: number
+  path: string
+  loaded: number
+  total: number
+}
+
+let sending: Sending[] = []
+let nextId = 0
+const listeners = new Set<() => void>()
+
+function setSending(next: Sending[]) {
+  sending = next
+  listeners.forEach((listener) => listener())
+}
+
+export function startSending(path: string, total: number): number {
+  const id = ++nextId
+  setSending([...sending, { id, path, loaded: 0, total }])
+  return id
+}
+
+export function updateSending(id: number, loaded: number) {
+  setSending(sending.map((item) => (item.id === id ? { ...item, loaded } : item)))
+}
+
+export function finishSending(id: number) {
+  setSending(sending.filter((item) => item.id !== id))
+}
+
+export function getSending(): Sending[] {
+  return sending
+}
+
+export function useSending(): Sending[] {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getSending,
+  )
+}
 
 function send(file: File, options: UploadOptions, onProgress: (loaded: number) => void): Promise<XMLHttpRequest> {
   return new Promise((resolve, reject) => {

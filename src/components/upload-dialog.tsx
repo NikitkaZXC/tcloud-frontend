@@ -5,14 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { api, errorMessage } from '@/lib/api'
 import { formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
-import { uploadFile } from '@/lib/upload'
+import { finishSending, startSending, updateSending, uploadFile } from '@/lib/upload'
 
 type Options = Omit<UploadOptions, 'path'>
 
@@ -92,30 +91,24 @@ export function UploadDialog({
   onClose: () => void
 }) {
   const [options, setOptions] = useState(DEFAULTS)
-  const [sent, setSent] = useState<Record<number, number>>({})
-  const [busy, setBusy] = useState(false)
 
   async function start() {
-    setBusy(true)
-    let ok = 0
-    for (const [i, file] of files.entries()) {
+    const queue = files.map((file) => ({ file, id: startSending(joinPath(folder, file.name), file.size) }))
+    onClose()
+    for (const { file, id } of queue) {
       try {
-        const task = await uploadFile(file, { ...options, path: joinPath(folder, file.name) }, (loaded) =>
-          setSent((s) => ({ ...s, [i]: loaded })),
-        )
+        const task = await uploadFile(file, { ...options, path: joinPath(folder, file.name) }, (loaded) => updateSending(id, loaded))
         trackTask(task.id)
-        ok++
       } catch (e) {
         toast.error(`${file.name}: ${errorMessage(e)}`)
+      } finally {
+        finishSending(id)
       }
     }
-    setBusy(false)
-    if (ok) toast.success(`В очереди: ${ok}. Прогресс — на странице «Задачи»`)
-    onClose()
   }
 
   return (
-    <Dialog open={files.length > 0} onOpenChange={(open) => !open && !busy && onClose()}>
+    <Dialog open={files.length > 0} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Загрузка в {folder.split('/').slice(2).join('/') || 'корень'}</DialogTitle>
@@ -127,14 +120,13 @@ export function UploadDialog({
                 <span className="truncate">{file.name}</span>
                 <span className="shrink-0 text-muted-foreground">{formatBytes(file.size)}</span>
               </div>
-              {busy && <Progress value={((sent[i] ?? 0) / Math.max(file.size, 1)) * 100} />}
             </li>
           ))}
         </ul>
         <OptionsFields options={options} setOptions={setOptions} />
         <DialogFooter>
-          <Button onClick={start} disabled={busy}>
-            <UploadIcon /> {busy ? 'Отправка…' : 'Загрузить'}
+          <Button onClick={start}>
+            <UploadIcon /> Загрузить
           </Button>
         </DialogFooter>
       </DialogContent>

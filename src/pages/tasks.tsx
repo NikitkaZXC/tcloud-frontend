@@ -10,24 +10,8 @@ import { useAction } from '@/hooks/use-action'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
-import { forgetTask, forgetTasks, trackTask, useTrackedTasks } from '@/lib/tasks'
+import { forgetTask, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
 import type { Priority, Task } from '@/lib/types'
-
-const STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  queued: { label: 'в очереди', variant: 'outline' },
-  running: { label: 'выполняется', variant: 'secondary' },
-  done: { label: 'готово', variant: 'default' },
-  failed: { label: 'ошибка', variant: 'destructive' },
-  cancelled: { label: 'отменено', variant: 'outline' },
-}
-
-const STAGE: Record<string, string> = {
-  downloading: 'скачивание',
-  scanning: 'проверка',
-  uploading_tg: 'отправка в Telegram',
-  archiving: 'сборка архива',
-  done: 'готово',
-}
 
 export function TasksPage() {
   const ids = useTrackedTasks()
@@ -70,7 +54,7 @@ function TaskCard({ task }: { task: Task }) {
     },
   })
 
-  const status = STATUS[task.status] ?? { label: task.status, variant: 'outline' as const }
+  const status = TASK_STATUS[task.status] ?? { label: task.status, variant: 'outline' as const }
   const finished = isFinished(task)
   const name = task.archive?.name ?? task.path.split('/').pop()
   const percent = task.progress != null ? task.progress * 100 : null
@@ -80,7 +64,7 @@ function TaskCard({ task }: { task: Task }) {
       <CardContent className="grid gap-2 px-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
-          {!finished && <span className="text-xs text-muted-foreground">{STAGE[task.stage] ?? task.stage}</span>}
+          {!finished && <span className="text-xs text-muted-foreground">{TASK_STAGE[task.stage] ?? task.stage}</span>}
           <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
           <div className="flex items-center gap-1">
             {task.status === 'queued' && (

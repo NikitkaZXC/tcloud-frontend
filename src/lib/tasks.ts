@@ -1,5 +1,21 @@
 import { useSyncExternalStore } from 'react'
 
+export const TASK_STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  queued: { label: 'в очереди', variant: 'outline' },
+  running: { label: 'выполняется', variant: 'secondary' },
+  done: { label: 'готово', variant: 'default' },
+  failed: { label: 'ошибка', variant: 'destructive' },
+  cancelled: { label: 'отменено', variant: 'outline' },
+}
+
+export const TASK_STAGE: Record<string, string> = {
+  downloading: 'скачивание',
+  scanning: 'проверка',
+  uploading_tg: 'отправка в Telegram',
+  archiving: 'сборка архива',
+  done: 'готово',
+}
+
 const KEY = 'tcloud.tasks'
 const listeners = new Set<() => void>()
 

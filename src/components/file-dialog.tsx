@@ -1,4 +1,4 @@
-import { DownloadIcon, ExternalLinkIcon } from 'lucide-react'
+import { DownloadIcon, ExternalLinkIcon, LockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/format'
@@ -38,7 +38,10 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
         {file && (
           <>
             <DialogHeader>
-              <DialogTitle className="break-all pr-6">{file.name}</DialogTitle>
+              <DialogTitle className="break-all pr-6">
+                {file.encrypted && <LockIcon className="mr-2 inline size-4 align-[-2px] text-muted-foreground" aria-label="зашифрован" />}
+                {file.name}
+              </DialogTitle>
             </DialogHeader>
             <Preview file={file} />
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
