@@ -20,13 +20,13 @@ import { type ComponentType, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
+import { UploadPulse } from '@/components/fx'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorages } from '@/hooks/use-storages'
 import { ApiError, api } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
-import { storageTotals } from '@/lib/dashboard'
 import { load, save } from '@/lib/prefs'
 import { setTheme, useTheme } from '@/lib/theme'
 import type { Me } from '@/lib/types'
@@ -66,8 +66,8 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
   const [params] = useSearchParams()
   const { pathname } = useLocation()
   const current = pathname === '/files' ? params.get('path') : null
+  const activity = useStorageActivity(storages.data ?? [])
   if (!storages.data?.length) return null
-  const { max } = storageTotals(storages.data)
   return (
     <ul className="ml-5 grid gap-0.5 border-l border-dashed pl-2">
       {storages.data.map((storage) => {
@@ -87,9 +87,7 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
                 {!storage.available && <span className="fx-light" data-ok={false} aria-label="канал недоступен" />}
                 <span className="truncate">{storage.name ?? storage.id}</span>
               </span>
-              <span className="fx-track block h-1">
-                <span className="fx-meter block" style={{ width: `${max ? Math.max(((storage.total_size ?? 0) / max) * 100, 2) : 2}%` }} />
-              </span>
+              {activity[storage.id] && <UploadPulse activity={activity[storage.id]} compact />}
             </Link>
           </li>
         )

@@ -3,13 +3,13 @@ import { ArrowUpRightIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { ResumeLink } from '@/components/storages'
-import { CountUp, PageTitle, StatusChip, StatusLight } from '@/components/fx'
+import { CountUp, PageTitle, StatusChip, StatusLight, UploadPulse } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useProgress } from '@/hooks/use-fx'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
@@ -58,7 +58,6 @@ function Gauge({ ratio }: { ratio: number }) {
 
 function SystemPanel() {
   const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
   const checks = health.data ? healthChecks(health.data) : []
   const ok = checks.filter(([, value]) => value).length
 
@@ -86,11 +85,6 @@ function SystemPanel() {
             </ul>
           </div>
         )}
-        {account.data && (
-          <p className="fx-dotted border-t pt-3 text-xs text-muted-foreground">
-            Premium: {account.data.premium ? 'да' : 'нет'} · лимит файла: {formatBytes(account.data.file_limit)}
-          </p>
-        )}
       </CardContent>
     </Card>
   )
@@ -98,7 +92,7 @@ function SystemPanel() {
 
 function StorageUsage() {
   const storages = useStorages()
-  const max = storageTotals(storages.data ?? []).max
+  const activity = useStorageActivity(storages.data ?? [])
 
   return (
     <Card className="lg:col-span-2">
@@ -117,16 +111,65 @@ function StorageUsage() {
                 <Link to={`/files?path=${encodeURIComponent(storage.path)}`} className="min-w-0 flex-1 truncate font-semibold hover:underline">
                   {storage.name ?? storage.id}
                 </Link>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {storage.files ?? '—'} файлов · {formatBytes(storage.total_size)}
-                </span>
               </div>
-              <div className="fx-track">
-                <div className="fx-meter" style={{ width: `${max ? ((storage.total_size ?? 0) / max) * 100 : 0}%` }} />
-              </div>
+              {activity[storage.id] && <UploadPulse activity={activity[storage.id]} />}
             </li>
           ))}
         </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AccountPanel() {
+  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
+  const totals = storageTotals(useStorages().data ?? [])
+  const limit = account.data?.premium ? 1000 : 500
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Аккаунт Telegram</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <div className="grid gap-1">
+          <span className="text-4xl font-extrabold tracking-tight">
+            <CountUp value={totals.size} format={formatBytes} />
+          </span>
+          <span className="text-xs text-muted-foreground">хранится во всех хранилищах</span>
+        </div>
+        {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
+        <ul className="grid text-sm">
+          {account.data && (
+            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5">
+              <span className="text-muted-foreground">Premium</span>
+              <span className="font-semibold">{account.data.premium ? 'да' : 'нет'}</span>
+            </li>
+          )}
+          {account.data && (
+            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5">
+              <span className="text-muted-foreground">лимит файла</span>
+              <span className="font-semibold tabular-nums">{formatBytes(account.data.file_limit)}</span>
+            </li>
+          )}
+          <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
+            <span className="text-muted-foreground">хранилищ</span>
+            <span className="font-semibold tabular-nums">{totals.storages}</span>
+          </li>
+          {account.data?.channels_used != null && (
+            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
+              <span className="text-muted-foreground">каналов у аккаунта</span>
+              <span className="font-semibold tabular-nums">{account.data.channels_used}</span>
+            </li>
+          )}
+          {account.data && (
+            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
+              <span className="text-muted-foreground">лимит каналов аккаунта</span>
+              <span className="font-semibold tabular-nums">{limit}</span>
+            </li>
+          )}
+        </ul>
+        <p className="text-xs text-muted-foreground">Лимит считает все каналы и группы аккаунта, не только хранилища.</p>
       </CardContent>
     </Card>
   )
@@ -315,6 +358,7 @@ export function DashboardPage() {
         <SystemPanel />
         <StorageUsage />
         <Feed />
+        <AccountPanel />
         {isAdmin(me) && <UsersPanel />}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
 import { useProgress } from '@/hooks/use-fx'
+import type { Activity } from '@/lib/dashboard'
 import { easeOut, prefersReducedMotion } from '@/lib/fx'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,20 @@ export function StatusChip({ status, label }: { status: keyof typeof STATUS; lab
     <span className={cn('fx-chip', tone)}>
       <StatusLight ok={light} />
       {label ?? text}
+    </span>
+  )
+}
+
+function activityLabel({ count, percent }: Activity): string {
+  return `загружается ${count}${percent != null ? ` · ${percent}%` : ''}`
+}
+
+export function UploadPulse({ activity, compact }: { activity: Activity; compact?: boolean }) {
+  if (compact) return <span className="fx-flow h-0.5" role="status" aria-label={activityLabel(activity)} title={activityLabel(activity)} />
+  return (
+    <span className="flex items-center gap-2" role="status">
+      <span className="fx-flow flex-1" aria-hidden />
+      <span className="shrink-0 text-xs font-semibold text-primary tabular-nums">{activityLabel(activity)}</span>
     </span>
   )
 }

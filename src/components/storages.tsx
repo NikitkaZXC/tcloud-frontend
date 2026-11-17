@@ -1,7 +1,7 @@
 import { HardDriveIcon, HistoryIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
-import { PageTitle } from '@/components/fx'
+import { PageTitle, UploadPulse } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
-import { formatBytes, storageIdOf } from '@/lib/format'
+import { storageIdOf } from '@/lib/format'
 import { load } from '@/lib/prefs'
 import type { Storage } from '@/lib/types'
 
@@ -38,6 +38,7 @@ export function ResumeLink() {
 
 export function StorageList() {
   const storages = useStorages()
+  const activity = useStorageActivity(storages.data ?? [])
   const { data: me } = useMe()
   const admin = isAdmin(me)
 
@@ -67,11 +68,8 @@ export function StorageList() {
                   {storage.name ?? storage.id}
                 </Link>
                 {storage.description && <p className="truncate text-sm text-muted-foreground">{storage.description}</p>}
-                <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-                  {!storage.available && <Badge variant="destructive">канал недоступен</Badge>}
-                  {storage.files != null && <span>{storage.files} файлов</span>}
-                  {storage.total_size != null && <span>· {formatBytes(storage.total_size)}</span>}
-                </div>
+                {!storage.available && <Badge variant="destructive" className="mt-1">канал недоступен</Badge>}
+                {activity[storage.id] && <div className="mt-2"><UploadPulse activity={activity[storage.id]} /></div>}
               </div>
               {admin && (
                 <div className="flex">

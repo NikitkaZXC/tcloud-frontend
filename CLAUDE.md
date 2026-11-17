@@ -31,6 +31,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Do not duplicate backend access rules; show actions and surface `403`.
 - Telegram QR must be rendered locally, never via external QR services.
 - Theme: dark palette in `:root`, light in `:root.light` (`lib/theme.ts`, toggle in the sidebar profile; Tailwind `dark:` = no `.light`). Effects live in `src/index.css` (`fx-*` classes, shadcn tweaks via `data-slot`) and `components/fx.tsx`; every animation must stay off under `prefers-reduced-motion` (CSS media block, `prefersReducedMotion()` in JS). Page titles use `PageTitle`, statuses `StatusChip`/`StatusLight`. Solid tactile panels (`fx-panel`, cards) for content; glass only for dialogs, menus, selects and the palette. Manrope only, no monospace/terminal styling.
+- No per-storage size/fill visuals: Telegram channels have no capacity limit. Storages show only the upload-activity strip (`useStorageActivity`, `UploadPulse`); totals are on the dashboard.
 - Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins; the first-run checklist (`telegram` query) only for root.
 - No thumbnails in the API: never load full images from `/download` in listings; previews only in the file card.
 - Uploads keep relative paths (folder upload); the backend creates parent folders. Bulk download = sequential links + zip per folder (no archive of an arbitrary file set in the API).

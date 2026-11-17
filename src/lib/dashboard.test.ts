@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { healthChecks, storageTotals, taskCounts } from './dashboard'
+import { healthChecks, storageActivity, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -9,7 +9,23 @@ describe('dashboard', () => {
       { files: null, total_size: null, available: false },
       { files: 2, total_size: 400, available: true },
     ] as Storage[]
-    expect(storageTotals(storages)).toEqual({ storages: 3, files: 5, size: 500, max: 400, unavailable: 1 })
+    expect(storageTotals(storages)).toEqual({ storages: 3, files: 5, size: 500, unavailable: 1 })
+  })
+
+  it('ignores nulls when every counter is hidden', () => {
+    expect(storageTotals([{ files: null, total_size: null, available: false }] as Storage[])).toEqual({ storages: 1, files: 0, size: 0, unavailable: 1 })
+  })
+
+  it('aggregates uploads and tasks per storage', () => {
+    const storages = [{ id: 'a', path: 'tcloud/a' }, { id: 'ab', path: 'tcloud/ab' }, { id: 'c', path: 'tcloud/c' }] as Storage[]
+    const sending = [{ id: 1, path: 'tcloud/a/x.txt', loaded: 50, total: 100 }]
+    const tasks = [
+      { path: 'tcloud/a/b/y.txt', status: 'running', bytes_done: 50, bytes_total: 300 },
+      { path: 'tcloud/a/z.txt', status: 'queued', bytes_done: 0, bytes_total: null },
+      { path: 'tcloud/a/old.txt', status: 'done', bytes_done: 10, bytes_total: 10 },
+      { path: 'tcloud/ab/q.txt', status: 'running', bytes_done: 0, bytes_total: null },
+    ] as Task[]
+    expect(storageActivity(storages, sending, tasks)).toEqual({ a: { count: 3, percent: 25 }, ab: { count: 1, percent: null } })
   })
 
   it('lists health checks with workers', () => {
