@@ -56,7 +56,7 @@ export function UserPage() {
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold">{u.login}</h1>
+        <h1 className="text-2xl font-semibold">{u.login}</h1>
         <Badge variant="outline">{u.role}</Badge>
         {u.blocked && <Badge variant="destructive">заблокирован</Badge>}
         <span className="text-sm text-muted-foreground">последний вход: {formatDate(u.last_login_at)}</span>

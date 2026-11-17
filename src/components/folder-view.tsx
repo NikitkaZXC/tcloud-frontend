@@ -95,7 +95,7 @@ export function FolderView({ path }: { path: string }) {
       onDrop={onDrop}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10 text-primary">
           Отпустите, чтобы загрузить
         </div>
       )}
@@ -208,7 +208,7 @@ export function FolderView({ path }: { path: string }) {
                 <TableRow key={folder.id}>
                   <TableCell>
                     <Link to={link(folder.path)} className="flex items-center gap-2 font-medium hover:underline">
-                      <FolderIcon className="size-4 shrink-0 text-sky-500" />
+                      <FolderIcon className="size-4 shrink-0 text-primary" />
                       <span className="truncate">{folder.name}</span>
                     </Link>
                   </TableCell>

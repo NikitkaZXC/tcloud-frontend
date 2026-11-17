@@ -37,7 +37,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CloudIcon className="size-5 text-sky-500" /> tcloud
+            <CloudIcon className="size-5 text-primary" /> tcloud
           </CardTitle>
         </CardHeader>
         <CardContent>

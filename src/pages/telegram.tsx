@@ -27,7 +27,7 @@ export function TelegramPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-xl font-semibold">Telegram</h1>
+      <h1 className="text-2xl font-semibold">Telegram</h1>
       {status.error && <p className="text-destructive">{status.error.message}</p>}
       <div className="grid gap-4 lg:grid-cols-3">
         {status.data?.sessions.map((session) => <SessionCard key={session.session} state={session} />)}

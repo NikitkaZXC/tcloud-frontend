@@ -22,7 +22,7 @@ export function TasksPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Задачи</h1>
+        <h1 className="text-2xl font-semibold">Задачи</h1>
         {finished.length > 0 && (
           <Button variant="outline" onClick={() => forgetTasks(finished)}>
             Убрать завершённые

@@ -21,7 +21,7 @@ export function UsersPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Пользователи</h1>
+        <h1 className="text-2xl font-semibold">Пользователи</h1>
         <CreateUser />
       </div>
       {users.error && <p className="text-destructive">{users.error.message}</p>}
