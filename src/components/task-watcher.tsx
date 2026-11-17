@@ -4,12 +4,21 @@ import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError } from '@/lib/api'
 import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
+import { useSending } from '@/lib/upload'
 
 export function TaskWatcher() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
   const queryClient = useQueryClient()
   const seen = useRef(new Map<string, string>())
+  const uploading = useSending().length > 0
+
+  useEffect(() => {
+    if (!uploading) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [uploading])
 
   useEffect(() => {
     const gone = ids.filter((_, i) => results[i].error instanceof ApiError && results[i].error.status === 404)
