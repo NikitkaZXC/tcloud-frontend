@@ -20,7 +20,7 @@ import { type ComponentType, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
-import { CornerHint, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
+import { CornerHint, IoTag, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
@@ -28,6 +28,7 @@ import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-stora
 import { ApiError, api } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
+import { isUnavailable, storageName } from '@/lib/names'
 import { setTheme, useTheme } from '@/lib/theme'
 import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -80,13 +81,14 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
               onClick={onNavigate}
               aria-current={selected ? 'page' : undefined}
               className={cn(
-                'relative z-10 grid gap-1 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-3',
+                'relative z-10 grid gap-1 px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-3',
                 selected && 'text-foreground',
               )}
             >
-              <span className="flex items-center gap-2 truncate">
-                <StorageIcon io={io[storage.id]} off={!storage.available} scale={1} />
-                <span className="truncate">{storage.name ?? storage.id}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                <StorageIcon io={io[storage.id]} off={isUnavailable(storage)} scale={1} />
+                <span className="truncate" title={storageName(storage)}>{storageName(storage)}</span>
+                <IoTag io={io[storage.id]} short />
               </span>
               {(activity[storage.id] || io[storage.id] === 'write' || io[storage.id] === 'both') && <UploadPulse activity={activity[storage.id] ?? WRITTEN} compact />}
             </Link>

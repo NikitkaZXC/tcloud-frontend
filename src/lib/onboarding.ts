@@ -12,7 +12,7 @@ const folderLink = (path: string) => `/files?path=${encodeURIComponent(path)}`
 
 export function checklist(sessions: TelegramSessionState[], storages: Storage[], tasks: Task[] = []): Step[] {
   const authorized = sessions.filter((s) => s.authorized).length
-  const target = storages.find((s) => s.available) ?? storages[0]
+  const target = storages.find((s) => s.available !== false) ?? storages[0]
   return [
     {
       key: 'telegram',

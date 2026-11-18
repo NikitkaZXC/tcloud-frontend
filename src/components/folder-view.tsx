@@ -28,7 +28,7 @@ import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
 import { FileDialog } from '@/components/file-dialog'
-import { FolderUploads } from '@/components/folder-uploads'
+import { FolderUploads, IoBanner } from '@/components/folder-uploads'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -65,6 +65,7 @@ import { selectRange, SORT_LABELS, type Sort, type SortKey, viewFiles, viewFolde
 import { crumbs, downloadUrl, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
+import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
 import type { ArchiveFormat, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -404,7 +405,7 @@ export function FolderView({ path }: { path: string }) {
           Отпустите, чтобы загрузить файлы или папки
         </div>
       )}
-      <Crumbs path={path} name={storage?.name ?? storageId} />
+      <Crumbs path={path} name={storageName(storage)} />
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => input.current?.click()}>
@@ -458,6 +459,7 @@ export function FolderView({ path }: { path: string }) {
         )}
       </div>
 
+      <IoBanner path={path} />
       <FolderUploads path={path} />
 
       {!empty && listing.data && (
@@ -572,7 +574,7 @@ export function FolderView({ path }: { path: string }) {
                 <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
                   <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
                   <TableCell className="max-w-0">
-                    <Link to={link(folder.path)} className="flex items-center gap-2 font-medium hover:underline">
+                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base font-medium hover:underline" title={folder.name}>
                       <FolderIcon className="size-4 shrink-0 text-primary" />
                       <span className="truncate">{folder.name}</span>
                     </Link>
@@ -588,7 +590,7 @@ export function FolderView({ path }: { path: string }) {
                   <TableRow key={file.uuid} data-state={selected.has(fileKey(file.uuid)) ? 'selected' : undefined}>
                     <TableCell>{check(fileKey(file.uuid), file.name)}</TableCell>
                     <TableCell className="max-w-0">
-                      <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left hover:underline">
+                      <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left text-base hover:underline" title={file.name}>
                         <Icon className="size-4 shrink-0 text-muted-foreground" />
                         <span className="truncate">{file.name}</span>
                         {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
@@ -615,7 +617,7 @@ export function FolderView({ path }: { path: string }) {
                 <div className="absolute top-1 left-1">{check(folderKey(folder.path), folder.name)}</div>
               </div>
               <div className="grid min-w-0 flex-1 content-between gap-1">
-                <Link to={link(folder.path)} className="truncate font-medium hover:underline pointer-coarse:py-2.5">
+                <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
                   {folder.name}
                 </Link>
                 <span className="text-xs text-muted-foreground">папка · {formatDate(folder.updated_at)}</span>
@@ -639,7 +641,7 @@ export function FolderView({ path }: { path: string }) {
                   <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
                 </div>
                 <div className="grid min-w-0 flex-1 content-between gap-1">
-                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left font-medium hover:underline pointer-coarse:py-2.5">
+                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2.5" title={file.name}>
                     <span className="truncate">{file.name}</span>
                     {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
                   </button>

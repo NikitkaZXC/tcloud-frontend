@@ -11,6 +11,7 @@ import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
+import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { TASK_STAGE, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
@@ -94,6 +95,7 @@ function ChannelsSection() {
 function ActivitySection() {
   const sending = useSending()
   const tasks = useTrackedData()
+  const storages = useStorages().data ?? []
   const counts = taskCounts(tasks)
   const total = Math.max(tasks.length + sending.length, 1)
   const running = tasks.filter((task) => task.status === 'running' || task.status === 'queued')
@@ -121,7 +123,7 @@ function ActivitySection() {
                 size="sm"
                 value={item.loaded / Math.max(item.total, 1)}
                 label="отправка"
-                caption={<span className="block max-w-28 truncate">{item.path.split('/').pop()}</span>}
+                caption={<span className="block max-w-28 truncate" title={humanPath(item.path, storages)}>{fileName(item.path)}</span>}
                 tone="busy"
               />
             </li>
@@ -132,7 +134,7 @@ function ActivitySection() {
                 size="sm"
                 value={task.status === 'queued' ? 0 : taskFraction(task)}
                 label={task.status === 'queued' ? (task.queue_position != null ? `очередь #${task.queue_position}` : 'в очереди') : (TASK_STAGE[task.stage] ?? task.stage)}
-                caption={<span className="block max-w-28 truncate">{task.archive?.name ?? task.path.split('/').pop()}</span>}
+                caption={<span className="block max-w-28 truncate" title={taskTitle(task, storages).where}>{taskTitle(task, storages).name}</span>}
                 tone={task.archive ? 'read' : 'busy'}
               />
             </li>

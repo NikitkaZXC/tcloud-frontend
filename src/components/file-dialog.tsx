@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/format'
 import { markRead } from '@/lib/reads'
+import { useStorages } from '@/hooks/use-storages'
+import { humanPath } from '@/lib/names'
 import type { TFile } from '@/lib/types'
 
 const PREVIEW = ['photo', 'animation', 'video', 'audio']
@@ -24,10 +26,10 @@ function Preview({ file }: { file: TFile }) {
 }
 
 export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () => void }) {
+  const storages = useStorages().data ?? []
   const rows: [string, string][] = file
     ? [
-        ['Путь', file.path],
-        ['UUID', file.uuid],
+        ['Расположение', humanPath(file.path.split('/').slice(0, -1).join('/'), storages)],
         ['Размер', formatBytes(file.size)],
         ['Тип', `${file.kind} · ${file.mime} · ${file.sent_as}`],
         ...(file.width ? [['Размеры', `${file.width}×${file.height}`] as [string, string]] : []),

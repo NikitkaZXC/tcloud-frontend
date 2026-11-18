@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError } from '@/lib/api'
 import { markRead } from '@/lib/reads'
+import { useStorages } from '@/hooks/use-storages'
+import { taskTitle } from '@/lib/names'
 import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
 
@@ -13,6 +15,7 @@ export function TaskWatcher() {
   const queryClient = useQueryClient()
   const seen = useRef(new Map<string, string>())
   const uploading = useSending().length > 0
+  const storages = useStorages()
 
   useEffect(() => {
     if (!uploading) return
@@ -32,7 +35,7 @@ export function TaskWatcher() {
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
       queryClient.invalidateQueries({ queryKey: ['account'] })
-      const name = task.archive?.name ?? task.path.split('/').pop()
+      const name = taskTitle(task, storages.data ?? []).name
       if (task.status === 'done' && task.archive) {
         const { id, path } = task
         toast.success(`Архив готов: ${name}`, {
@@ -48,7 +51,7 @@ export function TaskWatcher() {
       } else if (task.status === 'done') toast.success(`Готово: ${name}`)
       if (task.status === 'failed') toast.error(`Ошибка: ${name} — ${task.error?.message ?? ''}`)
     }
-  }, [ids, results, queryClient])
+  }, [ids, results, queryClient, storages.data])
 
   return null
 }

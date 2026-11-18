@@ -12,6 +12,8 @@ import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
 import { markRead } from '@/lib/reads'
+import { useStorages } from '@/hooks/use-storages'
+import { taskTitle } from '@/lib/names'
 import { forgetTask, taskFraction, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
 import type { Priority, Task } from '@/lib/types'
 
@@ -58,7 +60,7 @@ function TaskCard({ task }: { task: Task }) {
 
   const status = TASK_STATUS[task.status] ?? { label: task.status, variant: 'outline' as const }
   const finished = isFinished(task)
-  const name = task.archive?.name ?? task.path.split('/').pop()
+  const { name, where } = taskTitle(task, useStorages().data ?? [])
   const fraction = taskFraction(task)
   const percent = fraction != null ? fraction * 100 : null
 
@@ -109,7 +111,7 @@ function TaskCard({ task }: { task: Task }) {
         {!finished && <Progress value={percent} />}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <Link to={`/files?path=${encodeURIComponent(parentPath(task.path) || task.path)}`} className="truncate hover:underline pointer-coarse:py-3">
-            {task.path}
+            {where}
           </Link>
           <span>
             {formatBytes(task.bytes_done)} / {formatBytes(task.bytes_total)}

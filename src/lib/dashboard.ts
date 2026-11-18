@@ -21,7 +21,7 @@ export function healthChecks(health: Health): [string, boolean][] {
 export function storageTotals(storages: Storage[]) {
   const files = storages.reduce((sum, s) => sum + (s.files ?? 0), 0)
   const size = storages.reduce((sum, s) => sum + (s.total_size ?? 0), 0)
-  return { storages: storages.length, files, size, unavailable: storages.filter((s) => !s.available).length }
+  return { storages: storages.length, files, size, unavailable: storages.filter((s) => s.available === false).length }
 }
 
 export function taskCounts(tasks: Task[]): Record<TaskStatus, number> {

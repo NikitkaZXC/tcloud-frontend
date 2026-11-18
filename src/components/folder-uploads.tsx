@@ -3,6 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes } from '@/lib/format'
+import { IoTag } from '@/components/fx'
+import { useStorageIo, useStorages } from '@/hooks/use-storages'
+import { storageIdOf } from '@/lib/format'
+import { fileName, taskTitle } from '@/lib/names'
+import { useReads } from '@/lib/reads'
 import { forgetTask, taskFraction, TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
 import type { Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
@@ -65,5 +70,54 @@ export function FolderUploads({ path }: { path: string }) {
         />
       ))}
     </ul>
+  )
+}
+
+export function IoBanner({ path }: { path: string }) {
+  const storages = useStorages().data ?? []
+  const storage = storages.find((s) => s.id === storageIdOf(path))
+  const io = useStorageIo(storage ? [storage] : [])[storage?.id ?? '']
+  const within = (item: string) => !!storage && (item === storage.path || item.startsWith(`${storage.path}/`))
+  const sending = useSending().filter((item) => within(item.path))
+  const tasks = useTasks(useTrackedTasks())
+    .map((result) => result.data)
+    .filter((task): task is Task => !!task && within(task.path) && (task.status === 'queued' || task.status === 'running'))
+  const reads = useReads().filter((read) => within(read.path))
+  if (!io) return null
+  const uploads = tasks.filter((task) => !task.archive)
+  const archive = tasks.find((task) => task.archive)
+  const writing = sending[0]
+    ? { name: fileName(sending[0].path), percent: sending[0].total ? Math.round((sending[0].loaded / sending[0].total) * 100) : null }
+    : uploads[0]
+      ? { name: taskTitle(uploads[0]).name, percent: taskFraction(uploads[0]) != null ? Math.round(taskFraction(uploads[0])! * 100) : null }
+      : null
+  const more = sending.length + uploads.length - 1
+  const reading = reads.at(-1) ? fileName(reads.at(-1)!.path) : archive ? taskTitle(archive).name : null
+
+  return (
+    <div className="grid gap-2" role="status">
+      {(io === 'write' || io === 'both') && (
+        <p className="fx-io-line" data-io="write">
+          <IoTag io="write" />
+          {writing ? (
+            <span className="min-w-0 truncate">
+              идёт запись: <span className="text-foreground">{writing.name}</span>
+              {writing.percent != null && ` · ${writing.percent}%`}
+              {more > 0 && ` · ещё ${more}`}
+            </span>
+          ) : (
+            <span>запись завершена</span>
+          )}
+        </p>
+      )}
+      {(io === 'read' || io === 'both') && (
+        <p className="fx-io-line" data-io="read">
+          <IoTag io="read" />
+          <span className="min-w-0 truncate">
+            идёт чтение{reading && <>: <span className="text-foreground">{reading}</span></>}
+          </span>
+        </p>
+      )}
+    </div>
   )
 }

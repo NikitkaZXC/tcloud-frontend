@@ -18,6 +18,7 @@ import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { api } from '@/lib/api'
+import { storageName } from '@/lib/names'
 import { formatDate } from '@/lib/format'
 import type { Grant, Role, User } from '@/lib/types'
 
@@ -156,7 +157,7 @@ function Grants({ userId }: { userId: string }) {
               <SelectContent>
                 {storages.data?.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.name ?? s.id}
+                    {storageName(s)}
                   </SelectItem>
                 ))}
               </SelectContent>

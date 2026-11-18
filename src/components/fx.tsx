@@ -132,13 +132,24 @@ const DRIVE: [number, number, number, number][] = [
   [19, 3, 1, 13],
 ]
 const DRIVE_FAINT: [number, number, number, number][] = [
-  [3, 9, 15, 1],
-  [3, 12, 15, 1],
-  [11, 5, 1, 2],
-  [13, 5, 1, 2],
-  [15, 5, 1, 2],
-  [17, 5, 1, 2],
+  [3, 10, 15, 1],
+  [15, 5, 1, 3],
+  [17, 5, 1, 3],
 ]
+const DOWN: [number, number, number, number][] = [
+  [3, 5, 5, 1],
+  [4, 6, 3, 1],
+  [5, 7, 1, 1],
+]
+const UP: [number, number, number, number][] = [
+  [11, 5, 1, 1],
+  [10, 6, 3, 1],
+  [9, 7, 5, 1],
+]
+
+function pixels(list: [number, number, number, number][], className?: string) {
+  return list.map(([x, y, w, h]) => <rect key={`${x}-${y}-${w}-${h}`} x={x} y={y} width={w} height={h} className={className} />)
+}
 
 export function StorageIcon({ io, off, scale = 2, className }: { io?: Io; off?: boolean; scale?: 1 | 2 | 3; className?: string }) {
   const read = io === 'read' || io === 'both'
@@ -155,15 +166,30 @@ export function StorageIcon({ io, off, scale = 2, className }: { io?: Io; off?: 
       role="img"
       aria-label={off ? 'канал недоступен' : write && read ? 'запись и чтение' : write ? 'идёт запись' : read ? 'идёт чтение' : 'хранилище'}
     >
-      {DRIVE.map(([x, y, w, h]) => (
-        <rect key={`${x}-${y}-${w}`} x={x} y={y} width={w} height={h} />
-      ))}
-      {DRIVE_FAINT.map(([x, y, w, h]) => (
-        <rect key={`${x}-${y}-${w}`} x={x} y={y} width={w} height={h} className="fx-drive-faint" />
-      ))}
-      <rect x="3" y="5" width="2" height="2" className="fx-drive-led fx-drive-read" />
-      <rect x="6" y="5" width="2" height="2" className="fx-drive-led fx-drive-write" />
+      {pixels(DRIVE)}
+      {pixels(DRIVE_FAINT, 'fx-drive-faint')}
+      <g className="fx-drive-led fx-drive-write">{pixels(DOWN)}</g>
+      <g className="fx-drive-led fx-drive-read">{pixels(UP)}</g>
+      <path d="M3 12.5 H18" className="fx-drive-bar" />
     </svg>
+  )
+}
+
+export function IoTag({ io, short }: { io?: Io; short?: boolean }) {
+  if (!io) return null
+  return (
+    <span className="flex shrink-0 gap-1" role="status">
+      {(io === 'write' || io === 'both') && (
+        <span className="fx-io" data-io="write">
+          ↓{short ? '' : ' запись'}
+        </span>
+      )}
+      {(io === 'read' || io === 'both') && (
+        <span className="fx-io" data-io="read">
+          ↑{short ? '' : ' чтение'}
+        </span>
+      )}
+    </span>
   )
 }
 

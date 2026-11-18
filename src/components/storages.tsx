@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
-import { ChannelsRing, PageTitle, Section, Stat, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
+import { ChannelsRing, IoTag, PageTitle, Section, Stat, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,22 +15,24 @@ import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-stora
 import { api, request } from '@/lib/api'
 import { type Activity, channelUsage, type Io, storageTotals } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
+import { isUnavailable, storageName } from '@/lib/names'
 import type { Account, Storage } from '@/lib/types'
 
 export function StorageCard({ storage, activity, io, actions }: { storage: Storage; activity?: Activity; io?: Io; actions?: ReactNode }) {
   const to = `/files?path=${encodeURIComponent(storage.path)}`
   return (
     <div className="fx-panel flex gap-4 p-4">
-      <StorageIcon io={io} off={!storage.available} className="mt-1" />
+      <StorageIcon io={io} off={isUnavailable(storage)} className="mt-1" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <div className="flex items-start gap-2">
           <Link to={to} className="min-w-0 flex-1 truncate font-pixel text-[15px] tracking-[0.06em] uppercase hover:underline pointer-coarse:py-2.5">
-            {storage.name ?? storage.id}
+            {storageName(storage)}
           </Link>
+          <IoTag io={io} />
           {actions}
         </div>
         {storage.description && <p className="truncate text-xs text-muted-foreground">{storage.description}</p>}
-        {storage.available ? (
+        {!isUnavailable(storage) ? (
           <p className="flex flex-wrap items-baseline gap-x-3 text-xs text-muted-foreground tabular-nums">
             <span>
               <span className="fx-pixel text-[20px] text-foreground">{storage.total_size != null ? formatBytes(storage.total_size) : '—'}</span>
@@ -197,7 +199,7 @@ function DeleteStorage({ storage }: { storage: Storage }) {
 
   return (
     <Confirm
-      title={`Удалить «${storage.name ?? storage.id}»?`}
+      title={`Удалить «${storageName(storage)}»?`}
       description={
         <span className="grid gap-3">
           <span>Все файлы хранилища будут удалены из базы.</span>

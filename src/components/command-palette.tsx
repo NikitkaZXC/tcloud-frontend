@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { type Command, filterCommands, type FolderAction, OPEN_PALETTE, runFolderAction } from '@/lib/commands'
+import { storageName } from '@/lib/names'
 import type { FolderListing } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -62,7 +63,7 @@ export function CommandPalette() {
     { id: 'p:account', group: 'Страницы', label: 'Аккаунт', run: go('/account') },
     ...(isAdmin(me) ? [{ id: 'p:users', group: 'Страницы', label: 'Пользователи', run: go('/users') }] : []),
     ...(me?.role === 'root' ? [{ id: 'p:telegram', group: 'Страницы', label: 'Telegram', run: go('/telegram') }] : []),
-    ...(storages.data ?? []).map((s) => ({ id: `s:${s.id}`, group: 'Хранилища', label: s.name ?? s.id, hint: s.description ?? undefined, run: go(folderLink(s.path)) })),
+    ...(storages.data ?? []).map((s) => ({ id: `s:${s.id}`, group: 'Хранилища', label: storageName(s), hint: s.description ?? undefined, run: go(folderLink(s.path)) })),
   ]
   const shown = filterCommands(commands, query)
   const current = Math.min(index, Math.max(shown.length - 1, 0))
