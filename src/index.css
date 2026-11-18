@@ -428,6 +428,29 @@ a:is([data-slot=button], [data-slot$=-trigger])[data-variant=outline]:not([data-
   color: var(--muted-foreground);
 }
 
+.fx-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.fx-sort:hover {
+  color: var(--foreground);
+}
+
+[aria-sort=ascending] .fx-sort, [aria-sort=descending] .fx-sort {
+  color: var(--foreground);
+}
+
+@media (pointer: coarse) {
+  .fx-sort { min-height: 44px; }
+  [data-slot=table] tbody tr { height: 52px; }
+}
+
 [data-slot=table] tbody tr {
   border-bottom-style: dotted;
   border-color: var(--dots);

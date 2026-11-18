@@ -95,10 +95,14 @@ export interface Folder {
   name: string
   created_at: string
   updated_at: string
+  size?: number
+  files?: number
 }
 
 export interface FolderListing {
   path: string
+  size?: number
+  total_files?: number
   folders: Folder[]
   files: TFile[]
 }

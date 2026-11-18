@@ -44,9 +44,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -54,7 +57,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UploadDialog, UrlUploadDialog } from '@/components/upload-dialog'
 import { useAction } from '@/hooks/use-action'
@@ -63,13 +65,13 @@ import { api, errorMessage } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
-import { selectRange, SORT_LABELS, type Sort, type SortKey, viewFiles, viewFolders } from '@/lib/files'
+import { nextSort, parseSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
 import { crumbs, downloadUrl, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
-import type { ArchiveFormat, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
+import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const KIND_ICONS = { photo: ImageIcon, video: FilmIcon, audio: MusicIcon, animation: FilmIcon, document: FileTextIcon }
@@ -190,7 +192,7 @@ export function FolderView({ path }: { path: string }) {
   const [folderOpen, setFolderOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<Sort>({ key: 'name', desc: false })
+  const [sort, setSort] = useState<Sort>(() => parseSort(load('sort')))
   const [view, setView] = useState<'list' | 'grid'>(() => (load('view') === 'grid' ? 'grid' : 'list'))
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -203,9 +205,10 @@ export function FolderView({ path }: { path: string }) {
   const storageId = storageIdOf(path)
   const storage = storages.data?.find((s) => s.id === storageId)
   const isRoot = path.split('/').length <= 2
-  const folders = viewFolders(listing.data?.folders ?? [], query, sort)
-  const shownFiles = viewFiles(listing.data?.files ?? [], query, sort)
-  const order = [...folders.map((f) => folderKey(f.path)), ...shownFiles.map((f) => fileKey(f.uuid))]
+  const entries = viewEntries(listing.data?.folders ?? [], listing.data?.files ?? [], query, sort)
+  const folders = entries.flatMap((e) => (e.type === 'folder' ? [e.item] : []))
+  const shownFiles = entries.flatMap((e) => (e.type === 'file' ? [e.item] : []))
+  const order = entries.map((e) => (e.type === 'folder' ? folderKey(e.item.path) : fileKey(e.item.uuid)))
   const picked = order.filter((key) => selected.has(key))
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
 
@@ -339,6 +342,22 @@ export function FolderView({ path }: { path: string }) {
     }
   }
 
+  function changeSort(next: Sort) {
+    setSort(next)
+    save('sort', JSON.stringify(next))
+  }
+
+  const head = (key: SortKey, className?: string) => (
+    <TableHead className={className} aria-sort={sort.key === key ? (sort.desc ? 'descending' : 'ascending') : 'none'}>
+      <button type="button" className="fx-sort" onClick={() => changeSort(nextSort(sort, key))}>
+        {SORT_LABELS[key]}
+        <span aria-hidden className={sort.key === key ? '' : 'invisible'}>
+          {sort.desc ? '▼' : '▲'}
+        </span>
+      </button>
+    </TableHead>
+  )
+
   function changeView(next: 'list' | 'grid') {
     setView(next)
     save('view', next)
@@ -381,6 +400,96 @@ export function FolderView({ path }: { path: string }) {
       </Confirm>
     </>
   )
+
+  const folderRow = (folder: Folder) => (
+                <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
+                  <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
+                  <TableCell className="max-w-0">
+                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base font-medium hover:underline" title={folder.name}>
+                      <FolderIcon className="size-4 shrink-0 text-primary" />
+                      <span className="truncate">{folder.name}</span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground xl:table-cell">папка</TableCell>
+                  <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{folder.size != null ? formatBytes(folder.size) : '—'}</TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">{formatDate(folder.created_at)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
+                </TableRow>
+  )
+
+  const fileRow = (file: TFile) => {
+                const Icon = KIND_ICONS[file.kind] ?? FileIcon
+                return (
+                  <TableRow key={file.uuid} data-state={selected.has(fileKey(file.uuid)) ? 'selected' : undefined}>
+                    <TableCell>{check(fileKey(file.uuid), file.name)}</TableCell>
+                    <TableCell className="max-w-0">
+                      <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left text-base hover:underline" title={file.name}>
+                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{file.name}</span>
+                        {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
+                      </button>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
+                    <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(file.updated_at)}</TableCell>
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">{formatDate(file.created_at)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
+                  </TableRow>
+                )
+  }
+
+  const folderTile = (folder: Folder) => (
+            <li key={folder.id} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(folderKey(folder.path)) && 'border-ink')}>
+              <div className="relative">
+                <span className="fx-thumb">
+                  <FolderIcon className="size-6 text-primary" />
+                </span>
+                <div className="absolute top-1 left-1">{check(folderKey(folder.path), folder.name)}</div>
+              </div>
+              <div className="grid min-w-0 flex-1 content-between gap-1">
+                <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
+                  {folder.name}
+                </Link>
+                <span className="text-xs text-muted-foreground">папка · {formatDate(folder.updated_at)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <Link to={link(folder.path)} className="fx-more" tabIndex={-1} aria-hidden>
+                    Открыть
+                  </Link>
+                  <div className="-mr-1 flex">{folderButtons(folder)}</div>
+                </div>
+              </div>
+            </li>
+  )
+
+  const fileTile = (file: TFile) => {
+            const Icon = KIND_ICONS[file.kind] ?? FileIcon
+            return (
+              <li key={file.uuid} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(fileKey(file.uuid)) && 'border-ink')}>
+                <div className="relative">
+                  <span className="fx-thumb">
+                    <Icon className="size-6" />
+                  </span>
+                  <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
+                </div>
+                <div className="grid min-w-0 flex-1 content-between gap-1">
+                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2.5" title={file.name}>
+                    <span className="truncate">{file.name}</span>
+                    {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
+                  </button>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatBytes(file.size)} · {formatDate(file.updated_at)}
+                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <button type="button" onClick={() => setOpened(file)} className="fx-more" tabIndex={-1} aria-hidden>
+                      Подробнее
+                    </button>
+                    <div className="-mr-1 flex">{fileButtons(file)}</div>
+                  </div>
+                </div>
+              </li>
+            )
+  }
 
   const check = (key: string, label: string) => (
     <Checkbox
@@ -478,26 +587,35 @@ export function FolderView({ path }: { path: string }) {
               className="pl-8"
             />
           </div>
-          <Select value={sort.key} onValueChange={(key) => setSort({ ...sort, key: key as SortKey })}>
-            <SelectTrigger className="w-32" aria-label="Сортировка">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(SORT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSort({ ...sort, desc: !sort.desc })}
-            aria-label={sort.desc ? 'По убыванию' : 'По возрастанию'}
-          >
-            {sort.desc ? <ArrowDownWideNarrowIcon /> : <ArrowUpNarrowWideIcon />}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" aria-label={`Сортировка: ${SORT_LABELS[sort.key]}, ${sort.desc ? 'по убыванию' : 'по возрастанию'}`}>
+                {sort.desc ? <ArrowDownWideNarrowIcon /> : <ArrowUpNarrowWideIcon />}
+                <span className="max-sm:sr-only">
+                  {SORT_LABELS[sort.key]} {sort.desc ? '▼' : '▲'}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-56">
+              <DropdownMenuLabel>Сортировка</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={sort.key} onValueChange={(key) => changeSort({ ...sort, key: key as SortKey })}>
+                {Object.entries(SORT_LABELS).map(([key, label]) => (
+                  <DropdownMenuRadioItem key={key} value={key}>
+                    {label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={sort.desc ? 'desc' : 'asc'} onValueChange={(v) => changeSort({ ...sort, desc: v === 'desc' })}>
+                <DropdownMenuRadioItem value="asc">По возрастанию ▲</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="desc">По убыванию ▼</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem checked={sort.foldersFirst} onCheckedChange={(v) => changeSort({ ...sort, foldersFirst: v === true })}>
+                Папки сверху
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div role="group" aria-label="Вид" className="flex">
             <Button variant={view === 'list' ? 'default' : 'outline'} size="icon" onClick={() => changeView('list')} aria-label="Список" aria-pressed={view === 'list'}>
               <ListIcon />
@@ -566,101 +684,23 @@ export function FolderView({ path }: { path: string }) {
                     aria-label="Выбрать все"
                   />
                 </TableHead>
-                <TableHead>Имя</TableHead>
-                <TableHead className="hidden w-28 text-right sm:table-cell">Размер</TableHead>
-                <TableHead className="hidden w-44 md:table-cell">Изменён</TableHead>
+                {head('name')}
+                {head('type', 'hidden w-24 xl:table-cell')}
+                {head('size', 'hidden w-28 sm:table-cell')}
+                {head('updated', 'hidden w-44 md:table-cell')}
+                {head('created', 'hidden w-44 lg:table-cell')}
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {folders.map((folder) => (
-                <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
-                  <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
-                  <TableCell className="max-w-0">
-                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base font-medium hover:underline" title={folder.name}>
-                      <FolderIcon className="size-4 shrink-0 text-primary" />
-                      <span className="truncate">{folder.name}</span>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="hidden text-right text-muted-foreground sm:table-cell">—</TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
-                </TableRow>
-              ))}
-              {shownFiles.map((file) => {
-                const Icon = KIND_ICONS[file.kind] ?? FileIcon
-                return (
-                  <TableRow key={file.uuid} data-state={selected.has(fileKey(file.uuid)) ? 'selected' : undefined}>
-                    <TableCell>{check(fileKey(file.uuid), file.name)}</TableCell>
-                    <TableCell className="max-w-0">
-                      <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left text-base hover:underline" title={file.name}>
-                        <Icon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{file.name}</span>
-                        {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
-                      </button>
-                    </TableCell>
-                    <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(file.updated_at)}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
-                  </TableRow>
-                )
-              })}
+              {entries.map((entry) => (entry.type === 'folder' ? folderRow(entry.item) : fileRow(entry.item)))}
             </TableBody>
           </Table>
         </div>
       )}
       {!empty && order.length > 0 && view === 'grid' && (
         <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {folders.map((folder) => (
-            <li key={folder.id} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(folderKey(folder.path)) && 'border-ink')}>
-              <div className="relative">
-                <span className="fx-thumb">
-                  <FolderIcon className="size-6 text-primary" />
-                </span>
-                <div className="absolute top-1 left-1">{check(folderKey(folder.path), folder.name)}</div>
-              </div>
-              <div className="grid min-w-0 flex-1 content-between gap-1">
-                <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
-                  {folder.name}
-                </Link>
-                <span className="text-xs text-muted-foreground">папка · {formatDate(folder.updated_at)}</span>
-                <div className="flex items-center justify-between gap-2">
-                  <Link to={link(folder.path)} className="fx-more" tabIndex={-1} aria-hidden>
-                    Открыть
-                  </Link>
-                  <div className="-mr-1 flex">{folderButtons(folder)}</div>
-                </div>
-              </div>
-            </li>
-          ))}
-          {shownFiles.map((file) => {
-            const Icon = KIND_ICONS[file.kind] ?? FileIcon
-            return (
-              <li key={file.uuid} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(fileKey(file.uuid)) && 'border-ink')}>
-                <div className="relative">
-                  <span className="fx-thumb">
-                    <Icon className="size-6" />
-                  </span>
-                  <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
-                </div>
-                <div className="grid min-w-0 flex-1 content-between gap-1">
-                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2.5" title={file.name}>
-                    <span className="truncate">{file.name}</span>
-                    {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
-                  </button>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {formatBytes(file.size)} · {formatDate(file.updated_at)}
-                  </span>
-                  <div className="flex items-center justify-between gap-2">
-                    <button type="button" onClick={() => setOpened(file)} className="fx-more" tabIndex={-1} aria-hidden>
-                      Подробнее
-                    </button>
-                    <div className="-mr-1 flex">{fileButtons(file)}</div>
-                  </div>
-                </div>
-              </li>
-            )
-          })}
+          {entries.map((entry) => (entry.type === 'folder' ? folderTile(entry.item) : fileTile(entry.item)))}
         </ul>
       )}
 

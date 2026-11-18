@@ -37,7 +37,7 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
         ['Шифрование', file.encrypted ? 'да' : 'нет'],
         ['SHA-256', file.sha256],
         ['Поиск в Telegram', file.telegram.search],
-        ['Создан', formatDate(file.created_at)],
+        ['Загружен', formatDate(file.created_at)],
         ['Изменён', formatDate(file.updated_at)],
       ]
     : []
