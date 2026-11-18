@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
 import { t } from '@/lib/i18n'
+import { type Theme, THEME_SWATCHES, THEMES } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 
 type Ui = Settings['interface']
 
@@ -59,6 +61,45 @@ function Choice<T extends string>({ label, hint, value, options, onChange }: { l
             ))}
           </SelectContent>
         </Select>
+      )}
+    </Row>
+  )
+}
+
+const THEME_LABELS = {
+  system: 'settings.themeSystem',
+  dark: 'settings.themeDark',
+  light: 'settings.themeLight',
+  sunset: 'settings.themeSunset',
+  navy: 'settings.themeNavy',
+  lavender: 'settings.themeLavender',
+  clay: 'settings.themeClay',
+} as const
+
+function swatch(theme: Theme) {
+  if (theme === 'system') return `linear-gradient(135deg, ${THEME_SWATCHES.dark[0]} 50%, ${THEME_SWATCHES.light[0]} 50%)`
+  return `linear-gradient(135deg, ${THEME_SWATCHES[theme].join(', ')})`
+}
+
+function ThemePicker({ value, onChange }: { value: Theme; onChange: (next: Theme) => void }) {
+  return (
+    <Row label={t('settings.theme')} hint={t('settings.themeHint')}>
+      {(ids) => (
+        <div role="radiogroup" aria-labelledby={ids.label} aria-describedby={ids.hint} className="flex flex-wrap gap-2">
+          {(['system', ...THEMES] as Theme[]).map((theme) => (
+            <button
+              key={theme}
+              type="button"
+              role="radio"
+              aria-checked={value === theme}
+              onClick={() => onChange(theme)}
+              className={cn('grid w-18 gap-1 border p-1 text-xs', value === theme ? 'border-foreground' : 'text-muted-foreground hover:border-ring')}
+            >
+              <span aria-hidden className="h-8 border border-border" style={{ background: swatch(theme) }} />
+              {t(THEME_LABELS[theme])}
+            </button>
+          ))}
+        </div>
       )}
     </Row>
   )
@@ -225,16 +266,7 @@ export function SettingsPage() {
             ]}
             onChange={(language) => setUi({ language: language === 'auto' ? null : language })}
           />
-          <Choice
-            label={t('settings.theme')}
-            value={ui.theme}
-            options={[
-              ['dark', t('settings.themeDark')],
-              ['light', t('settings.themeLight')],
-              ['system', t('settings.themeSystem')],
-            ]}
-            onChange={(theme) => setUi({ theme })}
-          />
+          <ThemePicker value={ui.theme} onChange={(theme) => setUi({ theme })} />
           <Choice
             label={t('settings.startPage')}
             hint={t('settings.startPageHint')}

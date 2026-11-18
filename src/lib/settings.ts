@@ -5,7 +5,9 @@ import type { ArchiveFormat, OnConflict, Priority, SendAs, UploadOptions } from 
 import { t } from './i18n'
 
 export type Language = 'ru' | 'en'
-export type Theme = 'dark' | 'light' | 'system'
+export const THEMES = ['dark', 'light', 'sunset', 'navy', 'lavender', 'clay'] as const
+export type ThemeName = (typeof THEMES)[number]
+export type Theme = ThemeName | 'system'
 export type SortBy = 'name' | 'modified' | 'uploaded' | 'type' | 'size'
 export type StartPage = 'dashboard' | 'storages' | 'tasks'
 export type TasksFilter = 'all' | 'active_and_failed'
@@ -123,7 +125,7 @@ function readMirror(): SettingsPatch['interface'] {
   try {
     const value = JSON.parse(storage()?.getItem(MIRROR_KEY) ?? '{}')
     return {
-      ...(['light', 'dark', 'system'].includes(value.theme) ? { theme: value.theme } : {}),
+      ...([...THEMES, 'system'].includes(value.theme) ? { theme: value.theme } : {}),
       ...(value.language === 'ru' || value.language === 'en' ? { language: value.language } : {}),
     }
   } catch {
