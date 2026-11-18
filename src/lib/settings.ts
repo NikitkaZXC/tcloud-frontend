@@ -38,6 +38,7 @@ export interface Settings {
     fx_cursor: boolean
     fx_easter_eggs: boolean
   }
+  telegram: { chat_folder: boolean }
 }
 
 export type SettingsPatch = { [G in keyof Settings]?: Partial<Settings[G]> }
@@ -63,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
     fx_cursor: false,
     fx_easter_eggs: false,
   },
+  telegram: { chat_folder: true },
 }
 
 export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
@@ -70,6 +72,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     uploads: { ...base.uploads, ...patch.uploads },
     archives: { ...base.archives, ...patch.archives },
     interface: { ...base.interface, ...patch.interface },
+    telegram: { ...base.telegram, ...patch.telegram },
   }
 }
 

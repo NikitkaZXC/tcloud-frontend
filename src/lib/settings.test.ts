@@ -25,6 +25,7 @@ describe('settings', () => {
     expect(next.uploads).toEqual({ ...DEFAULT_SETTINGS.uploads, priority: 'high' })
     expect(next.interface.theme).toBe('light')
     expect(next.archives).toEqual(DEFAULT_SETTINGS.archives)
+    expect(next.telegram).toEqual({ chat_folder: true })
     expect(DEFAULT_SETTINGS.interface.theme).toBe('dark')
   })
 

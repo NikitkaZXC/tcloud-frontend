@@ -276,6 +276,17 @@ export function SettingsPage() {
         </div>
       </Section>
 
+      <Section label={t('settings.telegram')}>
+        <div className="grid">
+          <Toggle
+            label={t('settings.chatFolder')}
+            hint={t('settings.chatFolderHint')}
+            checked={settings.telegram.chat_folder}
+            onChange={(chat_folder) => save({ telegram: { chat_folder } })}
+          />
+        </div>
+      </Section>
+
       <Section label={t('settings.extras')}>
         <div className="grid">
           <Toggle label={t('settings.pet')} hint={t('settings.petHint')} checked={ui.fx_pet} onChange={(fx_pet) => setUi({ fx_pet })} />
