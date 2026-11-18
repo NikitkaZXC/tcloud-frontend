@@ -151,7 +151,7 @@ function pixels(list: [number, number, number, number][], className?: string) {
   return list.map(([x, y, w, h]) => <rect key={`${x}-${y}-${w}-${h}`} x={x} y={y} width={w} height={h} className={className} />)
 }
 
-export function StorageIcon({ io, off, scale = 2, className }: { io?: Io; off?: boolean; scale?: 1 | 2 | 3; className?: string }) {
+export function StorageIcon({ id, io, off, scale = 2, className }: { id?: string; io?: Io; off?: boolean; scale?: 1 | 2 | 3; className?: string }) {
   const read = io === 'read' || io === 'both'
   const write = io === 'write' || io === 'both'
   return (
@@ -160,6 +160,7 @@ export function StorageIcon({ io, off, scale = 2, className }: { io?: Io; off?: 
       width={23 * scale}
       height={17 * scale}
       className={cn('fx-drive', className)}
+      data-storage={id}
       data-read={read || undefined}
       data-write={write || undefined}
       data-off={off || undefined}

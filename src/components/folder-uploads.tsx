@@ -4,6 +4,8 @@ import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes } from '@/lib/format'
 import { IoTag } from '@/components/fx'
+import { Speedometer } from '@/components/meters'
+import { transferStats } from '@/lib/dashboard'
 import { useStorageIo, useStorages } from '@/hooks/use-storages'
 import { storageIdOf } from '@/lib/format'
 import { fileName, taskTitle } from '@/lib/names'
@@ -50,7 +52,8 @@ export function FolderUploads({ path }: { path: string }) {
   if (sending.length + tasks.length === 0) return null
 
   return (
-    <ul className="grid gap-3 rounded-xl border p-4">
+    <div className="fx-panel flex flex-wrap items-center gap-6 p-4">
+    <ul className="grid min-w-0 flex-1 basis-72 gap-3">
       {sending.map((item) => (
         <Row
           key={item.id}
@@ -70,6 +73,8 @@ export function FolderUploads({ path }: { path: string }) {
         />
       ))}
     </ul>
+    {(sending.length > 0 || tasks.some((task) => task.status === 'running')) && <Speedometer transfer={transferStats(sending, tasks)} />}
+    </div>
   )
 }
 

@@ -115,3 +115,57 @@ export function lingerIo(current: Record<string, Io>, seen: IoSeen, now: number,
   }
   return { io, seen: next, wake }
 }
+
+export interface Transfer {
+  speed: number
+  eta: number | null
+}
+
+export function transferStats(sending: Sending[], tasks: Task[]): Transfer {
+  const running = tasks.filter((task) => task.status === 'running')
+  const speed = sending.reduce((sum, item) => sum + (item.rate ?? 0), 0) + running.reduce((sum, task) => sum + (task.speed ?? 0), 0)
+  const etas = [
+    ...sending.filter((item) => item.rate).map((item) => (item.total - item.loaded) / item.rate!),
+    ...running.filter((task) => task.eta != null).map((task) => task.eta!),
+  ]
+  return { speed, eta: etas.length ? Math.max(...etas) : null }
+}
+
+export interface ActivityDay {
+  date: string
+  files: number
+  size: number
+}
+
+export interface FileActivity {
+  since: string
+  until: string
+  days: number
+  files: number
+  size: number
+  items: ActivityDay[]
+}
+
+export interface ActivityCell extends ActivityDay {
+  level: 0 | 1 | 2 | 3 | 4
+}
+
+const DAY = 86400000
+
+export function activityGrid(items: ActivityDay[], until: string, days = 365): ActivityCell[][] {
+  const end = Date.parse(`${until}T00:00:00Z`)
+  const byDate = new Map(items.map((item) => [item.date, item]))
+  const max = Math.max(0, ...items.map((item) => item.files))
+  const first = end - (days - 1) * DAY
+  const start = first - ((new Date(first).getUTCDay() + 6) % 7) * DAY
+  const weeks: ActivityCell[][] = []
+  for (let t = start; t <= end; t += DAY) {
+    const date = new Date(t).toISOString().slice(0, 10)
+    const day = byDate.get(date)
+    const files = t < first ? 0 : (day?.files ?? 0)
+    const level = files === 0 || !max ? 0 : (Math.min(Math.ceil((files / max) * 4), 4) as 1 | 2 | 3 | 4)
+    if ((t - start) % (7 * DAY) === 0) weeks.push([])
+    weeks.at(-1)!.push({ date, files, size: t < first ? 0 : (day?.size ?? 0), level })
+  }
+  return weeks
+}

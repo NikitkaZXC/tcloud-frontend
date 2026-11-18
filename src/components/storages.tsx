@@ -22,7 +22,7 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
   const to = `/files?path=${encodeURIComponent(storage.path)}`
   return (
     <div className="fx-panel flex gap-4 p-4">
-      <StorageIcon io={io} off={isUnavailable(storage)} className="mt-1" />
+      <StorageIcon id={storage.id} io={io} off={isUnavailable(storage)} className="mt-1" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <div className="flex items-start gap-2">
           <Link to={to} className="min-w-0 flex-1 truncate font-pixel text-[15px] tracking-[0.06em] uppercase hover:underline pointer-coarse:py-2.5">

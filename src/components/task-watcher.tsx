@@ -5,6 +5,7 @@ import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError } from '@/lib/api'
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
+import { TASK_EVENT } from '@/lib/features'
 import { taskTitle } from '@/lib/names'
 import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
@@ -35,6 +36,8 @@ export function TaskWatcher() {
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
       queryClient.invalidateQueries({ queryKey: ['account'] })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      window.dispatchEvent(new CustomEvent(TASK_EVENT, { detail: task.status }))
       const name = taskTitle(task, storages.data ?? []).name
       if (task.status === 'done' && task.archive) {
         const { id, path } = task

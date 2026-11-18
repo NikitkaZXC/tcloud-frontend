@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { channelUsage, healthChecks, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, channelUsage, healthChecks, transferStats, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -18,7 +18,7 @@ describe('dashboard', () => {
 
   it('aggregates uploads and tasks per storage', () => {
     const storages = [{ id: 'a', path: 'tcloud/a' }, { id: 'ab', path: 'tcloud/ab' }, { id: 'c', path: 'tcloud/c' }] as Storage[]
-    const sending = [{ id: 1, path: 'tcloud/a/x.txt', loaded: 50, total: 100 }]
+    const sending = [{ id: 1, path: 'tcloud/a/x.txt', loaded: 50, total: 100, rate: null, at: 0 }]
     const tasks = [
       { path: 'tcloud/a/b/y.txt', status: 'running', bytes_done: 50, bytes_total: 300 },
       { path: 'tcloud/a/z.txt', status: 'queued', bytes_done: 0, bytes_total: null },
@@ -56,8 +56,27 @@ describe('dashboard', () => {
   it('matches storage paths at the root, nested and by id', () => {
     const storages = [{ id: 'u1', path: 'tcloud/u1' }] as Storage[]
     const tasks = [{ path: 'tcloud/u1/a.txt', status: 'running', bytes_done: 1, bytes_total: 2 }] as Task[]
-    expect(storageActivity(storages, [{ id: 1, path: 'tcloud/u1/x/y.txt', loaded: 0, total: 0 }], tasks).u1.count).toBe(2)
+    expect(storageActivity(storages, [{ id: 1, path: 'tcloud/u1/x/y.txt', loaded: 0, total: 0, rate: null, at: 0 }], tasks).u1.count).toBe(2)
     expect(storageActivity([{ id: 'u1', path: 'tcloud/u1/' }] as Storage[], [], tasks).u1.count).toBe(1)
+  })
+
+  it('sums upload speed and takes the longest eta', () => {
+    const sending = [{ id: 1, path: 'a', loaded: 100, total: 1100, rate: 100, at: 0 }]
+    const tasks = [
+      { status: 'running', speed: 400, eta: 3 },
+      { status: 'queued', speed: 999, eta: 999 },
+    ] as Task[]
+    expect(transferStats(sending, tasks)).toEqual({ speed: 500, eta: 10 })
+    expect(transferStats([], [])).toEqual({ speed: 0, eta: null })
+  })
+
+  it('lays out the activity map by weeks starting on monday', () => {
+    const weeks = activityGrid([{ date: '2026-11-18', files: 4, size: 10 }, { date: '2026-11-16', files: 1, size: 1 }], '2026-11-18', 14)
+    expect(weeks.every((week) => week.length === 7 || week === weeks.at(-1))).toBe(true)
+    const cells = weeks.flat()
+    expect(cells[0].date).toBe('2026-11-02')
+    expect(cells.at(-1)).toEqual({ date: '2026-11-18', files: 4, size: 10, level: 4 })
+    expect(cells.find((cell) => cell.date === '2026-11-16')?.level).toBe(1)
   })
 
   it('uses account channel counters when the API has them', () => {

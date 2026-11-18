@@ -21,6 +21,8 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
+import { Extras, Pet, Tip } from '@/components/extras'
+import { PixelBursts } from '@/components/pixel-fx'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
@@ -86,7 +88,7 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
               )}
             >
               <span className="flex min-w-0 items-center gap-2">
-                <StorageIcon io={io[storage.id]} off={isUnavailable(storage)} scale={1} />
+                <StorageIcon id={storage.id} io={io[storage.id]} off={isUnavailable(storage)} scale={1} />
                 <span className="truncate" title={storageName(storage)}>{storageName(storage)}</span>
                 <IoTag io={io[storage.id]} short />
               </span>
@@ -235,6 +237,7 @@ function Sidebar({
           )}
         </div>
       </div>
+      <Pet />
       <div className={cn('fx-panel flex items-center gap-2 p-2.5', collapsed && 'flex-col')}>
         <NavLink
           to="/account"
@@ -326,10 +329,13 @@ export function Layout() {
       </DialogPrimitive.Root>
       <div className="min-w-0 flex-1">
         <TaskWatcher />
+        <PixelBursts />
+        <Extras />
         <CommandPalette />
         <CornerHint />
         <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-12 md:py-10">
           <Outlet />
+          <Tip />
         </main>
       </div>
     </div>

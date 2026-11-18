@@ -29,6 +29,8 @@ import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
 import { FileDialog } from '@/components/file-dialog'
 import { FolderUploads, IoBanner } from '@/components/folder-uploads'
+import { StorageIcon } from '@/components/fx'
+import { useFeature } from '@/lib/features'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -197,6 +199,7 @@ export function FolderView({ path }: { path: string }) {
   const dirInput = useRef<HTMLInputElement>(null)
   const search = useRef<HTMLInputElement>(null)
 
+  const eggs = useFeature('eggs')
   const storageId = storageIdOf(path)
   const storage = storages.data?.find((s) => s.id === storageId)
   const isRoot = path.split('/').length <= 2
@@ -533,7 +536,7 @@ export function FolderView({ path }: { path: string }) {
       {listing.error && <p className="text-destructive">{listing.error.message}</p>}
       {empty && (
         <div className="fx-panel grid justify-items-center gap-3 p-10 text-center">
-          <UploadIcon className="size-8 text-primary" />
+          {eggs ? <StorageIcon scale={3} /> : <UploadIcon className="size-8 text-primary" />}
           <p className="fx-pixel text-[20px] uppercase">Папка пуста</p>
           <p className="max-w-md text-sm text-muted-foreground">
             Перетащите сюда файлы или целые папки, вставьте файл из буфера (Ctrl+V) или выберите на устройстве.

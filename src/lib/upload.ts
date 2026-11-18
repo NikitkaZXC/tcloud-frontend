@@ -7,6 +7,15 @@ export interface Sending {
   path: string
   loaded: number
   total: number
+  rate: number | null
+  at: number
+}
+
+export function nextRate(item: Pick<Sending, 'loaded' | 'rate' | 'at'>, loaded: number, now: number): number | null {
+  const seconds = (now - item.at) / 1000
+  if (seconds <= 0) return item.rate
+  const current = Math.max(loaded - item.loaded, 0) / seconds
+  return item.rate == null ? current : item.rate * 0.7 + current * 0.3
 }
 
 let sending: Sending[] = []
@@ -20,12 +29,13 @@ function setSending(next: Sending[]) {
 
 export function startSending(path: string, total: number): number {
   const id = ++nextId
-  setSending([...sending, { id, path, loaded: 0, total }])
+  setSending([...sending, { id, path, loaded: 0, total, rate: null, at: Date.now() }])
   return id
 }
 
 export function updateSending(id: number, loaded: number) {
-  setSending(sending.map((item) => (item.id === id ? { ...item, loaded } : item)))
+  const now = Date.now()
+  setSending(sending.map((item) => (item.id === id ? { ...item, loaded, rate: nextRate(item, loaded, now), at: now } : item)))
 }
 
 export function finishSending(id: number) {

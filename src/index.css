@@ -690,6 +690,140 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   }
 }
 
+.fx-speedo {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.fx-speedo svg {
+  width: 11rem;
+  shape-rendering: crispEdges;
+}
+
+.fx-speedo-off { fill: var(--track); }
+.fx-speedo-on { fill: var(--warning); }
+.fx-speedo-hub { fill: var(--foreground); }
+
+.fx-speedo-needle {
+  fill: var(--foreground);
+  transform-box: view-box;
+  transform-origin: 60px 62px;
+  transition: rotate 0.6s steps(6);
+}
+
+.fx-flaps {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.fx-flap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 2rem;
+  padding: 0 0.15rem;
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  background: var(--track);
+  background-image: linear-gradient(transparent calc(50% - 1px), var(--background) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  animation: fx-flip 0.3s steps(3) both;
+}
+
+@keyframes fx-flip {
+  from { transform: scaleY(0.1); }
+}
+
+.fx-heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 10px;
+  gap: 2px;
+  width: max-content;
+}
+
+.fx-heat-cell {
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: var(--track);
+}
+
+.fx-heat-cell[data-level="1"] { background: #235347; }
+.fx-heat-cell[data-level="2"] { background: color-mix(in oklab, #235347, #8eb69b); }
+.fx-heat-cell[data-level="3"] { background: #8eb69b; }
+.fx-heat-cell[data-level="4"] { background: #daf1de; }
+:root.light .fx-heat-cell[data-level="3"] { background: #235347; }
+:root.light .fx-heat-cell[data-level="4"] { background: #051f20; }
+:root.light .fx-heat-cell[data-level="1"] { background: #8eb69b; }
+:root.light .fx-heat-cell[data-level="2"] { background: color-mix(in oklab, #235347, #8eb69b); }
+
+.fx-pet {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0;
+  color: var(--foreground);
+}
+
+.fx-pet svg { shape-rendering: crispEdges; }
+.fx-pet-body { fill: var(--foreground); }
+.fx-pet-face { fill: var(--card); }
+.fx-pet svg g, .fx-pet-mouth { fill: var(--foreground); }
+.fx-pet-eyes-shut, .fx-pet-z { display: none; }
+.fx-pet[data-mood=sleep] .fx-pet-eyes-open { display: none; }
+.fx-pet[data-mood=sleep] :is(.fx-pet-eyes-shut, .fx-pet-z) { display: inline; }
+.fx-pet[data-mood=sleep] .fx-pet-z { animation: fx-blink 2s steps(1) infinite; }
+.fx-pet[data-mood=eat] .fx-pet-mouth { fill: var(--warning); animation: fx-chomp 0.4s steps(1) infinite; }
+.fx-pet[data-mood=happy] svg { animation: fx-hop 0.5s steps(2) 4; }
+.fx-pet[data-mood=happy] .fx-pet-mouth { fill: var(--success); }
+.fx-pet[data-mood=scared] svg { animation: fx-shake 0.2s steps(2) 8; }
+.fx-pet[data-mood=scared] .fx-pet-eyes-open { fill: var(--destructive); }
+
+@keyframes fx-chomp { 50% { height: 3px; } }
+@keyframes fx-hop { 50% { translate: 0 -4px; } }
+@keyframes fx-shake { 50% { translate: 2px 0; } }
+
+:root.fx-cursor, :root.fx-cursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h2v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1H8v1h1v2H8v1H7v-2H6v-1H5v1H4v1H3v1H1z' fill='%23051f20'/%3E%3Cpath d='M2 3h1v1h1v1h1v1h1v1h1v1h1v1H7v2H6v-1H5v1H4v1H3v1H2z' fill='%23daf1de'/%3E%3C/svg%3E") 1 1, auto;
+}
+
+:root.fx-secret {
+  --background: #1a1205;
+  --foreground: #ffd58a;
+  --card: #241a08;
+  --popover: #241a08;
+  --muted-foreground: #c9a25a;
+  --border: #4a3510;
+  --input: #6b4d18;
+  --track: #3a2a0c;
+  --dither: #6b4d18;
+  --ring-from: #c9a25a;
+  --ring-to: #ffd58a;
+  --primary: #ffd58a;
+  --primary-foreground: #1a1205;
+}
+
+.fx-px-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fx-px {
+  position: absolute;
+  animation: fx-px 0.9s steps(9) both;
+  image-rendering: pixelated;
+}
+
+@keyframes fx-px {
+  from { translate: 0 0; opacity: 1; }
+  80% { opacity: 1; }
+  to { translate: var(--dx) var(--dy); opacity: 0; }
+}
+
 @keyframes fx-rise {
   from { opacity: 0; translate: 0 6px; }
 }
@@ -721,7 +855,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
-  .fx-light, .fx-flow, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar {
+  .fx-light, .fx-flow, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth {
     animation: none !important;
   }
 }

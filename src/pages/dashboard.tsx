@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { Achievements } from '@/components/extras'
+import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
 import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
@@ -9,7 +11,7 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
+import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
@@ -116,7 +118,9 @@ function ActivitySection() {
         ))}
       </ul>
       {sending.length + running.length > 0 && (
-        <ul className={`fx-stagger fx-dotted border-t pt-5 ${rings}`} aria-label="Загрузки в процессе">
+        <div className="fx-dotted flex flex-wrap items-center justify-center gap-8 border-t pt-5 sm:justify-start">
+          <Speedometer transfer={transferStats(sending, tasks)} />
+            <ul className={`fx-stagger ${rings} flex-1`} aria-label="Загрузки в процессе">
           {sending.slice(0, 8).map((item) => (
             <li key={`s${item.id}`} className="w-28">
               <Ring
@@ -139,7 +143,8 @@ function ActivitySection() {
               />
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
       <Button asChild variant="outline" size="sm" className="justify-self-start">
         <Link to="/tasks">Все задачи</Link>
@@ -201,7 +206,7 @@ function Checklist() {
   const tasks = useTrackedData()
   if (hidden || !telegram.data || !storages.data) return null
   const steps = checklist(telegram.data.sessions, storages.data, tasks)
-  if (steps.every((step) => step.done)) return null
+  if (steps.every((step) => step.done)) return <Achievements files={0} size={0} checklist />
 
   return (
     <Section label="Первый запуск">
@@ -251,6 +256,7 @@ export function DashboardPage() {
         </div>
         <WireCubes className="hidden w-64 md:block" />
       </header>
+      <Achievements files={totals.files} size={totals.size} checklist={false} />
       {me?.role === 'root' && <Checklist />}
       <section aria-label="Сводка" className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l lg:[&>*:not(:first-child)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0">
         <Stat label="файлов загружено" value={totals.files} />
@@ -261,6 +267,9 @@ export function DashboardPage() {
       <ChannelsSection />
       <StoragesSection />
       <ActivitySection />
+      <Section label="Карта загрузок">
+        <ActivityMap />
+      </Section>
       <SystemSection />
       {isAdmin(me) && <UsersSection />}
     </div>
