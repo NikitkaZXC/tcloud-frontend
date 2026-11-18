@@ -71,6 +71,8 @@ export interface Storage {
   updated_at: string
   files: number | null
   total_size: number | null
+  preview_count?: number
+  preview_bytes?: number
 }
 
 export interface TFile {

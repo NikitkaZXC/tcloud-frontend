@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -14,6 +14,13 @@ describe('dashboard', () => {
 
   it('ignores nulls when every counter is hidden', () => {
     expect(storageTotals([{ files: null, total_size: null, available: false }] as Storage[])).toEqual({ storages: 1, files: 0, size: 0, unavailable: 1 })
+  })
+
+  it('sums previews and hides them when the backend does not report them', () => {
+    const storages = [{ preview_count: 2, preview_bytes: 300 }, { preview_count: 0, preview_bytes: 0 }, { preview_count: 5, preview_bytes: 700 }] as Storage[]
+    expect(previewTotals(storages)).toEqual({ count: 7, bytes: 1000 })
+    expect(previewTotals([{ files: 1 }] as Storage[])).toBeNull()
+    expect(previewTotals([])).toBeNull()
   })
 
   it('aggregates uploads and tasks per storage', () => {

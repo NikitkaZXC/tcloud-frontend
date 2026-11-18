@@ -38,6 +38,12 @@ export function storageTotals(storages: Storage[]) {
   return { storages: storages.length, files, size, unavailable: storages.filter((s) => s.available === false).length }
 }
 
+export function previewTotals(storages: Storage[]) {
+  const reported = storages.filter((s) => s.preview_count !== undefined)
+  if (!reported.length) return null
+  return { count: reported.reduce((sum, s) => sum + (s.preview_count ?? 0), 0), bytes: reported.reduce((sum, s) => sum + (s.preview_bytes ?? 0), 0) }
+}
+
 export function taskCounts(counts: TaskCounts | undefined): Record<TaskStatus, number> {
   return { queued: 0, running: 0, done: 0, failed: 0, cancelled: 0, ...counts?.by_status }
 }

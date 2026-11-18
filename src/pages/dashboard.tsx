@@ -11,7 +11,7 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { channelUsage, HEALTH_LABELS, healthGroups, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { channelUsage, HEALTH_LABELS, healthGroups, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
@@ -267,7 +267,9 @@ function Checklist() {
 export function DashboardPage() {
   const { data: me } = useMe()
   const showMap = useSettings().interface.activity_map
-  const totals = storageTotals(useStorages().data ?? [])
+  const storageList = useStorages().data ?? []
+  const totals = storageTotals(storageList)
+  const previews = previewTotals(storageList)
   const counts = taskCounts(useTaskCounts().data)
   const active = counts.queued + counts.running + useSending().length
 
@@ -287,6 +289,12 @@ export function DashboardPage() {
         <Stat label={t('dashboard.storagesShort')} value={totals.storages} />
         <Stat label={t('dashboard.activeTasks')} value={active} />
       </section>
+      {previews && (
+        <section aria-label={t('dashboard.previews')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l">
+          <Stat label={t('dashboard.previews')} value={previews.count} />
+          <Stat label={t('dashboard.previewsSize')} value={previews.bytes} format={formatBytes} />
+        </section>
+      )}
       <ChannelsSection />
       <StoragesSection />
       <ActivitySection />

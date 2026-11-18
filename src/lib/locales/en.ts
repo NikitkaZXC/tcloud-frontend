@@ -102,6 +102,8 @@ export const en: Record<Key, Entry> = {
   'dashboard.telegramOff': 'Telegram is not connected: account limits appear after sign-in.',
   'dashboard.todo': 'to do',
   'dashboard.totalSize': 'size across storages',
+  'dashboard.previews': 'previews',
+  'dashboard.previewsSize': 'preview size',
   'dashboard.unhealthy': 'failure',
   'eggs.secretOff': 'Secret theme off',
   'eggs.secretOn': 'Secret theme on',

@@ -102,6 +102,8 @@ export const ru = {
   'dashboard.telegramOff': 'Telegram не подключён: лимиты аккаунта появятся после входа.',
   'dashboard.todo': 'нужно',
   'dashboard.totalSize': 'объём во всех хранилищах',
+  'dashboard.previews': 'превью',
+  'dashboard.previewsSize': 'объём превью',
   'dashboard.unhealthy': 'есть сбой',
   'eggs.secretOff': 'Секретная тема выключена',
   'eggs.secretOn': 'Секретная тема включена',
