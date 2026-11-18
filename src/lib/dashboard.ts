@@ -12,11 +12,24 @@ export const HEALTH_LABELS: Record<string, Key> = {
   telegram_download: 'health.telegramDownload',
 }
 
+export type HealthGroup = 'telegram' | 'workers' | 'infra' | 'antivirus'
+
+const HEALTH_GROUPS: [HealthGroup, (keyof Health)[] | null][] = [
+  ['telegram', ['telegram', 'telegram_upload', 'telegram_download']],
+  ['workers', null],
+  ['infra', ['db', 'redis', 'queue']],
+  ['antivirus', ['antivirus']],
+]
+
+export function healthGroups(health: Health): { id: HealthGroup; checks: [string, boolean][] }[] {
+  return HEALTH_GROUPS.map(([id, keys]) => ({
+    id,
+    checks: keys ? keys.map((key) => [key, Boolean(health[key])] as [string, boolean]) : Object.entries(health.workers),
+  })).filter((group) => group.checks.length > 0)
+}
+
 export function healthChecks(health: Health): [string, boolean][] {
-  return [
-    ...Object.keys(HEALTH_LABELS).map((key) => [key, Boolean(health[key as keyof Health])] as [string, boolean]),
-    ...Object.entries(health.workers).map(([key, ok]) => [`worker ${key}`, ok] as [string, boolean]),
-  ]
+  return healthGroups(health).flatMap((group) => group.checks)
 }
 
 export function storageTotals(storages: Storage[]) {

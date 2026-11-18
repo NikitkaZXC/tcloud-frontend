@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import { XIcon } from 'lucide-react'
+import { CpuIcon, SendIcon, ServerIcon, ShieldCheckIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Achievements } from '@/components/extras'
 import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
-import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
+import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, StatusLight, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
 import { api, ApiError } from '@/lib/api'
-import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { channelUsage, HEALTH_LABELS, healthGroups, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
@@ -35,9 +35,12 @@ function useTrackedData(): Task[] {
     .filter((task): task is Task => !!task)
 }
 
+const GROUP_ICONS = { telegram: SendIcon, workers: CpuIcon, infra: ServerIcon, antivirus: ShieldCheckIcon }
+
 function SystemSection() {
   const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
-  const checks = health.data ? healthChecks(health.data) : []
+  const groups = health.data ? healthGroups(health.data) : []
+  const checks = groups.flatMap((group) => group.checks)
   const ok = checks.filter(([, value]) => value).length
 
   return (
@@ -53,13 +56,27 @@ function SystemSection() {
             caption={t('dashboard.components', { ok, n: checks.length })}
             tone={health.data?.ok ? 'ok' : 'fail'}
           />
-          <ul className={`fx-stagger ${rings} flex-1`}>
-            {checks.map(([key, value]) => (
-              <li key={key}>
-                <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ? t(HEALTH_LABELS[key]) : key} tone={value ? 'ok' : 'fail'} />
-              </li>
-            ))}
-          </ul>
+          <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+            {groups.map(({ id, checks: rows }) => {
+              const Icon = GROUP_ICONS[id]
+              return (
+                <div key={id} className="fx-panel grid content-start gap-4 p-4">
+                  <h3 className="fx-group-label">
+                    <Icon className="size-4 shrink-0" />
+                    <span className="flex-1">{t(`health.group.${id}`)}</span>
+                    <StatusLight ok={rows.every(([, value]) => value)} />
+                  </h3>
+                  <ul className={`fx-stagger ${rings}`}>
+                    {rows.map(([key, value]) => (
+                      <li key={key}>
+                        <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ? t(HEALTH_LABELS[key]) : key} tone={value ? 'ok' : 'fail'} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </Section>

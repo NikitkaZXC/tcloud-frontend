@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, channelUsage, healthChecks, transferStats, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -97,8 +97,15 @@ describe('dashboard', () => {
     const health = { ok: false, db: true, redis: true, queue: false, antivirus: true, telegram: true, telegram_upload: true, telegram_download: true, workers: { 'archives.build': false } } as Health
     const checks = healthChecks(health)
     expect(checks).toContainEqual(['queue', false])
-    expect(checks.at(-1)).toEqual(['worker archives.build', false])
+    expect(checks).toContainEqual(['archives.build', false])
     expect(checks.find(([key]) => key === 'ok')).toBeUndefined()
+  })
+
+  it('groups health checks by component and drops empty groups', () => {
+    const health = { ok: true, db: true, redis: true, queue: true, antivirus: true, telegram: true, telegram_upload: false, telegram_download: true, workers: {} } as Health
+    const groups = healthGroups(health)
+    expect(groups.map((group) => group.id)).toEqual(['telegram', 'infra', 'antivirus'])
+    expect(groups[0].checks).toEqual([['telegram', true], ['telegram_upload', false], ['telegram_download', true]])
   })
 
   it('counts tasks by status', () => {
