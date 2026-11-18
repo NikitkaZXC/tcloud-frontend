@@ -66,7 +66,7 @@ import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
-import { archiveError, selectionPayload } from '@/lib/archive'
+import { archiveError, archiveName, selectionPayload } from '@/lib/archive'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -208,7 +208,7 @@ export function FolderView({ path }: { path: string }) {
     ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format }),
     { success: ARCHIVE_STARTED, onSuccess: (task) => trackTask(task.id), describe: archiveError },
   )
-  const archiveSelection = useAction((format: ArchiveFormat) => api.post<Task>('/folders/archive/selection', selectionPayload(picked, format)), {
+  const archiveSelection = useAction((format: ArchiveFormat) => api.post<Task>('/folders/archive/selection', selectionPayload(picked, format, isRoot ? archiveName(storage?.name) : undefined)), {
     success: ARCHIVE_STARTED,
     onSuccess: (task) => {
       trackTask(task.id)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from './api'
-import { archiveError, selectionPayload } from './archive'
+import { archiveError, archiveName, selectionPayload } from './archive'
 
 describe('selection archive', () => {
   it('splits selected keys into file ids and folder paths', () => {
@@ -10,6 +10,12 @@ describe('selection archive', () => {
       format: '7z',
       priority: 'normal',
     })
+  })
+
+  it('names a selection at the storage root after the storage, not its id', () => {
+    expect(archiveName('Фото/2026')).toBe('Фото-2026-выбранное')
+    expect(archiveName(null)).toBeUndefined()
+    expect(selectionPayload(['f:u1'], 'zip', 'Фото-выбранное').name).toBe('Фото-выбранное')
   })
 
   it('explains backend errors', () => {

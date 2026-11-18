@@ -6,10 +6,17 @@ export interface SelectionArchive {
   folders: string[]
   format: ArchiveFormat
   priority: Priority
+  name?: string
 }
 
-export function selectionPayload(keys: string[], format: ArchiveFormat): SelectionArchive {
+export function archiveName(storage: string | null | undefined): string | undefined {
+  const name = storage?.replace(/[/\\\p{Cc}]+/gu, '-').trim().slice(0, 190)
+  return name ? `${name}-выбранное` : undefined
+}
+
+export function selectionPayload(keys: string[], format: ArchiveFormat, name?: string): SelectionArchive {
   return {
+    ...(name ? { name } : {}),
     files: keys.filter((key) => key.startsWith('f:')).map((key) => key.slice(2)),
     folders: keys.filter((key) => key.startsWith('d:')).map((key) => key.slice(2)),
     format,

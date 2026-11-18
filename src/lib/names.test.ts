@@ -15,6 +15,7 @@ describe('names', () => {
   it('titles uploads by file name and archives by archive name', () => {
     expect(taskTitle({ path: 'tcloud/01a1eb9b-0000/933.jpg', archive: null } as Task, storages)).toEqual({ name: '933.jpg', where: 'Фото' })
     expect(taskTitle({ path: 'tcloud/01a1eb9b-0000/2025', archive: { name: '2025.zip' } } as Task, storages)).toEqual({ name: '2025.zip', where: 'Фото › 2025' })
+    expect(taskTitle({ path: 'tcloud/01a1eb9b-0000', archive: { name: '01a1eb9b-0000-3-files.zip' } } as Task, storages).name).toBe('Фото-3-files.zip')
     expect(fileName('tcloud/x/a/b.txt')).toBe('b.txt')
   })
 

@@ -25,7 +25,11 @@ export function humanPath(path: string, storages: Pick<Storage, 'id' | 'name'>[]
 }
 
 export function taskTitle(task: Pick<Task, 'path' | 'archive'>, storages: Pick<Storage, 'id' | 'name'>[] = []): { name: string; where: string } {
-  if (task.archive) return { name: task.archive.name, where: humanPath(task.path, storages) }
+  if (task.archive) {
+    const id = parts(task.path)[1] ?? ''
+    const name = id ? task.archive.name.replaceAll(id, storageName(storages.find((s) => s.id === id))) : task.archive.name
+    return { name, where: humanPath(task.path, storages) }
+  }
   return { name: fileName(task.path), where: humanPath(parts(task.path).slice(0, -1).join('/'), storages) }
 }
 
