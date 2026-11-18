@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project
 
-Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian and English (`lib/i18n.ts`). Details in `README.md`.
+Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian and English (`lib/i18n.ts`). Details in `README.md`; how it works, with Mermaid diagrams, in `docs/` (`architecture.md`, `data-flow.md`, `uploads-and-tasks.md`, `theming.md`).
 
 ## Commands
 
@@ -19,7 +19,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ## Architecture
 
 - `src/lib/api.ts`: every call goes through `request`/`api.*` (prefix `/api`, `credentials: same-origin`, one refresh on 401, errors as `ApiError` with backend `code`). `src/lib/types.ts` mirrors backend response schemas (`src/application/schemas` there) — update it when the API changes.
-- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`, `account`, `activity/<path>`, `search/<api query>`, `mimes/<path>`.
+- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `telegram-devices`, `health`, `account`, `activity/<path>`, `search/<api query>`, `mimes/<path>`.
 - Tasks are tracked by id in localStorage (`lib/tasks.ts`); the backend has no "my tasks" list on purpose.
 - User preferences live on the server (`GET/PATCH/DELETE /api/account/settings`, also `settings` in `/users/me`): `lib/settings.ts` store (`useSettings`, `updateSettings` optimistic + revert, `hydrateSettings` from `useMe`), page `/settings`. Never add new localStorage prefs; `tcloud.mirror` (theme/language before `/users/me`) is a mirror only. Old `tcloud.view`/`sort`/`theme`/`feature.*` are migrated once (`migrateLegacy`) and removed.
 - Other localStorage keys (`tcloud.onboarding.dismissed`, `tcloud.sidebar`, `tcloud.achievements`) go through `lib/prefs.ts` or try/catch; they are conveniences only.
@@ -48,5 +48,6 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ## Rules
 
 - Plan first; important decisions go to the owner as multiple-choice questions.
-- No code comments; explanations go to README.md. Keep README.md and this file current.
+- No code comments; explanations go to README.md and `docs/`. Keep README.md, `docs/` and this file current.
+- When code changes a flow shown in `docs/`, update the doc and its diagram in the same commit.
 - Tests for new logic in `src/lib`. Commits: one-line English (`feat:`, `fix:`), **never push**.

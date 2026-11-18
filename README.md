@@ -5,6 +5,10 @@
 
 Vite + React 19 + TypeScript, Tailwind v4 + shadcn/ui, TanStack Query, react-router.
 
+Как всё устроено, со схемами — в [docs/](docs/README.md): [архитектура и авторизация](docs/architecture.md),
+[запросы, инвалидации и настройки](docs/data-flow.md), [загрузки и задачи](docs/uploads-and-tasks.md),
+[темы](docs/theming.md).
+
 ## Запуск
 
 ```bash
@@ -12,8 +16,18 @@ npm install
 npm run dev        # http://localhost:5173, /api проксируется на http://127.0.0.1:8000 (API_URL=... чтобы сменить)
 npm test           # vitest
 npm run build      # tsc + сборка в dist/
+npm run preview    # отдать собранный dist/ локально
 npm run lint       # oxlint
 ```
+
+Переменные окружения:
+
+| Переменная | Где | По умолчанию | Зачем |
+|---|---|---|---|
+| `API_URL` | `npm run dev` (`vite.config.ts`) | `http://127.0.0.1:8000` | куда Vite проксирует `/api` |
+| `API_UPSTREAM` | Docker-образ (`docker/nginx.conf.template`) | `http://app:8000` | куда nginx проксирует `/api/` |
+
+Своего `.env` у фронтенда нет; адрес API в сборку не зашивается — запросы всегда идут на тот же origin, `/api`.
 
 Бэкенд должен быть запущен (`make dev-up-all` или `make app` в tcloud-backend). Вход — логином и паролем пользователя
 tcloud (root: `ROOT_LOGIN`/`ROOT_PASSWORD` из `.env` бэкенда).
@@ -27,6 +41,9 @@ docker run -p 8080:80 -e API_UPSTREAM=http://app:8000 tcloud-frontend
 
 nginx отдаёт сборку и проксирует `/api` на `API_UPSTREAM` без буферизации (большие загрузки и скачивания идут потоком,
 таймауты 1 ч, без лимита тела). Перед ним в проде нужен HTTPS: cookie авторизации — `Secure`.
+Образ двухэтапный (`Dockerfile`): `node` собирает `dist/`, `nginx` отдаёт его; шаблон
+`docker/nginx.conf.template` подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем),
+остальное — `no-cache` с откатом на `index.html` (маршруты SPA).
 
 ## Как устроено
 
@@ -239,10 +256,11 @@ src/
   lib/          i18n и словари (locales/), api-клиент, типы ответов API, форматирование и пути, загрузка (и обход папок), список задач, итоги
                 дашборда и лимит каналов, лампы чтения/записи (reads, lingerIo), эффекты, тема, ошибки входа и шаги Telegram
                 (auth), чек-лист, листинг (files), команды, prefs
-  hooks/        useMe, useStorages, useTasks, useAction (мутация + toast + инвалидация), useProgress (анимации),
-                useCountdown/useNow (отсчёты)
+  hooks/        useMe, useStorages/useStorageIo, useTasks, useAction (мутация + toast + инвалидация), useSearch/useMimes,
+                useFileActivity, useTween (анимации), useCountdown/useNow (отсчёты)
   components/   layout (боковая панель), командная строка, пиксельный кит (fx: кольца, иконка накопителя, разделы), хранилища, папка, диалоги загрузки/файла,
                 ключи, доступы; ui/ — shadcn
-  pages/        login, dashboard, files, tasks, account, settings, users, user, telegram
+  pages/        login, dashboard, files, search, tasks, account, settings, users, user, telegram
 docker/         шаблон конфига nginx
+docs/           как устроено, схемы Mermaid
 ```
