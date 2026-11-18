@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -112,5 +112,12 @@ describe('dashboard', () => {
   it('counts tasks by status', () => {
     expect(taskCounts({ total: 3, by_status: { done: 2, failed: 1 } })).toEqual({ queued: 0, running: 0, done: 2, failed: 1, cancelled: 0 })
     expect(taskCounts(undefined)).toEqual({ queued: 0, running: 0, done: 0, failed: 0, cancelled: 0 })
+  })
+
+  it('merges server storage activity with local io', () => {
+    const server = serverIo([{ storage_id: 'a', read: true, write: false }, { storage_id: 'b', read: false, write: false }, { storage_id: 'c', read: true, write: true }])
+    expect(server).toEqual({ a: 'read', c: 'both' })
+    expect(serverIo(undefined)).toEqual({})
+    expect(mergeIo({ a: 'write', d: 'write' }, server)).toEqual({ a: 'both', c: 'both', d: 'write' })
   })
 })

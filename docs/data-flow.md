@@ -14,6 +14,7 @@
 | `['folder', path]` | `GET /folders?path=` | `components/folder-view.tsx` | палитра читает кэш `getQueryData(['folder', folder])` |
 | `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1,5 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
 | `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 с; `TaskWatcher` инвалидирует пачкой |
+| `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 2,5 с (в фоне не опрашивается); сливается с локальными лампами `mergeIo` |
 | `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, страницы по `offset`; `lang` (язык интерфейса) входит в `apiQuery`, порядок по имени — от бэкенда |
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `staleTime` 60 с, `retry: false` |
@@ -109,6 +110,7 @@ flowchart LR
     reads["lib/reads.ts<br/>useReads: 5 с после markRead"]
     lang["lib/i18n.ts<br/>useLang"]
     io["hooks/use-storages.ts<br/>useStorageIo + lingerIo"]
+    srvIo["['storage-activity']<br/>GET /storages/activity"] --> io
     sending --> io
     tasks --> io
     reads --> io

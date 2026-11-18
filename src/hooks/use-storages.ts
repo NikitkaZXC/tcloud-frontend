@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useSyncExternalStore } from 'react'
 import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { type Io, type IoSeen, lingerIo, storageActivity, storageIo } from '@/lib/dashboard'
+import { type Io, type IoSeen, lingerIo, mergeIo, serverIo, storageActivity, storageIo } from '@/lib/dashboard'
 import { useReads } from '@/lib/reads'
 import { useTrackedTasks } from '@/lib/tasks'
-import type { Storage, Task } from '@/lib/types'
+import type { Storage, StorageActivity, Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
 export function useStorages() {
@@ -42,7 +42,9 @@ function publish(current: Record<string, Io>) {
 
 export function useStorageIo(storages: Storage[]): Record<string, Io> {
   const tasks = useTrackedData()
-  const current = storageIo(storages, storageActivity(storages, useSending(), tasks), tasks, useReads())
+  const local = storageIo(storages, storageActivity(storages, useSending(), tasks), tasks, useReads())
+  const server = useQuery({ queryKey: ['storage-activity'], queryFn: () => api.get<StorageActivity[]>('/storages/activity'), refetchInterval: 2500 })
+  const current = mergeIo(local, serverIo(server.data))
   const key = JSON.stringify(current)
   useEffect(() => publish(JSON.parse(key)), [key])
   const io = useSyncExternalStore(
@@ -52,7 +54,5 @@ export function useStorageIo(storages: Storage[]): Record<string, Io> {
     },
     () => lingering,
   )
-  const merged = { ...io }
-  for (const [id, value] of Object.entries(current)) merged[id] = merged[id] && merged[id] !== value ? 'both' : value
-  return merged
+  return mergeIo(io, current)
 }

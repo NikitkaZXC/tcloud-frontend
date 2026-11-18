@@ -1,4 +1,4 @@
-import type { Account, Health, Storage, Task, TaskCounts, TaskStatus } from './types'
+import type { Account, Health, Storage, StorageActivity, Task, TaskCounts, TaskStatus } from './types'
 import type { Key } from './i18n'
 import type { Sending } from './upload'
 
@@ -87,6 +87,18 @@ export function storageIo(storages: Storage[], activity: Record<string, Activity
     const read = readPaths.some((path) => inside(storage, path))
     if (write || read) result[storage.id] = write && read ? 'both' : write ? 'write' : 'read'
   }
+  return result
+}
+
+export function serverIo(activity: StorageActivity[] = []): Record<string, Io> {
+  const result: Record<string, Io> = {}
+  for (const { storage_id, read, write } of activity) if (read || write) result[storage_id] = read && write ? 'both' : write ? 'write' : 'read'
+  return result
+}
+
+export function mergeIo(...maps: Record<string, Io>[]): Record<string, Io> {
+  const result: Record<string, Io> = {}
+  for (const map of maps) for (const [id, io] of Object.entries(map)) result[id] = result[id] && result[id] !== io ? 'both' : io
   return result
 }
 

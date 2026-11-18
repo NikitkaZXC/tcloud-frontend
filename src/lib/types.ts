@@ -148,6 +148,12 @@ export interface Task {
   updated_at: string
 }
 
+export interface StorageActivity {
+  storage_id: string
+  read: boolean
+  write: boolean
+}
+
 export interface TaskCounts {
   total: number
   by_status: Partial<Record<TaskStatus, number>>
