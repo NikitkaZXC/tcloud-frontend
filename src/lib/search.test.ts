@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { foundLocation } from './names'
+import { getLang } from './i18n'
 import { defaultScope, isDesc, EMPTY_SEARCH, hasCriteria, parseSearch, searchQuery, searchUrl, scopePath } from './search'
 
 const sid = '0190a2b4-0000-7000-8000-000000000000'
@@ -37,6 +38,7 @@ describe('search state', () => {
     expect(params.get('encrypted')).toBe('true')
     expect(params.get('offset')).toBe('50')
     expect(params.has('sort')).toBe(false)
+    expect(params.get('lang')).toBe(getLang())
     expect(scopePath({ scope: 'folder', in: folder })).toBe(folder)
     expect(scopePath({ scope: 'all', in: folder })).toBeUndefined()
   })

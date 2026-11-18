@@ -1,6 +1,6 @@
 import { storageIdOf } from './format'
 import type { TFile } from './types'
-import type { Key } from './i18n'
+import { getLang, type Key } from './i18n'
 
 export type Scope = 'folder' | 'storage' | 'all'
 export type SearchSort = 'relevance' | 'name' | 'size' | 'date'
@@ -145,6 +145,7 @@ export function searchQuery(state: SearchState, offset = 0, limit = 50): string 
   if (state.encrypted) params.set('encrypted', 'true')
   if (state.sort !== 'relevance') params.set('sort', state.sort)
   if (state.desc != null) params.set('order', state.desc ? 'desc' : 'asc')
+  params.set('lang', getLang())
   params.set('limit', String(limit))
   params.set('offset', String(offset))
   return params.toString()
