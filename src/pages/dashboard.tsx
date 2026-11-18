@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, CpuIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, SendIcon, ServerIcon, ShieldCheckIcon, XIcon } from 'lucide-react'
 import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Link } from 'react-router'
+import { Link, useBlocker } from 'react-router'
+import { Confirm } from '@/components/confirm'
 import { Achievements } from '@/components/extras'
 import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
@@ -299,7 +300,10 @@ export function DashboardPage() {
   const [announce, setAnnounce] = useState('')
   const focus = useRef<[DashboardBlock, 'up' | 'down'] | null>(null)
   const dragOrder = useRef<DashboardBlock[]>([])
-  const order = draft ?? savedLayout(ui.dashboard_layout)
+  const saved = savedLayout(ui.dashboard_layout)
+  const order = draft ?? saved
+  const dirty = !!draft && draft.join() !== saved.join()
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
 
   const blocks: Record<DashboardBlock, ReactNode> = {
     summary: (
@@ -377,12 +381,27 @@ export function DashboardPage() {
     }
   }, [dragging])
 
+  useEffect(() => {
+    if (!draft || blocker.state === 'blocked') return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setDraft(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [draft, blocker.state])
+
+  useEffect(() => {
+    if (!dirty) return
+    const onUnload = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', onUnload)
+    return () => window.removeEventListener('beforeunload', onUnload)
+  }, [dirty])
+
   const done = () => {
-    const next = order
     setDraft(null)
-    if (next.join() === savedLayout(ui.dashboard_layout).join()) return
-    save('dashboard.layout', JSON.stringify(next))
-    updateSettings({ interface: { dashboard_layout: next } }).catch((error) => toast.error(settingsError(error)))
+    if (!dirty) return
+    save('dashboard.layout', JSON.stringify(draft))
+    updateSettings({ interface: { dashboard_layout: draft } }).catch((error) => toast.error(settingsError(error)))
   }
 
   return (
@@ -396,6 +415,10 @@ export function DashboardPage() {
                 <Button size="sm" onClick={done}>
                   <CheckIcon />
                   {t('dashboard.layoutDone')}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setDraft(null)}>
+                  <XIcon />
+                  {t('common.cancel')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setDraft([...DASHBOARD_BLOCKS])}>
                   <RotateCcwIcon />
@@ -413,6 +436,14 @@ export function DashboardPage() {
         </div>
         <WireCubes className="hidden w-64 md:block" />
       </header>
+      <Confirm
+        title={t('dashboard.layoutLeaveQ')}
+        description={t('dashboard.layoutLeave')}
+        action={t('dashboard.layoutDiscard')}
+        open={blocker.state === 'blocked'}
+        onOpenChange={(open) => !open && blocker.reset?.()}
+        onConfirm={() => blocker.proceed?.()}
+      />
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>
@@ -420,8 +451,24 @@ export function DashboardPage() {
       {me?.role === 'root' && <Checklist />}
       {shown.map((id, i) =>
         draft ? (
-          <div key={id} data-block={id} className={cn('group relative outline-1 -outline-offset-1 outline-border outline-dashed transition-[opacity,transform] duration-200 ease-out', dragging === id && 'z-10 scale-[0.99] opacity-60')}>
-            <div className="absolute top-2 right-2 z-10 flex gap-1 bg-background">
+          <div key={id} data-block={id} className={cn('group relative mt-3 outline-1 -outline-offset-1 outline-border outline-dashed transition-[opacity,transform] duration-200 ease-out', dragging === id && 'z-10 scale-[0.99] opacity-60')}>
+            <div className="flex items-center gap-1 bg-muted px-1 py-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                tabIndex={-1}
+                aria-hidden
+                title={t('dashboard.drag')}
+                className="cursor-grab touch-none active:cursor-grabbing"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  dragOrder.current = order
+                  setDragging(id)
+                }}
+              >
+                <GripVerticalIcon />
+              </Button>
+              <span className="fx-label min-w-0 flex-1 truncate">{t(BLOCK_LABELS[id])}</span>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -443,21 +490,6 @@ export function DashboardPage() {
                 onClick={() => step(id, 'down')}
               >
                 <ArrowDownIcon />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                tabIndex={-1}
-                aria-hidden
-                title={t('dashboard.drag')}
-                className="cursor-grab touch-none active:cursor-grabbing"
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  dragOrder.current = order
-                  setDragging(id)
-                }}
-              >
-                <GripVerticalIcon />
               </Button>
             </div>
             {blocks[id]}

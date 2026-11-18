@@ -17,14 +17,16 @@ flowchart TD
     boot --> root["createRoot"]
     root --> strict["StrictMode"]
     strict --> qc["QueryClientProvider"]
-    qc --> router["BrowserRouter"]
+    qc --> router["RouterProvider<br/>createBrowserRouter: один маршрут * → App"]
     router --> app["App<br/>key = useLang()"]
-    router --> toaster["Toaster (sonner)<br/>theme = useTheme()"]
+    qc --> toaster["Toaster (sonner)<br/>theme = useTheme()"]
     app --> routes["AppRoutes"]
 ```
 
 - `QueryClient` (`src/main.tsx`): ретраи только для сетевых ошибок и `5xx` (не больше двух), `ApiError` со статусом
   `< 500` не повторяется; `refetchOnWindowFocus: false`.
+- Роутер — data router (`createBrowserRouter`) с одним маршрутом `*`, внутри которого `<Routes>` из `App`: он нужен
+  для `useBlocker` (дашборд спрашивает подтверждение перед уходом с несохранённым порядком блоков).
 - `App` (`src/App.tsx`) монтирует `AppRoutes` с `key={useLang()}`: смена языка пересоздаёт всё дерево маршрутов.
 - Отдельного провайдера темы и i18n нет: оба — модульные сторы на `useSyncExternalStore` (`lib/theme.ts`,
   `lib/i18n.ts`, `lib/settings.ts`).

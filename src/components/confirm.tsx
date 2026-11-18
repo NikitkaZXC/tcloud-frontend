@@ -27,7 +27,7 @@ export function Confirm({
   description?: ReactNode
   action?: string
   onConfirm: () => void
-  children: ReactNode
+  children?: ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
   skip?: boolean
@@ -35,7 +35,7 @@ export function Confirm({
   if (skip) return <Slot.Root onClick={onConfirm}>{children}</Slot.Root>
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      {children && <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
