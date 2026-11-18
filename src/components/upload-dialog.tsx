@@ -12,16 +12,15 @@ import type { Picked } from '@/lib/dir-upload'
 import { formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
+import { uploadOptions, useSettings } from '@/lib/settings'
 import { finishSending, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
 
 type Options = Omit<UploadOptions, 'path'>
 
-const DEFAULTS: Options = {
-  send_as: 'file',
-  on_conflict: 'error',
-  priority: 'normal',
-  allow_unscannable: false,
-  encrypt: true,
+function useOptions(): [Options, (options: Options | null) => void] {
+  const defaults = uploadOptions(useSettings().uploads)
+  const [edited, setEdited] = useState<Options | null>(null)
+  return [edited ?? defaults, setEdited]
 }
 
 function OptionsFields({ options, setOptions }: { options: Options; setOptions: (o: Options) => void }) {
@@ -91,12 +90,13 @@ export function UploadDialog({
   files: Picked[]
   onClose: () => void
 }) {
-  const [options, setOptions] = useState(DEFAULTS)
+  const [options, setOptions] = useOptions()
   const total = files.reduce((sum, item) => sum + item.file.size, 0)
 
   async function start() {
     const queue = files.map(({ file, path }) => ({ file, path: joinPath(folder, path), id: startSending(joinPath(folder, path), file.size) }))
     onClose()
+    setOptions(null)
     toast.success(`В очереди на отправку: ${queue.length}`)
     for (const { file, path, id } of queue) {
       try {
@@ -111,7 +111,14 @@ export function UploadDialog({
   }
 
   return (
-    <Dialog open={files.length > 0} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={files.length > 0}
+      onOpenChange={(open) => {
+        if (open) return
+        onClose()
+        setOptions(null)
+      }}
+    >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Загрузка в {folder.split('/').slice(2).join('/') || 'корень'}</DialogTitle>
@@ -141,7 +148,7 @@ export function UploadDialog({
 }
 
 export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [options, setOptions] = useState(DEFAULTS)
+  const [options, setOptions] = useOptions()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -164,6 +171,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
       const queued = result.items.filter((item) => item.task).length
       if (queued) toast.success(`В очереди: ${queued}`)
       setText('')
+      setOptions(null)
       onOpenChange(false)
     } catch (e) {
       toast.error(errorMessage(e))
@@ -173,7 +181,13 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setOptions(null)
+        onOpenChange(next)
+      }}
+    >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Загрузка по ссылкам</DialogTitle>

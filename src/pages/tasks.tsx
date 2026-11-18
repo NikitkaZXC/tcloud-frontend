@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { DownloadIcon, RotateCcwIcon, XIcon } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { PageTitle } from '@/components/fx'
 import { Badge } from '@/components/ui/badge'
@@ -15,13 +16,23 @@ import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
 import { forgetTask, taskFraction, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
+import { type TasksFilter, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
+
+const FILTERS: [TasksFilter, string][] = [
+  ['all', 'Все'],
+  ['active_and_failed', 'Активные и ошибки'],
+]
 
 export function TasksPage() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
-  const tasks = results.map((r) => r.data).filter((t): t is Task => !!t)
-  const finished = tasks.filter(isFinished).map((t) => t.id)
+  const all = results.map((r) => r.data).filter((t): t is Task => !!t)
+  const saved = useSettings().interface.tasks_filter
+  const [picked, setFilter] = useState<TasksFilter | null>(null)
+  const filter = picked ?? saved
+  const tasks = visibleTasks(all, filter)
+  const finished = all.filter(isFinished).map((t) => t.id)
 
   return (
     <div className="grid gap-4">
@@ -33,10 +44,18 @@ export function TasksPage() {
           </Button>
         )}
       </div>
-      <p className="text-sm text-muted-foreground">
-        Здесь показаны задачи, запущенные из этого браузера.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Здесь показаны задачи, запущенные из этого браузера.</p>
+        <div role="group" aria-label="Фильтр задач" className="flex">
+          {FILTERS.map(([value, label]) => (
+            <Button key={value} size="sm" variant={filter === value ? 'default' : 'outline'} aria-pressed={filter === value} onClick={() => setFilter(value)}>
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
       {ids.length === 0 && <p className="text-muted-foreground">Задач нет.</p>}
+      {ids.length > 0 && all.length > 0 && tasks.length === 0 && <p className="text-muted-foreground">Активных задач и ошибок нет.</p>}
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
       ))}

@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isOn, setFeature } from './features'
 import { pour, scatter } from './particles'
-
-describe('features', () => {
-  it('are off by default and switchable', () => {
-    const store = new Map<string, string>()
-    globalThis.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) } as unknown as Storage
-    expect(isOn('pet')).toBe(false)
-    setFeature('pet', true)
-    expect(isOn('pet')).toBe(true)
-    expect(store.get('tcloud.feature.pet')).toBe('on')
-  })
-})
 
 describe('particles', () => {
   it('pours into the target and scatters upwards, deterministically', () => {

@@ -35,8 +35,8 @@ describe('folder listing order', () => {
     ]
     const folders = [folder('big', '2026-01-01T00:00:00Z', 100), folder('small', '2026-01-01T00:00:00Z', 1)]
     expect(names(folders, files, { key: 'size' })).toEqual(['small', 'big', 'b.txt', 'c.txt', 'a.jpg'])
-    expect(names([], files, { key: 'updated' })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
-    expect(names([], files, { key: 'created', desc: true })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
+    expect(names([], files, { key: 'modified' })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
+    expect(names([], files, { key: 'uploaded', desc: true })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
     expect(names([], files, { key: 'type' })).toEqual(['a.jpg', 'b.txt', 'c.txt'])
     expect(names(folders, files, { key: 'size', foldersFirst: false })).toEqual(['small', 'b.txt', 'c.txt', 'a.jpg', 'big'])
   })
@@ -45,7 +45,7 @@ describe('folder listing order', () => {
     expect(names([folder('Bar')], [file('b10.txt', 1, ''), file('a.txt', 1, '')], {}, 'b')).toEqual(['Bar', 'b10.txt'])
     expect(nextSort(DEFAULT_SORT, 'name')).toEqual({ ...DEFAULT_SORT, desc: true })
     expect(nextSort({ ...DEFAULT_SORT, desc: true }, 'size')).toEqual({ ...DEFAULT_SORT, key: 'size' })
-    expect(parseSort('{"key":"created","desc":true,"foldersFirst":false}')).toEqual({ key: 'created', desc: true, foldersFirst: false })
+    expect(parseSort('{"key":"created","desc":true,"foldersFirst":false}')).toEqual({ key: 'uploaded', desc: true, foldersFirst: false })
     expect(parseSort('garbage')).toEqual(DEFAULT_SORT)
     expect(parseSort(null)).toEqual(DEFAULT_SORT)
   })

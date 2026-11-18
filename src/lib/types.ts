@@ -1,3 +1,5 @@
+import type { Settings } from './settings'
+
 export type Role = 'root' | 'admin' | 'user'
 export type Priority = 'low' | 'normal' | 'high'
 export type SendAs = 'file' | 'media'
@@ -35,6 +37,7 @@ export interface User {
 
 export interface Me extends User {
   grants: Grant[]
+  settings: Settings
 }
 
 export interface UserSession {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Slot } from 'radix-ui'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ export function Confirm({
   children,
   open,
   onOpenChange,
+  skip,
 }: {
   title: string
   description?: ReactNode
@@ -27,7 +29,9 @@ export function Confirm({
   children: ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  skip?: boolean
 }) {
+  if (skip) return <Slot.Root onClick={onConfirm}>{children}</Slot.Root>
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>

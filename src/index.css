@@ -902,3 +902,14 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
     animation: none !important;
   }
 }
+
+:root.still *, :root.still ::before, :root.still ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+:root.still :is(.fx-light, .fx-flow, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth) {
+  animation: none !important;
+}

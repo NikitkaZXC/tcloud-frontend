@@ -17,6 +17,7 @@ import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { TASK_STAGE, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
+import { useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
 
 const MAX_FILE = 4 * 1024 ** 3
@@ -100,7 +101,8 @@ function ChannelsSection() {
 
 function ActivitySection() {
   const sending = useSending()
-  const tasks = useTrackedData()
+  const filter = useSettings().interface.tasks_filter
+  const tasks = visibleTasks(useTrackedData(), filter)
   const storages = useStorages().data ?? []
   const counts = taskCounts(tasks)
   const total = Math.max(tasks.length + sending.length, 1)
@@ -110,7 +112,7 @@ function ActivitySection() {
     ['в очереди', counts.queued, 'idle'],
     ['готово', counts.done, 'ok'],
     ['ошибки', counts.failed + counts.cancelled, 'fail'],
-  ]
+  ].filter(([, , tone]) => filter === 'all' || tone !== 'ok') as [string, number, 'busy' | 'idle' | 'ok' | 'fail'][]
 
   return (
     <Section label="Активность">

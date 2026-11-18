@@ -14,13 +14,13 @@ export function archiveName(storage: string | null | undefined): string | undefi
   return name ? `${name}-выбранное` : undefined
 }
 
-export function selectionPayload(keys: string[], format: ArchiveFormat, name?: string): SelectionArchive {
+export function selectionPayload(keys: string[], format: ArchiveFormat, priority: Priority, name?: string): SelectionArchive {
   return {
     ...(name ? { name } : {}),
     files: keys.filter((key) => key.startsWith('f:')).map((key) => key.slice(2)),
     folders: keys.filter((key) => key.startsWith('d:')).map((key) => key.slice(2)),
     format,
-    priority: 'normal',
+    priority,
   }
 }
 

@@ -260,3 +260,23 @@ export function Stat({ label, value, format }: { label: string; value: number; f
     </div>
   )
 }
+
+export function PixelToggle({ checked, onChange, disabled, labelledBy, describedBy }: { checked: boolean; onChange: (next: boolean) => void; disabled?: boolean; labelledBy?: string; describedBy?: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="fx-toggle relative inline-flex h-7 w-13 shrink-0 items-center border p-0.5 after:absolute after:-inset-2 after:content-[''] disabled:opacity-40 pointer-coarse:after:-inset-3"
+      data-on={checked || undefined}
+    >
+      <span className={cn('flex size-6 items-center justify-center border transition-transform duration-300', checked ? 'translate-x-6 border-foreground bg-foreground' : 'border-muted-foreground bg-transparent')} aria-hidden>
+        <span className={cn('size-2', checked ? 'bg-background' : 'bg-muted-foreground')} />
+      </span>
+    </button>
+  )
+}

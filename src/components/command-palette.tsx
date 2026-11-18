@@ -9,6 +9,7 @@ import { type Command, filterCommands, focusSearch, type FolderAction, OPEN_PALE
 import { foundLocation, storageName } from '@/lib/names'
 import { api } from '@/lib/api'
 import { parentPath } from '@/lib/format'
+import { useSettings } from '@/lib/settings'
 import { EMPTY_SEARCH, searchQuery, searchUrl } from '@/lib/search'
 import { FileDialog } from '@/components/file-dialog'
 import { useDebounced } from '@/hooks/use-search'
@@ -37,6 +38,7 @@ export function CommandPalette() {
     retry: false,
   })
   const storageList = storages.data ?? []
+  const archiveFormat = useSettings().archives.format
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
@@ -66,7 +68,7 @@ export function CommandPalette() {
           ['upload-folder', 'Загрузить папку'],
           ['url', 'Загрузить по ссылке'],
           ['new-folder', 'Новая папка'],
-          ['archive', 'Скачать текущую папку (zip)'],
+          ['archive', `Скачать текущую папку (${archiveFormat})`],
         ] as [FolderAction, string][]).map(([action, label]) => ({ id: `a:${action}`, group: 'Действия', label, run: act(action) }))
       : []),
     ...(listing?.folders ?? []).map((f) => ({ id: `f:${f.path}`, group: 'Папки', label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
@@ -75,6 +77,7 @@ export function CommandPalette() {
     { id: 'p:files', group: 'Страницы', label: 'Хранилища', run: go('/files') },
     { id: 'p:tasks', group: 'Страницы', label: 'Задачи', run: go('/tasks') },
     { id: 'p:account', group: 'Страницы', label: 'Аккаунт', run: go('/account') },
+    { id: 'p:settings', group: 'Страницы', label: 'Настройки', run: go('/settings') },
     ...(isAdmin(me) ? [{ id: 'p:users', group: 'Страницы', label: 'Пользователи', run: go('/users') }] : []),
     ...(me?.role === 'root' ? [{ id: 'p:telegram', group: 'Страницы', label: 'Telegram', run: go('/telegram') }] : []),
     ...(storages.data ?? []).map((s) => ({ id: `s:${s.id}`, group: 'Хранилища', label: storageName(s), hint: s.description ?? undefined, run: go(folderLink(s.path)) })),

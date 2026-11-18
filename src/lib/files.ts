@@ -1,6 +1,6 @@
 import type { Folder, TFile } from './types'
 
-export type SortKey = 'name' | 'updated' | 'created' | 'type' | 'size'
+export type SortKey = 'name' | 'modified' | 'uploaded' | 'type' | 'size'
 export interface Sort {
   key: SortKey
   desc: boolean
@@ -9,7 +9,7 @@ export interface Sort {
 
 export const DEFAULT_SORT: Sort = { key: 'name', desc: false, foldersFirst: true }
 
-export const SORT_LABELS: Record<SortKey, string> = { name: 'Имя', updated: 'Изменён', created: 'Загружен', type: 'Тип', size: 'Размер' }
+export const SORT_LABELS: Record<SortKey, string> = { name: 'Имя', modified: 'Изменён', uploaded: 'Загружен', type: 'Тип', size: 'Размер' }
 
 export type Entry = { type: 'folder'; item: Folder } | { type: 'file'; item: TFile }
 
@@ -32,8 +32,8 @@ const size = (entry: Entry) => entry.item.size
 
 const COMPARE: Record<SortKey, (a: Entry, b: Entry) => number> = {
   name: () => 0,
-  updated: (a, b) => time(a.item.updated_at) - time(b.item.updated_at),
-  created: (a, b) => time(a.item.created_at) - time(b.item.created_at),
+  modified: (a, b) => time(a.item.updated_at) - time(b.item.updated_at),
+  uploaded: (a, b) => time(a.item.created_at) - time(b.item.created_at),
   type: (a, b) => collator.compare(typeLabel(a), typeLabel(b)),
   size: (a, b) => size(a) - size(b),
 }
@@ -56,8 +56,9 @@ export function viewEntries(folders: Folder[], files: TFile[], query: string, so
 export function parseSort(raw: string | null): Sort {
   try {
     const value = JSON.parse(raw ?? '{}') as Partial<Sort>
+    const key = ({ updated: 'modified', created: 'uploaded' } as Record<string, SortKey>)[value.key ?? ''] ?? value.key
     return {
-      key: value.key && value.key in SORT_LABELS ? value.key : DEFAULT_SORT.key,
+      key: key && key in SORT_LABELS ? key : DEFAULT_SORT.key,
       desc: value.desc === true,
       foldersFirst: value.foldersFirst !== false,
     }

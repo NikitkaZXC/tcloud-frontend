@@ -11,13 +11,15 @@ import {
   PanelLeftOpenIcon,
   SearchIcon,
   SendIcon,
+  SettingsIcon,
   ShieldIcon,
   SunIcon,
   UsersIcon,
   XIcon,
 } from 'lucide-react'
-import { type ComponentType, useLayoutEffect, useRef, useState } from 'react'
+import { type ComponentType, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
+import { toast } from 'sonner'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
@@ -28,13 +30,16 @@ import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, errorMessage } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
 import { isUnavailable, storageName } from '@/lib/names'
+import { migrateLegacy } from '@/lib/settings'
 import { setTheme, useTheme } from '@/lib/theme'
 import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
+
+const showError = (error: unknown) => toast.error(errorMessage(error))
 
 const item =
   'relative z-10 flex h-10 items-center gap-3 px-3 text-sm tracking-[0.06em] text-muted-foreground uppercase transition-colors hover:text-foreground pointer-coarse:h-11'
@@ -120,7 +125,7 @@ function ThemeSwitch({ collapsed }: { collapsed: boolean }) {
       aria-checked={dark}
       aria-label="Тёмная тема"
       title={dark ? 'Тёмная тема' : 'Светлая тема'}
-      onClick={() => setTheme(dark ? 'light' : 'dark')}
+      onClick={() => setTheme(dark ? 'light' : 'dark').catch(showError)}
       className={cn(
         "relative inline-flex h-7 w-13 shrink-0 items-center border p-0.5 after:absolute after:-inset-2 after:content-['']",
         collapsed && 'h-13 w-7 flex-col',
@@ -222,6 +227,7 @@ function Sidebar({
           </Link>
           {!collapsed && <StorageLinks onNavigate={onNavigate} />}
           <Item to="/tasks" label="Задачи" icon={ListChecksIcon} collapsed={collapsed} onNavigate={onNavigate} />
+          <Item to="/settings" label="Настройки" icon={SettingsIcon} collapsed={collapsed} onNavigate={onNavigate} />
           {admin.length > 0 && (
             <div
               role="group"
@@ -274,6 +280,11 @@ export function Layout() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => load('sidebar') === 'collapsed')
+  const ready = !!me.data
+
+  useEffect(() => {
+    if (ready) migrateLegacy()
+  }, [ready])
 
   if (me.error instanceof ApiError && me.error.status === 401) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />

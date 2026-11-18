@@ -60,9 +60,9 @@ import { api, errorMessage } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
-import { nextSort, parseSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
+import { nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
-import { load, save } from '@/lib/prefs'
+import { sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
@@ -79,18 +79,19 @@ const fileKey = (uuid: string) => `f:${uuid}`
 const directory = { webkitdirectory: '' } as Record<string, string>
 
 function ArchiveMenu({ onArchive, label = 'Скачать папку архивом', children }: { onArchive: (format: ArchiveFormat) => void; label?: string; children: ReactNode }) {
+  const preferred = useSettings().archives.format
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
-        <DropdownMenuItem onSelect={() => onArchive('zip')}>
-          <ArchiveIcon /> zip
+        <DropdownMenuItem onSelect={() => onArchive(preferred)}>
+          <ArchiveIcon /> {preferred}
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Другой формат</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {ARCHIVE_FORMATS.slice(1).map((format) => (
+            {ARCHIVE_FORMATS.filter((format) => format !== preferred).map((format) => (
               <DropdownMenuItem key={format} onSelect={() => onArchive(format)}>
                 {format}
               </DropdownMenuItem>
@@ -102,7 +103,7 @@ function ArchiveMenu({ onArchive, label = 'Скачать папку архив�
   )
 }
 
-function FileMenu({ file, onOpen, onDelete }: { file: TFile; onOpen: () => void; onDelete: () => void }) {
+function FileMenu({ file, onOpen, onDelete, skip }: { file: TFile; onOpen: () => void; onDelete: () => void; skip: boolean }) {
   const [confirm, setConfirm] = useState(false)
   return (
     <DropdownMenu>
@@ -129,7 +130,7 @@ function FileMenu({ file, onOpen, onDelete }: { file: TFile; onOpen: () => void;
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onOpen}>Свойства</DropdownMenuItem>
         <DropdownMenuSeparator className="sm:hidden" />
-        <DropdownMenuItem variant="destructive" className="sm:hidden" onSelect={() => setConfirm(true)}>
+        <DropdownMenuItem variant="destructive" className="sm:hidden" onSelect={() => (skip ? onDelete() : setConfirm(true))}>
           <Trash2Icon /> Удалить…
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -187,8 +188,10 @@ export function FolderView({ path }: { path: string }) {
   const [urlOpen, setUrlOpen] = useState(false)
   const [folderOpen, setFolderOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const [sort, setSort] = useState<Sort>(() => parseSort(load('sort')))
-  const [view, setView] = useState<'list' | 'grid'>(() => (load('view') === 'grid' ? 'grid' : 'list'))
+  const settings = useSettings()
+  const sort = sortOf(settings.interface)
+  const view = settings.interface.folder_view
+  const skipConfirm = !settings.interface.confirm_delete
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const anchor = useRef<string | null>(null)
@@ -205,10 +208,10 @@ export function FolderView({ path }: { path: string }) {
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
 
   const archive = useAction(
-    ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format }),
+    ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format, priority: settings.archives.priority }),
     { success: ARCHIVE_STARTED, onSuccess: (task) => trackTask(task.id), describe: archiveError },
   )
-  const archiveSelection = useAction((format: ArchiveFormat) => api.post<Task>('/folders/archive/selection', selectionPayload(picked, format, isRoot ? archiveName(storage?.name) : undefined)), {
+  const archiveSelection = useAction((format: ArchiveFormat) => api.post<Task>('/folders/archive/selection', selectionPayload(picked, format, settings.archives.priority, isRoot ? archiveName(storage?.name) : undefined)), {
     success: ARCHIVE_STARTED,
     onSuccess: (task) => {
       trackTask(task.id)
@@ -264,7 +267,7 @@ export function FolderView({ path }: { path: string }) {
       if (action === 'upload-folder') dirInput.current?.click()
       if (action === 'url') setUrlOpen(true)
       if (action === 'new-folder') setFolderOpen(true)
-      if (action === 'archive') archive.mutate({ target: path, format: 'zip' })
+      if (action === 'archive') archive.mutate({ target: path, format: settings.archives.format })
     }
     keys.current = (event) => {
       if (document.querySelector('[role=dialog],[role=alertdialog],[role=menu]')) return
@@ -276,7 +279,8 @@ export function FolderView({ path }: { path: string }) {
         setSelected(new Set())
       } else if ((event.key === 'Delete' || event.key === 'Backspace') && picked.length) {
         event.preventDefault()
-        setConfirmBulk(true)
+        if (skipConfirm && picked.length === 1) bulkDelete()
+        else setConfirmBulk(true)
       }
     }
   })
@@ -319,8 +323,7 @@ export function FolderView({ path }: { path: string }) {
   }
 
   function changeSort(next: Sort) {
-    setSort(next)
-    save('sort', JSON.stringify(next))
+    updateSettings(sortPatch(next)).catch((e) => toast.error(errorMessage(e)))
   }
 
   const head = (key: SortKey, className?: string) => (
@@ -335,8 +338,7 @@ export function FolderView({ path }: { path: string }) {
   )
 
   function changeView(next: 'list' | 'grid') {
-    setView(next)
-    save('view', next)
+    updateSettings({ interface: { folder_view: next } }).catch((e) => toast.error(errorMessage(e)))
   }
 
   const fileButtons = (file: TFile) => (
@@ -349,8 +351,8 @@ export function FolderView({ path }: { path: string }) {
       <Button variant="ghost" size="icon-sm" className="max-sm:hidden" aria-label="Копировать ссылку" onClick={() => copy(absoluteUrl(downloadUrl(file)), 'ссылка на скачивание')}>
         <LinkIcon />
       </Button>
-      <FileMenu file={file} onOpen={() => setOpened(file)} onDelete={() => removeFile.mutate(file)} />
-      <Confirm title={`Удалить «${file.name}»?`} onConfirm={() => removeFile.mutate(file)}>
+      <FileMenu file={file} skip={skipConfirm} onOpen={() => setOpened(file)} onDelete={() => removeFile.mutate(file)} />
+      <Confirm skip={skipConfirm} title={`Удалить «${file.name}»?`} onConfirm={() => removeFile.mutate(file)}>
         <Button variant="ghost" size="icon-sm" className="max-sm:hidden" aria-label={`Удалить «${file.name}»`}>
           <Trash2Icon />
         </Button>
@@ -366,6 +368,7 @@ export function FolderView({ path }: { path: string }) {
         </Button>
       </ArchiveMenu>
       <Confirm
+        skip={skipConfirm}
         title={`Удалить папку «${folder.name}»?`}
         description="Всё содержимое будет удалено из Telegram и базы."
         onConfirm={() => removeFolder.mutate(folder.path)}
@@ -550,6 +553,7 @@ export function FolderView({ path }: { path: string }) {
         </ArchiveMenu>
         {!isRoot && (
           <Confirm
+            skip={skipConfirm}
             title="Удалить папку со всем содержимым?"
             description="Файлы будут удалены из Telegram и базы."
             onConfirm={() => removeFolder.mutate(path)}
@@ -615,6 +619,7 @@ export function FolderView({ path }: { path: string }) {
             </Button>
           </ArchiveMenu>
           <Confirm
+            skip={skipConfirm && picked.length === 1}
             title={`Удалить выбранное (${picked.length})?`}
             description="Файлы и папки со всем содержимым будут удалены из Telegram и базы."
             open={confirmBulk}
@@ -665,8 +670,8 @@ export function FolderView({ path }: { path: string }) {
                 {head('name')}
                 {head('type', 'hidden w-24 xl:table-cell')}
                 {head('size', 'hidden w-28 sm:table-cell')}
-                {head('updated', 'hidden w-44 md:table-cell')}
-                {head('created', 'hidden w-44 lg:table-cell')}
+                {head('modified', 'hidden w-44 md:table-cell')}
+                {head('uploaded', 'hidden w-44 lg:table-cell')}
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>

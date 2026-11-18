@@ -3,5 +3,6 @@ export function easeOut(progress: number): number {
 }
 
 export function prefersReducedMotion(): boolean {
+  if (typeof document !== 'undefined' && document.documentElement.classList.contains('still')) return true
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 }

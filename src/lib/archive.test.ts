@@ -4,7 +4,7 @@ import { archiveError, archiveName, selectionPayload } from './archive'
 
 describe('selection archive', () => {
   it('splits selected keys into file ids and folder paths', () => {
-    expect(selectionPayload(['d:tcloud/s/trip/day 1', 'f:u1', 'f:u2'], '7z')).toEqual({
+    expect(selectionPayload(['d:tcloud/s/trip/day 1', 'f:u1', 'f:u2'], '7z', 'normal')).toEqual({
       files: ['u1', 'u2'],
       folders: ['tcloud/s/trip/day 1'],
       format: '7z',
@@ -15,7 +15,7 @@ describe('selection archive', () => {
   it('names a selection at the storage root after the storage, not its id', () => {
     expect(archiveName('Фото/2026')).toBe('Фото-2026-выбранное')
     expect(archiveName(null)).toBeUndefined()
-    expect(selectionPayload(['f:u1'], 'zip', 'Фото-выбранное').name).toBe('Фото-выбранное')
+    expect(selectionPayload(['f:u1'], 'zip', 'high', 'Фото-выбранное').name).toBe('Фото-выбранное')
   })
 
   it('explains backend errors', () => {

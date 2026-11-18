@@ -4,11 +4,19 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { Toaster } from '@/components/ui/sonner'
 import { ApiError } from '@/lib/api'
+import { getSettings, subscribeSettings } from '@/lib/settings'
 import { applyTheme } from '@/lib/theme'
 import App from './App'
 import './index.css'
 
-applyTheme()
+function applySettings() {
+  const ui = getSettings().interface
+  applyTheme(ui.theme)
+  document.documentElement.classList.toggle('still', !ui.animations)
+}
+
+applySettings()
+subscribeSettings(applySettings)
 
 const queryClient = new QueryClient({
   defaultOptions: {
