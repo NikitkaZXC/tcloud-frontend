@@ -92,7 +92,7 @@ sequenceDiagram
         W->>T: forgetTasks(gone)
     else статус завершённый и id в pending (isPending)
         W->>T: reportTask(id, forget) — убрать из pending,<br/>done без архива — забыть совсем
-        W->>C: invalidate folder, storages, account, activity
+        W->>W: копит завершённые, таймер INVALIDATE_MS (1,5 с) с начала заново
         W->>W: dispatch tcloud:task-finished (detail = status)
         alt done + archive
             W->>W: toast «архив готов» + кнопка «Скачать»<br/>markRead(path), location = /api/tasks/{id}/archive
@@ -101,6 +101,9 @@ sequenceDiagram
         else failed
             W->>W: toast с errorText(task.error)
         end
+    end
+    opt таймер истёк, среди задач есть не-архивы
+        W->>C: invalidate ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity — один раз на пачку
     end
 ```
 
@@ -112,6 +115,8 @@ sequenceDiagram
 `MAX_TASKS` (50): `trackTask` сначала выкидывает самые старые уже объявленные задачи, потом самые старые вообще.
 Завершённые задачи в кэше не устаревают (`staleTime: Infinity`), их не перезапрашивают при монтировании.
 Другие вкладки подхватывают оба ключа по событию `storage`.
+Инвалидация идёт пачкой: завершения копятся и сбрасываются через `INVALIDATE_MS` после последнего; обновляются только
+листинги родительской папки каждой задачи и её предков (у папок показан размер), архивы листинги не трогают.
 
 ### Жизнь элемента в браузере
 

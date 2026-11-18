@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { parentPath } from './format'
 import { type Key, t } from './i18n'
 import type { Task } from './types'
 
@@ -98,4 +99,13 @@ export function useTrackedTasks(): string[] {
 
 export function taskFraction(task: Pick<Task, 'progress'>): number | null {
   return task.progress == null ? null : Math.min(Math.max(task.progress / 100, 0), 1)
+}
+
+export function taskFolders(tasks: Pick<Task, 'path' | 'archive'>[]): string[] {
+  const folders = new Set<string>()
+  for (const task of tasks) {
+    if (task.archive) continue
+    for (let path = parentPath(task.path); path; path = parentPath(path)) folders.add(path)
+  }
+  return [...folders]
 }

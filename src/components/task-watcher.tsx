@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError, errorText } from '@/lib/api'
@@ -7,9 +7,12 @@ import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { TASK_EVENT } from '@/lib/features'
 import { taskTitle } from '@/lib/names'
-import { forgetTasks, isPending, reportTask, useTrackedTasks } from '@/lib/tasks'
+import { forgetTasks, isPending, reportTask, taskFolders, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
 import { t } from '@/lib/i18n'
+import type { Task } from '@/lib/types'
+
+const INVALIDATE_MS = 1500
 
 export function TaskWatcher() {
   const ids = useTrackedTasks()
@@ -17,6 +20,10 @@ export function TaskWatcher() {
   const queryClient = useQueryClient()
   const uploading = useSending().length > 0
   const storages = useStorages()
+  const finished = useRef<Task[]>([])
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => () => clearTimeout(timer.current), [])
 
   useEffect(() => {
     if (!uploading) return
@@ -31,10 +38,17 @@ export function TaskWatcher() {
     for (const { data: task } of results) {
       if (!task || !isFinished(task) || !isPending(task.id)) continue
       reportTask(task.id, task.status === 'done' && !task.archive)
-      queryClient.invalidateQueries({ queryKey: ['folder'] })
-      queryClient.invalidateQueries({ queryKey: ['storages'] })
-      queryClient.invalidateQueries({ queryKey: ['account'] })
-      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      finished.current.push(task)
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => {
+        const folders = taskFolders(finished.current)
+        finished.current = []
+        if (!folders.length) return
+        folders.forEach((folder) => queryClient.invalidateQueries({ queryKey: ['folder', folder] }))
+        queryClient.invalidateQueries({ queryKey: ['storages'] })
+        queryClient.invalidateQueries({ queryKey: ['account'] })
+        queryClient.invalidateQueries({ queryKey: ['activity'] })
+      }, INVALIDATE_MS)
       window.dispatchEvent(new CustomEvent(TASK_EVENT, { detail: task.status }))
       const name = taskTitle(task, storages.data ?? []).name
       if (task.status === 'done' && task.archive) {

@@ -77,7 +77,7 @@ flowchart LR
     tgStep --> kTelegram["telegram"]
     tgStep --> kHealth["health"]
     dev --> kDevices["telegram-devices"]
-    watcher --> kFolder
+    watcher --> kFolderT["folder, папка задачи + предки<br/>(пачкой через 1,5 с)"]
     watcher --> kStorages
     watcher --> kAccount["account"]
     watcher --> kActivity["activity"]
