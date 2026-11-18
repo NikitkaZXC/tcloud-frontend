@@ -387,8 +387,6 @@ export const ru = {
   'settings.resetQ': 'Сбросить настройки?',
   'settings.sendAs': 'Отправлять как',
   'settings.sendAsHint': 'Медиа Telegram сжимает и не шифрует',
-  'settings.sortBy': 'Сортировка в папке',
-  'settings.sortOrder': 'Порядок',
   'settings.sounds': '8-битные звуки',
   'settings.soundsHint': 'Клик, готово, ошибка',
   'settings.startPage': 'Стартовая страница',

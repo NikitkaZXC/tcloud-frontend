@@ -387,8 +387,6 @@ export const en: Record<Key, Entry> = {
   'settings.resetQ': 'Reset settings?',
   'settings.sendAs': 'Send as',
   'settings.sendAsHint': 'Telegram compresses media and it is not encrypted',
-  'settings.sortBy': 'Folder sort',
-  'settings.sortOrder': 'Order',
   'settings.sounds': '8-bit sounds',
   'settings.soundsHint': 'Click, done, error',
   'settings.startPage': 'Start page',

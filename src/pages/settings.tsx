@@ -6,7 +6,6 @@ import { PageTitle, PixelToggle, Section } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SORT_LABELS } from '@/lib/files'
 import { resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
 import { t } from '@/lib/i18n'
 
@@ -255,22 +254,6 @@ export function SettingsPage() {
             ]}
             onChange={(folder_view) => setUi({ folder_view })}
           />
-          <Choice
-            label={t('settings.sortBy')}
-            value={ui.sort_by}
-            options={(['name', 'modified', 'uploaded', 'type', 'size'] as const).map((key) => [key, t(SORT_LABELS[key])])}
-            onChange={(sort_by) => setUi({ sort_by })}
-          />
-          <Choice
-            label={t('settings.sortOrder')}
-            value={ui.sort_order}
-            options={[
-              ['asc', t('folder.ascArrow')],
-              ['desc', t('folder.descArrow')],
-            ]}
-            onChange={(sort_order) => setUi({ sort_order })}
-          />
-          <Toggle label={t('folder.foldersFirst')} checked={ui.folders_first} onChange={(folders_first) => setUi({ folders_first })} />
           <Choice
             label={t('settings.tasksFilter')}
             hint={t('settings.tasksFilterHint')}
