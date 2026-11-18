@@ -91,7 +91,7 @@ sequenceDiagram
     alt 404 (задачи больше нет)
         W->>T: forgetTasks(gone)
     else статус завершённый и id в pending (isPending)
-        W->>T: reportTask(id) — убрать из pending
+        W->>T: reportTask(id, forget) — убрать из pending,<br/>done без архива — забыть совсем
         W->>C: invalidate folder, storages, account, activity
         W->>W: dispatch tcloud:task-finished (detail = status)
         alt done + archive
@@ -107,7 +107,11 @@ sequenceDiagram
 `TaskWatcher` смонтирован в `Layout` один раз на всё приложение. `trackTask` кладёт id и в `tcloud.tasks`, и в
 `tcloud.tasks.pending` (задачи, о завершении которых ещё не сообщили); повтор задачи кладёт её в pending снова.
 Завершённая задача из pending вызывает уведомление ровно один раз, даже если уже завершена при первом опросе или
-завершилась, пока вкладка была закрыта; после `reportTask` перезагрузка страницы её не повторяет. Другие вкладки подхватывают оба ключа по событию `storage`.
+завершилась, пока вкладка была закрыта; после `reportTask` перезагрузка страницы её не повторяет.
+Готовые задачи без архива забываются сразу после уведомления; `failed`/`cancelled` и готовые архивы (кнопка «Скачать» на «Задачах») остаются до «Забыть». Список ограничен
+`MAX_TASKS` (50): `trackTask` сначала выкидывает самые старые уже объявленные задачи, потом самые старые вообще.
+Завершённые задачи в кэше не устаревают (`staleTime: Infinity`), их не перезапрашивают при монтировании.
+Другие вкладки подхватывают оба ключа по событию `storage`.
 
 ### Жизнь элемента в браузере
 
@@ -122,7 +126,9 @@ stateDiagram-v2
     Polling --> Finished: done / failed / cancelled
     Polling --> [*]: 404 → forgetTasks
     Finished --> Polling: «Повторить» (setQueryData queued)
+    Finished --> [*]: done без архива — сразу после уведомления (reportTask)
     Finished --> [*]: «Забыть» / «Убрать завершённые» (forgetTask)
+    Finished --> [*]: вытеснена лимитом MAX_TASKS (capTasks)
 ```
 
 ### Статусы задачи (как их показывает фронт)

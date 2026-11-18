@@ -57,16 +57,25 @@ function write(next: string[], nextPending = pending) {
   }
 }
 
+export const MAX_TASKS = 50
+
+export function capTasks(list: string[], keep: string[], max = MAX_TASKS): string[] {
+  const next = [...list]
+  for (let i = next.length - 1; next.length > max && i >= 0; i--) if (!keep.includes(next[i])) next.splice(i, 1)
+  return next.slice(0, max)
+}
+
 export function trackTask(id: string) {
-  write(ids.includes(id) ? ids : [id, ...ids], pending.includes(id) ? pending : [...pending, id])
+  const nextPending = pending.includes(id) ? pending : [...pending, id]
+  write(capTasks(ids.includes(id) ? ids : [id, ...ids], nextPending), nextPending)
 }
 
 export function isPending(id: string): boolean {
   return pending.includes(id)
 }
 
-export function reportTask(id: string) {
-  write(ids, pending.filter((x) => x !== id))
+export function reportTask(id: string, forget = false) {
+  write(forget ? ids.filter((x) => x !== id) : ids, pending.filter((x) => x !== id))
 }
 
 export function forgetTask(id: string) {

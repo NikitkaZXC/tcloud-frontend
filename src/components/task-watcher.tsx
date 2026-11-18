@@ -30,7 +30,7 @@ export function TaskWatcher() {
     if (gone.length) forgetTasks(gone)
     for (const { data: task } of results) {
       if (!task || !isFinished(task) || !isPending(task.id)) continue
-      reportTask(task.id)
+      reportTask(task.id, task.status === 'done' && !task.archive)
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
       queryClient.invalidateQueries({ queryKey: ['account'] })

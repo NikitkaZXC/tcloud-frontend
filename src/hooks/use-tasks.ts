@@ -14,6 +14,7 @@ export function useTasks(ids: string[]) {
       queryKey: ['task', id],
       queryFn: () => api.get<Task>(`/tasks/${id}`),
       refetchInterval: (query: { state: { data?: Task } }) => (isFinished(query.state.data) ? false : 1500),
+      staleTime: (query: { state: { data?: Task } }) => (isFinished(query.state.data) ? Infinity : 0),
     })),
   })
 }
