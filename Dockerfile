@@ -8,5 +8,6 @@ RUN npm run build
 FROM nginx:1.29-alpine
 ENV API_UPSTREAM=http://app:8000
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

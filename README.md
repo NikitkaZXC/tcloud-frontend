@@ -43,7 +43,9 @@ nginx отдаёт сборку и проксирует `/api` на `API_UPSTREA
 таймауты 1 ч, без лимита тела). Перед ним в проде нужен HTTPS: cookie авторизации — `Secure`.
 Образ двухэтапный (`Dockerfile`): `node` собирает `dist/`, `nginx` отдаёт его; шаблон
 `docker/nginx.conf.template` подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем),
-остальное — `no-cache` с откатом на `index.html` (маршруты SPA).
+остальное — `no-cache` с откатом на `index.html` (маршруты SPA). Заголовки безопасности (`nosniff`, `X-Frame-Options`,
+`Referrer-Policy`) лежат в `docker/security-headers.conf` и подключаются `include` в `server` и в каждый `location` со
+своим `add_header` (иначе nginx их не наследует).
 
 ## Как устроено
 
@@ -265,6 +267,6 @@ src/
   components/   layout (боковая панель), командная строка, пиксельный кит (fx: кольца, иконка накопителя, разделы), хранилища, папка, диалоги загрузки/файла,
                 ключи, доступы; ui/ — shadcn
   pages/        login, dashboard, files, search, tasks, account, settings, users, user, telegram
-docker/         шаблон конфига nginx
+docker/         шаблон конфига nginx, заголовки безопасности
 docs/           как устроено, схемы Mermaid
 ```

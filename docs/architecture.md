@@ -103,6 +103,8 @@ flowchart LR
   `Origin` с `Host`, иначе изменяющие запросы получают `403 cross_site_request`.
 - nginx для `/api/` выключает буферизацию запроса и ответа, `client_max_body_size 0`, таймауты 1 ч — загрузки и
   скачивания идут потоком.
+- Заголовки безопасности — `docker/security-headers.conf`, `include` в `server` и в каждом `location` с собственным
+  `add_header` (`/assets/`, `/`): `add_header` в `location` отменяет унаследованные с уровня `server`.
 
 ### Клиент API
 
