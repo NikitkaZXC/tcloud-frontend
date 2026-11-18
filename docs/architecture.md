@@ -38,15 +38,15 @@ flowchart LR
     login["/login<br/>LoginPage"]
     subgraph shell["Layout (нужен /users/me)"]
         index["/ → Navigate startPath()"]
-        dash["/dashboard<br/>DashboardPage"]
+        dash["/dashboard<br/>DashboardPage (lazy)"]
         files["/files<br/>FilesPage"]
-        search["/search<br/>SearchPage"]
-        tasks["/tasks<br/>TasksPage"]
-        account["/account<br/>AccountPage"]
-        settings["/settings<br/>SettingsPage"]
-        users["/users<br/>UsersPage"]
-        user["/users/:id<br/>UserPage"]
-        tg["/telegram<br/>TelegramPage"]
+        search["/search<br/>SearchPage (lazy)"]
+        tasks["/tasks<br/>TasksPage (lazy)"]
+        account["/account<br/>AccountPage (lazy)"]
+        settings["/settings<br/>SettingsPage (lazy)"]
+        users["/users<br/>UsersPage (lazy)"]
+        user["/users/:id<br/>UserPage (lazy)"]
+        tg["/telegram<br/>TelegramPage (lazy)"]
         star["* → NotFound (fx_easter_eggs)<br/>иначе Navigate startPath()"]
     end
     files --> list["без ?path: StorageList"]
@@ -56,6 +56,17 @@ flowchart LR
 - `startPath` (`lib/settings.ts`): `interface.start_page` `dashboard|storages|tasks` → `/dashboard|/files|/tasks`.
 - Маршруты не охраняются по роли: в боковой панели `/users` скрыт не для admin/root (`isAdmin`), `/telegram` — не для
   root; прямой заход получит `403` от бэкенда.
+
+### Разбиение бандла
+
+- `/login` и `/files` (стартовые) — в основном чанке; остальные страницы — `React.lazy` в `App.tsx`, каждая своим чанком
+  (`/telegram` тянет `qrcode.react` только к себе). `Suspense` вокруг `<Outlet />` в `Layout` показывает «Загрузка…»
+  (`common.loading`) в стиле остальных загрузок, боковая панель остаётся.
+- `vite.config.ts` → `build.rolldownOptions.output.codeSplitting.groups`: `react` (react, react-dom, scheduler,
+  react-router) и `vendor` (весь остальной `node_modules`, кроме `qrcode.react`). Новую тяжёлую зависимость, нужную
+  только ленивой странице, тоже исключать из `vendor`, иначе она попадёт в начальную загрузку.
+- Было: один `index.js` 751 kB (gzip 227 kB). Стало: `react` 257 kB, `vendor` 244 kB, `index` 113 kB, общий код
+  страниц 71 kB, страницы 3–26 kB; предупреждения о чанке > 500 kB нет.
 
 ## Оболочка `Layout`
 

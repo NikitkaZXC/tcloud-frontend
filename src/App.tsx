@@ -1,19 +1,21 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { NotFound } from '@/components/extras'
 import { Layout } from '@/components/layout'
 import { useFeature } from '@/lib/features'
 import { useLang } from '@/lib/i18n'
 import { startPath, useSettings } from '@/lib/settings'
-import { AccountPage } from '@/pages/account'
-import { DashboardPage } from '@/pages/dashboard'
 import { FilesPage } from '@/pages/files'
 import { LoginPage } from '@/pages/login'
-import { SearchPage } from '@/pages/search'
-import { SettingsPage } from '@/pages/settings'
-import { TasksPage } from '@/pages/tasks'
-import { TelegramPage } from '@/pages/telegram'
-import { UserPage } from '@/pages/user'
-import { UsersPage } from '@/pages/users'
+
+const AccountPage = lazy(() => import('@/pages/account').then((m) => ({ default: m.AccountPage })))
+const DashboardPage = lazy(() => import('@/pages/dashboard').then((m) => ({ default: m.DashboardPage })))
+const SearchPage = lazy(() => import('@/pages/search').then((m) => ({ default: m.SearchPage })))
+const SettingsPage = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
+const TasksPage = lazy(() => import('@/pages/tasks').then((m) => ({ default: m.TasksPage })))
+const TelegramPage = lazy(() => import('@/pages/telegram').then((m) => ({ default: m.TelegramPage })))
+const UserPage = lazy(() => import('@/pages/user').then((m) => ({ default: m.UserPage })))
+const UsersPage = lazy(() => import('@/pages/users').then((m) => ({ default: m.UsersPage })))
 
 function AppRoutes() {
   const eggs = useFeature('eggs')

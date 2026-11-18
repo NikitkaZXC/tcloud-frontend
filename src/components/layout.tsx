@@ -17,7 +17,7 @@ import {
   UsersIcon,
   XIcon,
 } from 'lucide-react'
-import { type ComponentType, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type ComponentType, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { toast } from 'sonner'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
@@ -364,7 +364,9 @@ export function Layout() {
           <SearchBar />
         </div>
         <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 pt-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-12">
-          <Outlet />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">{t('common.loading')}</p>}>
+            <Outlet />
+          </Suspense>
           <Tip />
         </main>
       </div>
