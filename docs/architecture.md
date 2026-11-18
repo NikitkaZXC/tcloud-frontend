@@ -180,7 +180,7 @@ sequenceDiagram
 
 ## Языки (i18n)
 
-Свой модуль без зависимостей, `src/lib/i18n.ts`.
+Свой модуль без зависимостей, `src/lib/i18n.ts`. `<html translate="no">` в `index.html` (`lang` ставит `applySettings` в `main.tsx`): автоперевод браузера переписывает DOM-узлы, и React падает на следующем обновлении (`removeChild`/`insertBefore`); интерфейс и так на двух языках.
 
 ```mermaid
 flowchart LR
