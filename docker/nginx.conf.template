@@ -5,7 +5,13 @@ server {
 
     include security-headers.conf;
 
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
     location /api/ {
+        gzip_types application/json;
         proxy_pass ${API_UPSTREAM};
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

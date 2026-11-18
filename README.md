@@ -46,6 +46,8 @@ nginx отдаёт сборку и проксирует `/api` на `API_UPSTREA
 остальное — `no-cache` с откатом на `index.html` (маршруты SPA). Заголовки безопасности (`nosniff`, `X-Frame-Options`,
 `Referrer-Policy`) лежат в `docker/security-headers.conf` и подключаются `include` в `server` и в каждый `location` со
 своим `add_header` (иначе nginx их не наследует).
+gzip (от 1 КБ, `gzip_vary`) сжимает HTML, CSS, JS, SVG и JSON; в `/api/` — только `application/json`, чтобы
+скачивания файлов шли как есть, с `Content-Length` и `Range`.
 
 ## Как устроено
 
