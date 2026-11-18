@@ -396,6 +396,7 @@ export const en: Record<Key, Entry> = {
   'settings.theme': 'Theme',
   'settings.themeDark': 'dark',
   'settings.themeLight': 'light',
+  'settings.themeSystem': 'system',
   'settings.unscannable': 'Accept unscannable files',
   'settings.unscannableHint': 'Files the antivirus cannot fully scan (for example, password-protected archives)',
   'settings.uploadPriority': 'Upload priority',

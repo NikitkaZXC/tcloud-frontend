@@ -231,6 +231,7 @@ export function SettingsPage() {
             options={[
               ['dark', t('settings.themeDark')],
               ['light', t('settings.themeLight')],
+              ['system', t('settings.themeSystem')],
             ]}
             onChange={(theme) => setUi({ theme })}
           />

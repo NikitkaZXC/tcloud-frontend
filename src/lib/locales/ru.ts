@@ -396,6 +396,7 @@ export const ru = {
   'settings.theme': 'Тема',
   'settings.themeDark': 'тёмная',
   'settings.themeLight': 'светлая',
+  'settings.themeSystem': 'системная',
   'settings.unscannable': 'Принимать непроверяемые файлы',
   'settings.unscannableHint': 'Файлы, которые антивирус не может проверить полностью (например, архивы с паролем)',
   'settings.uploadPriority': 'Приоритет загрузок',
