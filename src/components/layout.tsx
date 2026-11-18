@@ -23,7 +23,7 @@ import { toast } from 'sonner'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
-import { CornerHint, IoTag, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
+import { CornerHint, IoTag, Logo, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Extras, Pet, Tip } from '@/components/extras'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
@@ -109,8 +109,9 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
 
 export function Brand({ short }: { short?: boolean }) {
   return (
-    <span className="fx-pixel text-[20px] uppercase" aria-hidden>
-      {short ? 't' : 'tcloud'}
+    <span className="flex items-center gap-2" aria-hidden>
+      <Logo />
+      {!short && <span className="fx-pixel text-[20px] uppercase">tcloud</span>}
     </span>
   )
 }

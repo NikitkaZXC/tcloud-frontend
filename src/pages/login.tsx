@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { EyeIcon, EyeOffIcon, TriangleAlertIcon } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { StatusLight, StorageIcon, WireCubes } from '@/components/fx'
+import { Logo, StatusLight, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -52,7 +52,7 @@ export function LoginPage() {
         <p className="fx-pixel text-[50px] uppercase sm:text-[70px]" aria-hidden>
           tcloud
         </p>
-        <StorageIcon scale={3} className="mb-2 text-muted-foreground" />
+        <Logo size={48} className="mb-2" />
       </div>
       <WireCubes className="pointer-events-none fixed top-8 right-8 hidden w-72 lg:block" />
       <div className="w-full max-w-sm">

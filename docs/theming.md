@@ -78,6 +78,15 @@ flowchart LR
   выключенное сглаживание, а не сам Handjet.
 - Google Fonts грузится в `index.html` с `preconnect` и `display=swap`, только нужные веса: Handjet `400..600`, Tiny5.
 
+## Логотип
+
+Пиксельный знак 24×24 (облако с вырезанным бумажным самолётиком над накопителем с лампами чтения/записи) —
+компонент `Logo` в `src/components/fx.tsx`: два `<img>` из `public/`, `logo-dark.svg` на тёмных темах (dark, sunset,
+navy), `logo-light.svg` на светлых (light, lavender, clay) — переключает вариант `dark:` (нет класса `.light`). Только
+целые масштабы 24 (сайдбар, мобильная шапка, свёрнутый сайдбар без надписи) и 48 px (вход), `image-rendering: pixelated`.
+Фавиконки в `public/`: `favicon.svg` (вариант с тёмным фоном — прозрачный не виден на светлой вкладке),
+`favicon-48.png`, `favicon-96.png`, `apple-touch-icon.png` (192 px); манифеста нет. Исходники — у владельца, вне репо.
+
 ## Анимации
 
 Класс `still` на `<html>` ставит `main.tsx`, когда `interface.animations = false`; правила `:root.still …` в
