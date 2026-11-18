@@ -1,4 +1,4 @@
-import type { Account, Health, Storage, Task, TaskStatus } from './types'
+import type { Account, Health, Storage, Task, TaskCounts, TaskStatus } from './types'
 import type { Key } from './i18n'
 import type { Sending } from './upload'
 
@@ -38,10 +38,8 @@ export function storageTotals(storages: Storage[]) {
   return { storages: storages.length, files, size, unavailable: storages.filter((s) => s.available === false).length }
 }
 
-export function taskCounts(tasks: Task[]): Record<TaskStatus, number> {
-  const counts: Record<TaskStatus, number> = { queued: 0, running: 0, done: 0, failed: 0, cancelled: 0 }
-  for (const task of tasks) counts[task.status]++
-  return counts
+export function taskCounts(counts: TaskCounts | undefined): Record<TaskStatus, number> {
+  return { queued: 0, running: 0, done: 0, failed: 0, cancelled: 0, ...counts?.by_status }
 }
 
 export interface Activity {

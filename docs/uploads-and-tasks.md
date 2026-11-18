@@ -1,7 +1,10 @@
 # Загрузки и задачи
 
 У API нет списка «моих задач» (только по id или `batch_id`), поэтому браузер сам помнит id запущенных задач и опрашивает
-их. Загрузка с устройства проходит два этапа: отправка тела в вкладке (XHR) и задача на сервере.
+их пачкой: `taskLoader` (`lib/tasks.ts`) собирает id, запрошенные кэшами `['task', id]` в одном тике, в один
+`GET /api/tasks?ids=…` (`TASKS_PER_REQUEST` = 100 на запрос); id, которых нет в ответе, считаются пропавшими (как 404).
+Таймеры опроса задач с одним статусом идут синхронно (ответ приходит всем сразу), поэтому на каждый интервал — один
+запрос. Загрузка с устройства проходит два этапа: отправка тела в вкладке (XHR) и задача на сервере.
 
 ## Точки входа
 
@@ -84,10 +87,11 @@ sequenceDiagram
     participant C as QueryClient
     T-->>Q: useTrackedTasks(): id[]
     loop queued — раз в 5 с, running — раз в 1,5 с (pollInterval), пока не done/failed/cancelled
-        Q->>B: GET /api/tasks/{id}
-        B-->>Q: Task
+        Q->>Q: queryFn ['task', id] → loadTask(id) (taskLoader):<br/>id одного тика копятся (10 мс)
+        Q->>B: GET /api/tasks?ids=a&ids=b… (до 100 id на запрос, больше — несколько)
+        B-->>Q: {items, summary} — только видимые задачи
     end
-    Q-->>W: results
+    Q-->>W: results (id, которого нет в items → ApiError 404)
     alt 404 (задачи больше нет)
         W->>T: forgetTasks(gone)
     else статус завершённый и id в pending (isPending)
@@ -127,7 +131,7 @@ stateDiagram-v2
     Sending --> [*]: ошибка отправки → toast
     [*] --> Tracked: batch / архив / повтор → trackTask
     Tracked --> Polling
-    Polling --> Polling: GET /tasks/{id} каждые 5 с (queued) / 1,5 с
+    Polling --> Polling: GET /tasks?ids=… каждые 5 с (queued) / 1,5 с
     Polling --> Finished: done / failed / cancelled
     Polling --> [*]: 404 → forgetTasks
     Finished --> Polling: «Повторить» (setQueryData queued)
@@ -169,6 +173,6 @@ stateDiagram-v2
 |---|---|
 | `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed` внутри текущей папки, спидометр |
 | `pages/tasks.tsx` | все отслеживаемые задачи, фильтр `visibleTasks(tasks_filter)`, отмена/приоритет/повтор/забыть |
-| `pages/dashboard.tsx` | «Активность»: кольца по статусам, прогресс идущих, чек-лист первого запуска (`lib/onboarding.ts`) |
+| `pages/dashboard.tsx` | «Активность»: кольца по статусам из `GET /api/tasks/counts` (`useTaskCounts`, свои задачи за 7 дней, опрос 5 с), прогресс идущих отслеживаемых, чек-лист первого запуска (`lib/onboarding.ts`) |
 | `hooks/use-storages.ts` `useStorageIo` | лампы чтения/записи хранилищ: отправки + задачи загрузки = запись, `archiving` + `markRead` = чтение, удержание `IO_HOLD_MS` (`lingerIo`) |
 | `components/extras.tsx` | реакции на `tcloud:task-finished` (за флагами `fx_*`) |

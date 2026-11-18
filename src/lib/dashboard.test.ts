@@ -110,6 +110,7 @@ describe('dashboard', () => {
   })
 
   it('counts tasks by status', () => {
-    expect(taskCounts([{ status: 'done' }, { status: 'done' }, { status: 'failed' }] as Task[])).toEqual({ queued: 0, running: 0, done: 2, failed: 1, cancelled: 0 })
+    expect(taskCounts({ total: 3, by_status: { done: 2, failed: 1 } })).toEqual({ queued: 0, running: 0, done: 2, failed: 1, cancelled: 0 })
+    expect(taskCounts(undefined)).toEqual({ queued: 0, running: 0, done: 0, failed: 0, cancelled: 0 })
   })
 })

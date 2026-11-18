@@ -148,6 +148,16 @@ export interface Task {
   updated_at: string
 }
 
+export interface TaskCounts {
+  total: number
+  by_status: Partial<Record<TaskStatus, number>>
+}
+
+export interface TaskList {
+  items: Task[]
+  summary: TaskCounts & { bytes_done: number; bytes_total: number; finished: number; progress: number | null }
+}
+
 export interface BatchResponse {
   batch_id: string
   items: { path: string; task: Task | null; error: ApiErrorBody | null }[]

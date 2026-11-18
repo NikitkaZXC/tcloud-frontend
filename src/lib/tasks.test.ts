@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { ApiError } from './api'
 import { setLang } from './i18n'
-import { capTasks, forgetTask, isPending, pollInterval, reportTask, taskFolders, taskFraction, trackTask, waitingText, warningText } from './tasks'
+import type { Task } from './types'
+import { capTasks, forgetTask, isPending, pollInterval, reportTask, taskFolders, taskFraction, taskLoader, trackTask, waitingText, warningText } from './tasks'
 
 describe('task progress', () => {
   it('reads the backend percent as a fraction', () => {
@@ -67,5 +69,25 @@ describe('task codes', () => {
     expect(waitingText({ code: 'flood_wait', params: {}, reason: 'flood', seconds: 30 })).toBe('Telegram pause (FloodWait)')
     setLang('ru')
     expect(warningText({ code: 'archive_files_deleted', params: { count: 5 }, message: 'x' })).toBe('5 выбранных файлов удалены до сборки архива')
+  })
+})
+
+describe('task loader', () => {
+  it('batches ids of one tick, chunks by 100 and rejects omitted ids as 404', async () => {
+    const fetchMany = vi.fn(async (ids: string[]) => ids.filter((id) => id !== 'gone').map((id) => ({ id }) as Task))
+    const load = taskLoader(fetchMany, 0)
+    const ids = Array.from({ length: 150 }, (_, i) => `t${i}`)
+    const [first, again, gone, ...rest] = await Promise.allSettled([load('t0'), load('t0'), load('gone'), ...ids.slice(1).map(load)])
+    expect(fetchMany).toHaveBeenCalledTimes(2)
+    expect(fetchMany.mock.calls.map(([chunk]) => chunk.length)).toEqual([100, 51])
+    expect(first).toEqual({ status: 'fulfilled', value: { id: 't0' } })
+    expect(again).toEqual(first)
+    expect(gone.status === 'rejected' && gone.reason instanceof ApiError && gone.reason.status).toBe(404)
+    expect(rest.every((result) => result.status === 'fulfilled')).toBe(true)
+  })
+
+  it('rejects the whole chunk when the request fails', async () => {
+    const load = taskLoader(() => Promise.reject(new Error('down')), 0)
+    await expect(load('a')).rejects.toThrow('down')
   })
 })

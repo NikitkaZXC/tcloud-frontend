@@ -43,6 +43,7 @@ export function TaskWatcher() {
       timer.current = setTimeout(() => {
         const folders = taskFolders(finished.current)
         finished.current = []
+        queryClient.invalidateQueries({ queryKey: ['task-counts'] })
         if (!folders.length) return
         folders.forEach((folder) => queryClient.invalidateQueries({ queryKey: ['folder', folder] }))
         queryClient.invalidateQueries({ queryKey: ['storages'] })

@@ -9,7 +9,7 @@ import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, StatusLight, 
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { useTasks } from '@/hooks/use-tasks'
+import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { channelUsage, HEALTH_LABELS, healthGroups, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
@@ -119,8 +119,9 @@ function ActivitySection() {
   const filter = useSettings().interface.tasks_filter
   const tasks = visibleTasks(useTrackedData(), filter)
   const storages = useStorages().data ?? []
-  const counts = taskCounts(tasks)
-  const total = Math.max(tasks.length + sending.length, 1)
+  const server = useTaskCounts().data
+  const counts = taskCounts(server)
+  const total = Math.max((server?.total ?? 0) + sending.length, 1)
   const running = tasks.filter((task) => task.status === 'running' || task.status === 'queued')
   const statuses: [string, number, 'busy' | 'idle' | 'ok' | 'fail'][] = [
     [t('dashboard.running'), counts.running + sending.length, 'busy'],
@@ -267,8 +268,8 @@ export function DashboardPage() {
   const { data: me } = useMe()
   const showMap = useSettings().interface.activity_map
   const totals = storageTotals(useStorages().data ?? [])
-  const tasks = useTrackedData()
-  const active = tasks.filter((t) => t.status === 'queued' || t.status === 'running').length + useSending().length
+  const counts = taskCounts(useTaskCounts().data)
+  const active = counts.queued + counts.running + useSending().length
 
   return (
     <div className="grid">

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { ApiError } from './api'
 import { parentPath } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { Task, TaskWaiting, TaskWarning } from './types'
@@ -66,6 +67,40 @@ export const warningText = (warning: TaskWarning) => codeText(`taskWarning.${war
 
 export const waitingText = (waiting: TaskWaiting) =>
   codeText(waiting.code === 'queue' ? `taskWaiting.queue.${waiting.params.queue}` : `taskWaiting.${waiting.code}`, waiting.params, waiting.reason)
+
+export const TASKS_PER_REQUEST = 100
+
+type Waiter = { resolve: (task: Task) => void; reject: (error: unknown) => void }
+
+export function taskLoader(fetchMany: (ids: string[]) => Promise<Task[]>, wait = 10) {
+  let queue = new Map<string, Waiter[]>()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const flush = () => {
+    const batch = queue
+    queue = new Map()
+    timer = undefined
+    const ids = [...batch.keys()]
+    for (let i = 0; i < ids.length; i += TASKS_PER_REQUEST) {
+      const chunk = ids.slice(i, i + TASKS_PER_REQUEST)
+      fetchMany(chunk).then(
+        (tasks) => {
+          const found = new Map(tasks.map((task) => [task.id, task]))
+          for (const id of chunk) {
+            const task = found.get(id)
+            const gone = new ApiError(404, { code: 'task_not_found', message: 'Task not found' })
+            batch.get(id)!.forEach((waiter) => (task ? waiter.resolve(task) : waiter.reject(gone)))
+          }
+        },
+        (error) => chunk.forEach((id) => batch.get(id)!.forEach((waiter) => waiter.reject(error))),
+      )
+    }
+  }
+  return (id: string) =>
+    new Promise<Task>((resolve, reject) => {
+      queue.set(id, [...(queue.get(id) ?? []), { resolve, reject }])
+      timer ??= setTimeout(flush, wait)
+    })
+}
 
 export const pollInterval = (status: string | undefined) => (status === 'queued' ? 5000 : 1500)
 
