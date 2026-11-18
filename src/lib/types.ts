@@ -110,6 +110,19 @@ export interface FolderListing {
   files: TFile[]
 }
 
+export interface TaskWaiting {
+  reason: string
+  code: string
+  params: Record<string, string | number>
+  seconds: number | null
+}
+
+export interface TaskWarning {
+  code: string
+  params: Record<string, string | number>
+  message: string
+}
+
 export interface Task {
   id: string
   batch_id: string | null
@@ -124,10 +137,11 @@ export interface Task {
   speed: number | null
   eta: number | null
   queue_position: number | null
-  waiting: { reason: string; seconds: number | null } | null
+  waiting: TaskWaiting | null
   cancel_requested: boolean
   error: ApiErrorBody | null
   warnings: string[]
+  warning_details: TaskWarning[]
   file: TFile | null
   archive: { name: string; format: ArchiveFormat; files: number; size: number | null; expires_at: string | null } | null
   created_at: string

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { capTasks, forgetTask, isPending, pollInterval, reportTask, taskFolders, taskFraction, trackTask } from './tasks'
+import { setLang } from './i18n'
+import { capTasks, forgetTask, isPending, pollInterval, reportTask, taskFolders, taskFraction, trackTask, waitingText, warningText } from './tasks'
 
 describe('task progress', () => {
   it('reads the backend percent as a fraction', () => {
@@ -51,5 +52,20 @@ describe('task polling', () => {
     expect(pollInterval('queued')).toBe(5000)
     expect(pollInterval('running')).toBe(1500)
     expect(pollInterval(undefined)).toBe(1500)
+  })
+})
+
+describe('task codes', () => {
+  it('translates warnings and waiting by code and falls back to the message', () => {
+    setLang('en')
+    expect(warningText({ code: 'archive_file_gone', params: { name: 'a/b.txt' }, message: 'x' })).toBe('a/b.txt: no longer in Telegram, left out of the archive')
+    expect(warningText({ code: 'archive_files_deleted', params: { count: 2 }, message: 'x' })).toBe('2 selected files were deleted before the archive was built')
+    expect(warningText({ code: 'other', params: {}, message: 'legacy text' })).toBe('legacy text')
+    expect(warningText({ code: 'brand_new', params: {}, message: 'new text' })).toBe('new text')
+    expect(waitingText({ code: 'queue', params: { queue: 'uploads.telegram' }, reason: 'queue:uploads.telegram', seconds: null })).toBe('Telegram upload queue')
+    expect(waitingText({ code: 'queue', params: { queue: 'other.queue' }, reason: 'queue:other.queue', seconds: null })).toBe('queue:other.queue')
+    expect(waitingText({ code: 'flood_wait', params: {}, reason: 'flood', seconds: 30 })).toBe('Telegram pause (FloodWait)')
+    setLang('ru')
+    expect(warningText({ code: 'archive_files_deleted', params: { count: 5 }, message: 'x' })).toBe('5 выбранных файлов удалены до сборки архива')
   })
 })

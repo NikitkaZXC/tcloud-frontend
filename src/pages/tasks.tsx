@@ -16,7 +16,7 @@ import { filesCount, formatBytes, formatDate, formatDuration, parentPath } from 
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
-import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks } from '@/lib/tasks'
+import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks, waitingText, warningText } from '@/lib/tasks'
 import { type TasksFilter, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
 
@@ -142,7 +142,7 @@ function TaskCard({ task }: { task: Task }) {
           {task.queue_position != null && <span>{t('tasks.queuePosition', { n: task.queue_position })}</span>}
           {task.waiting && (
             <span>
-              {t('tasks.waiting', { reason: task.waiting.reason })}
+              {t('tasks.waiting', { reason: waitingText(task.waiting) })}
               {task.waiting.seconds != null && ` (${t('tasks.seconds', { n: task.waiting.seconds })})`}
             </span>
           )}
@@ -159,9 +159,9 @@ function TaskCard({ task }: { task: Task }) {
             {errorText(task.error)} ({task.error.code})
           </p>
         )}
-        {task.warnings.map((warning) => (
-          <p key={warning} className="text-sm text-warning">
-            {warning}
+        {task.warning_details.map((warning, index) => (
+          <p key={index} className="text-sm text-warning">
+            {warningText(warning)}
           </p>
         ))}
       </CardContent>

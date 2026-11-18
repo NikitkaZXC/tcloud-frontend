@@ -158,6 +158,11 @@ stateDiagram-v2
 возвращает ту же задачу (тот же id) в `queued`. `task.progress` — проценты 0–100, во фронте только через
 `taskFraction` (0–1).
 
+Ожидание и предупреждения переводятся по кодам бэкенда (`waitingText`, `warningText` в `lib/tasks.ts`):
+`task.waiting.code` → ключ `taskWaiting.<code>` (для `queue` — `taskWaiting.queue.<params.queue>`), каждый
+`task.warning_details[]` → `taskWarning.<code>` с `params` (`count` идёт в плюрал как `n`). Неизвестный код (и `other`)
+показывается английским текстом бэкенда (`reason` / `message`). Таблица кодов — `tcloud-backend/docs/flows/uploads.md`.
+
 ## Кто читает задачи и отправки
 
 | Потребитель | Что показывает |

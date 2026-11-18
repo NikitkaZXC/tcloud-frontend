@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { parentPath } from './format'
-import { type Key, t } from './i18n'
-import type { Task } from './types'
+import { DICTIONARIES, type Key, t } from './i18n'
+import type { Task, TaskWaiting, TaskWarning } from './types'
 
 export const TASK_STATUS: Record<string, { label: Key; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   queued: { label: 'status.queued', variant: 'outline' },
@@ -57,6 +57,15 @@ function write(next: string[], nextPending = pending) {
     listeners.forEach((listener) => listener())
   }
 }
+
+function codeText(key: string, params: TaskWarning['params'], fallback: string): string {
+  return key in DICTIONARIES.ru ? t(key as Key, 'count' in params ? { ...params, n: params.count } : params) : fallback
+}
+
+export const warningText = (warning: TaskWarning) => codeText(`taskWarning.${warning.code}`, warning.params, warning.message)
+
+export const waitingText = (waiting: TaskWaiting) =>
+  codeText(waiting.code === 'queue' ? `taskWaiting.queue.${waiting.params.queue}` : `taskWaiting.${waiting.code}`, waiting.params, waiting.reason)
 
 export const pollInterval = (status: string | undefined) => (status === 'queued' ? 5000 : 1500)
 
