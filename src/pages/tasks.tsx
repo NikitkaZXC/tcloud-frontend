@@ -11,7 +11,8 @@ import { useAction } from '@/hooks/use-action'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
 import { formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
-import { forgetTask, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
+import { markRead } from '@/lib/reads'
+import { forgetTask, taskFraction, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
 import type { Priority, Task } from '@/lib/types'
 
 export function TasksPage() {
@@ -58,7 +59,8 @@ function TaskCard({ task }: { task: Task }) {
   const status = TASK_STATUS[task.status] ?? { label: task.status, variant: 'outline' as const }
   const finished = isFinished(task)
   const name = task.archive?.name ?? task.path.split('/').pop()
-  const percent = task.progress != null ? task.progress * 100 : null
+  const fraction = taskFraction(task)
+  const percent = fraction != null ? fraction * 100 : null
 
   return (
     <Card className="py-4">
@@ -82,7 +84,7 @@ function TaskCard({ task }: { task: Task }) {
             )}
             {task.status === 'done' && task.archive && (
               <Button size="sm" asChild>
-                <a href={`/api/tasks/${task.id}/archive`} download={task.archive.name}>
+                <a href={`/api/tasks/${task.id}/archive`} download={task.archive.name} onClick={() => markRead(task.path)}>
                   <DownloadIcon /> Скачать
                 </a>
               </Button>
@@ -106,7 +108,7 @@ function TaskCard({ task }: { task: Task }) {
         </div>
         {!finished && <Progress value={percent} />}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <Link to={`/files?path=${encodeURIComponent(parentPath(task.path) || task.path)}`} className="truncate hover:underline">
+          <Link to={`/files?path=${encodeURIComponent(parentPath(task.path) || task.path)}`} className="truncate hover:underline pointer-coarse:py-3">
             {task.path}
           </Link>
           <span>
@@ -136,7 +138,7 @@ function TaskCard({ task }: { task: Task }) {
           </p>
         )}
         {task.warnings.map((warning) => (
-          <p key={warning} className="text-sm text-amber-600 dark:text-amber-400">
+          <p key={warning} className="text-sm text-warning">
             {warning}
           </p>
         ))}

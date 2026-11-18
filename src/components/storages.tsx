@@ -1,86 +1,117 @@
-import { HardDriveIcon, HistoryIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
-import { PageTitle, UploadPulse } from '@/components/fx'
+import { ChannelsRing, PageTitle, Section, Stat, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorageActivity, useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
-import { storageIdOf } from '@/lib/format'
-import { load } from '@/lib/prefs'
-import type { Storage } from '@/lib/types'
+import { type Activity, channelUsage, type Io, storageTotals } from '@/lib/dashboard'
+import { formatBytes } from '@/lib/format'
+import type { Account, Storage } from '@/lib/types'
 
-export function ResumeLink() {
-  const storages = useStorages()
-  const path = load('last-folder')
-  if (!path) return null
-  const storage = storages.data?.find((s) => s.id === storageIdOf(path))
-  if (!storage) return null
-  const rest = path.split('/').slice(2).join('/')
+export function StorageCard({ storage, activity, io, actions }: { storage: Storage; activity?: Activity; io?: Io; actions?: ReactNode }) {
+  const to = `/files?path=${encodeURIComponent(storage.path)}`
   return (
-    <Link to={`/files?path=${encodeURIComponent(path)}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold text-primary hover:underline">
-      <HistoryIcon className="size-4 shrink-0" />
-      <span className="truncate">
-        продолжить: {storage.name ?? storage.id}
-        {rest && ` / ${rest}`}
-      </span>
-    </Link>
+    <div className="fx-panel flex gap-4 p-4">
+      <StorageIcon io={io} off={!storage.available} className="mt-1" />
+      <div className="grid min-w-0 flex-1 gap-1.5">
+        <div className="flex items-start gap-2">
+          <Link to={to} className="min-w-0 flex-1 truncate font-pixel text-[15px] tracking-[0.06em] uppercase hover:underline pointer-coarse:py-2.5">
+            {storage.name ?? storage.id}
+          </Link>
+          {actions}
+        </div>
+        {storage.description && <p className="truncate text-xs text-muted-foreground">{storage.description}</p>}
+        {storage.available ? (
+          <p className="flex flex-wrap items-baseline gap-x-3 text-xs text-muted-foreground tabular-nums">
+            <span>
+              <span className="fx-pixel text-[20px] text-foreground">{storage.total_size != null ? formatBytes(storage.total_size) : '—'}</span>
+            </span>
+            <span>{storage.files != null ? `${storage.files} файлов` : 'файлов — нет данных'}</span>
+          </p>
+        ) : (
+          <p className="text-xs font-medium tracking-[0.08em] text-destructive uppercase">канал недоступен</p>
+        )}
+        {activity || io === 'write' || io === 'both' ? (
+          <UploadPulse activity={activity ?? WRITTEN} />
+        ) : (
+          <Link to={to} className="fx-more justify-self-start" tabIndex={-1} aria-hidden>
+            Открыть
+          </Link>
+        )}
+      </div>
+    </div>
   )
 }
 
 export function StorageList() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
+  const io = useStorageIo(storages.data ?? [])
+  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
   const { data: me } = useMe()
   const admin = isAdmin(me)
+  const totals = storageTotals(storages.data ?? [])
+  const usage = channelUsage(account.data, totals.storages)
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between">
-        <PageTitle text="Хранилища" />
+    <div className="grid">
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-6">
+        <PageTitle text="Хранилища" eyebrow="Каналы Telegram, где лежат файлы. Объём и число файлов — по данным API." />
         {admin && <StorageForm />}
       </div>
-      <ResumeLink />
-      {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}
-      {storages.error && <p className="text-destructive">{storages.error.message}</p>}
-      {storages.data?.length === 0 && <p className="text-muted-foreground">Хранилищ пока нет.</p>}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {storages.data?.map((storage) => (
-          <Card key={storage.id} className="py-4">
-            <CardContent className="flex items-start gap-3 px-4">
-              {storage.has_photo ? (
-                <img src={`/api/storages/${storage.id}/photo`} alt="" className="size-12 rounded-full object-cover" />
-              ) : (
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <HardDriveIcon className="size-5 text-muted-foreground" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <Link to={`/files?path=${encodeURIComponent(storage.path)}`} className="block truncate font-medium hover:underline">
-                  {storage.name ?? storage.id}
-                </Link>
-                {storage.description && <p className="truncate text-sm text-muted-foreground">{storage.description}</p>}
-                {!storage.available && <Badge variant="destructive" className="mt-1">канал недоступен</Badge>}
-                {activity[storage.id] && <div className="mt-2"><UploadPulse activity={activity[storage.id]} /></div>}
-              </div>
-              {admin && (
-                <div className="flex">
-                  <StorageForm storage={storage} />
-                  <DeleteStorage storage={storage} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <section aria-label="Итоги" className="fx-dotted mt-4 grid grid-cols-2 border-t sm:grid-cols-3 [&>*:not(:first-child)]:fx-dotted [&>*:not(:first-child)]:border-l max-sm:[&>*:nth-child(3)]:col-span-2 max-sm:[&>*:nth-child(3)]:border-t max-sm:[&>*:nth-child(3)]:border-l-0">
+        <Stat label="файлов во всех хранилищах" value={totals.files} />
+        <Stat label="объём" value={totals.size} format={formatBytes} />
+        <Stat label="хранилищ" value={totals.storages} />
+      </section>
+      <Section label="Лимит каналов">
+        <div className="flex flex-wrap items-center gap-8 max-sm:justify-center">
+          <ChannelsRing usage={usage} />
+          <div className="grid max-w-md gap-3 text-sm text-muted-foreground">
+            <p>
+              Telegram ограничивает число каналов и групп у аккаунта: {usage.limit}
+              {account.data?.premium ? ' (Premium)' : ', с Premium — 1000'}. Каждое хранилище — отдельный канал.
+            </p>
+            <p className="fx-dotted border-l-4 pl-3 text-foreground">
+              Нужно больше хранилищ — удалите ненужные каналы и группы в Telegram (они тоже занимают лимит) или ненужные хранилища здесь.
+            </p>
+            {!usage.accountWide && <p className="text-xs">API пока не отдаёт число всех каналов аккаунта — показано число хранилищ.</p>}
+          </div>
+        </div>
+      </Section>
+      <Section label="Список">
+        {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}
+        {storages.error && <p className="text-destructive">{storages.error.message}</p>}
+        {storages.data?.length === 0 && <p className="text-muted-foreground">Хранилищ пока нет.</p>}
+        <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {storages.data?.map((storage) => (
+            <li key={storage.id}>
+              <StorageCard
+                storage={storage}
+                activity={activity[storage.id]}
+                io={io[storage.id]}
+                actions={
+                  admin && (
+                    <div className="-mt-1 -mr-2 flex">
+                      <StorageForm storage={storage} />
+                      <DeleteStorage storage={storage} />
+                    </div>
+                  )
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      </Section>
     </div>
   )
 }

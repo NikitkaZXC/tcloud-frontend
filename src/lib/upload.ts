@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { ApiError, refreshSession, withQuery } from './api'
-import type { Task, UploadOptions } from './types'
+import type { SendAs, Task, UploadOptions } from './types'
 
 export interface Sending {
   id: number
@@ -68,4 +68,8 @@ export async function uploadFile(file: File, options: UploadOptions, onProgress:
   }
   if (xhr.status >= 200 && xhr.status < 300) return body as Task
   throw new ApiError(xhr.status, body?.error ?? { code: 'http_error', message: `${xhr.status}` })
+}
+
+export function withSendAs<T extends { send_as: SendAs; encrypt: boolean }>(options: T, sendAs: SendAs): T {
+  return { ...options, send_as: sendAs, encrypt: sendAs === 'file' }
 }

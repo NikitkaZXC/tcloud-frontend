@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  CloudIcon,
   GaugeIcon,
   HardDriveIcon,
   KeyRoundIcon,
@@ -12,6 +11,7 @@ import {
   PanelLeftOpenIcon,
   SearchIcon,
   SendIcon,
+  ShieldIcon,
   SunIcon,
   UsersIcon,
   XIcon,
@@ -20,11 +20,11 @@ import { type ComponentType, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
-import { UploadPulse } from '@/components/fx'
+import { CornerHint, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorageActivity, useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { ApiError, api } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
@@ -33,7 +33,7 @@ import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const item =
-  'relative z-10 flex h-10 items-center gap-3 rounded-full px-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground'
+  'relative z-10 flex h-10 items-center gap-3 px-3 text-sm tracking-[0.06em] text-muted-foreground uppercase transition-colors hover:text-foreground pointer-coarse:h-11'
 
 function Item({
   to,
@@ -67,9 +67,10 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
   const { pathname } = useLocation()
   const current = pathname === '/files' ? params.get('path') : null
   const activity = useStorageActivity(storages.data ?? [])
+  const io = useStorageIo(storages.data ?? [])
   if (!storages.data?.length) return null
   return (
-    <ul className="ml-5 grid gap-0.5 border-l border-dashed pl-2">
+    <ul className="fx-dotted ml-5 grid gap-0.5 border-l pl-2">
       {storages.data.map((storage) => {
         const selected = !!current && (current === storage.path || current.startsWith(`${storage.path}/`))
         return (
@@ -79,20 +80,28 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
               onClick={onNavigate}
               aria-current={selected ? 'page' : undefined}
               className={cn(
-                'relative z-10 grid gap-1 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground',
+                'relative z-10 grid gap-1 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-3',
                 selected && 'text-foreground',
               )}
             >
-              <span className="flex items-center gap-1.5 truncate">
-                {!storage.available && <span className="fx-light" data-ok={false} aria-label="канал недоступен" />}
+              <span className="flex items-center gap-2 truncate">
+                <StorageIcon io={io[storage.id]} off={!storage.available} scale={1} />
                 <span className="truncate">{storage.name ?? storage.id}</span>
               </span>
-              {activity[storage.id] && <UploadPulse activity={activity[storage.id]} compact />}
+              {(activity[storage.id] || io[storage.id] === 'write' || io[storage.id] === 'both') && <UploadPulse activity={activity[storage.id] ?? WRITTEN} compact />}
             </Link>
           </li>
         )
       })}
     </ul>
+  )
+}
+
+export function Brand({ short }: { short?: boolean }) {
+  return (
+    <span className="fx-pixel text-[20px] uppercase" aria-hidden>
+      {short ? 't' : 'tcloud'}
+    </span>
   )
 }
 
@@ -107,15 +116,18 @@ function ThemeSwitch({ collapsed }: { collapsed: boolean }) {
       aria-label="Тёмная тема"
       title={dark ? 'Тёмная тема' : 'Светлая тема'}
       onClick={() => setTheme(dark ? 'light' : 'dark')}
-      className={cn('fx-well relative inline-flex h-7 w-13 shrink-0 items-center rounded-full p-0.5', collapsed && 'h-13 w-7 flex-col')}
+      className={cn(
+        "relative inline-flex h-7 w-13 shrink-0 items-center border p-0.5 after:absolute after:-inset-2 after:content-['']",
+        collapsed && 'h-13 w-7 flex-col',
+      )}
     >
       <span
         className={cn(
-          'flex size-6 items-center justify-center rounded-full bg-gradient-to-b from-secondary to-card text-primary shadow-[inset_0_1px_0_var(--edge),0_2px_6px_var(--drop)] transition-transform duration-300',
+          'flex size-6 items-center justify-center border border-foreground bg-foreground text-background transition-transform duration-300',
           dark ? (collapsed ? 'translate-y-6' : 'translate-x-6') : '',
         )}
       >
-        {dark ? <MoonIcon className="size-3.5 drop-shadow-[0_0_4px_var(--violet)]" /> : <SunIcon className="size-3.5 text-warning" />}
+        {dark ? <MoonIcon className="size-3.5" /> : <SunIcon className="size-3.5" />}
       </span>
     </button>
   )
@@ -159,11 +171,8 @@ function Sidebar({
     <nav aria-label="Основная навигация" className="flex h-full flex-col gap-3">
       <div className="fx-panel flex min-h-0 flex-1 flex-col gap-4 p-3">
         <div className={cn('flex items-center gap-2', collapsed ? 'flex-col' : 'justify-between pl-1')}>
-          <Link to="/dashboard" onClick={onNavigate} className="flex items-center gap-2 rounded-full" aria-label="tcloud — дашборд">
-            <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[var(--violet)] to-[var(--pink)] text-white shadow-[0_0_18px_-4px_var(--violet)]">
-              <CloudIcon className="size-[1.125rem]" />
-            </span>
-            {!collapsed && <span className="text-lg font-extrabold tracking-tight">tcloud</span>}
+          <Link to="/dashboard" onClick={onNavigate} className="flex h-9 items-center rounded-md px-1" aria-label="tcloud — дашборд">
+            <Brand short={collapsed} />
           </Link>
           {onCollapse && (
             <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label={collapsed ? 'Развернуть панель' : 'Свернуть панель'} aria-expanded={!collapsed}>
@@ -174,7 +183,7 @@ function Sidebar({
         <Button
           variant="outline"
           size={collapsed ? 'icon' : 'default'}
-          className={cn('text-muted-foreground', collapsed ? 'self-center' : 'h-10 justify-between px-4')}
+          className={cn('text-muted-foreground', collapsed ? 'self-center' : 'h-10 justify-between px-3')}
           aria-label="Команды и поиск (Ctrl+K)"
           onClick={() => {
             onNavigate()
@@ -186,9 +195,9 @@ function Sidebar({
           ) : (
             <>
               <span className="flex items-center gap-2">
-                <SearchIcon /> Поиск и команды
+                <SearchIcon /> Поиск
               </span>
-              <kbd className="fx-chip h-5 px-1.5 text-[10px] text-muted-foreground">Ctrl K</kbd>
+              <kbd className="fx-label text-[10px]">Ctrl K</kbd>
             </>
           )}
         </Button>
@@ -209,15 +218,18 @@ function Sidebar({
           {!collapsed && <StorageLinks onNavigate={onNavigate} />}
           <Item to="/tasks" label="Задачи" icon={ListChecksIcon} collapsed={collapsed} onNavigate={onNavigate} />
           {admin.length > 0 && (
-            <>
-              <p className={cn('px-3 pt-3 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase', collapsed && 'sr-only')}>
-                Администрирование
-              </p>
-              {collapsed && <hr className="fx-dotted mx-2 my-1 border-t" />}
+            <div
+              role="group"
+              aria-labelledby="nav-admin"
+              className={cn('fx-dotted mt-5 grid gap-1 border-2 px-1 pb-1', collapsed && 'mt-2 border-x-0 border-b-0 px-0 pt-2 pb-0')}
+            >
+              <h2 id="nav-admin" className={cn('fx-group-label -mt-[0.75em] ml-2 justify-self-start bg-card px-1.5', collapsed && 'sr-only')}>
+                <ShieldIcon className="size-3.5" aria-hidden /> Администрирование
+              </h2>
               {admin.map((link) => (
                 <Item key={link.to} {...link} collapsed={collapsed} onNavigate={onNavigate} />
               ))}
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -227,14 +239,14 @@ function Sidebar({
           onClick={onNavigate}
           title="Аккаунт"
           className={({ isActive }) =>
-            cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-full p-0.5 pr-2 transition-colors hover:bg-secondary', collapsed && 'flex-none pr-0.5', isActive && 'bg-secondary')
+            cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 pr-2 transition-colors hover:bg-secondary', collapsed && 'flex-none pr-1', isActive && 'outline outline-1 outline-foreground')
           }
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-primary uppercase shadow-[inset_0_1px_0_var(--edge)]">
+          <span className="flex size-8 shrink-0 items-center justify-center border fx-pixel text-sm uppercase">
             {me.login.slice(0, 1)}
           </span>
           <span className={cn('min-w-0', collapsed && 'sr-only')}>
-            <span className="block truncate text-sm font-semibold">{me.login}</span>
+            <span className="block truncate text-sm font-medium">{me.login}</span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <KeyRoundIcon className="size-3" /> {me.role}
             </span>
@@ -281,26 +293,28 @@ export function Layout() {
         <Sidebar me={me.data} collapsed={collapsed} onCollapse={toggle} onNavigate={close} onLogout={logout} />
       </aside>
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-        <header className="fx-panel sticky top-2 z-10 mx-2 mt-2 flex items-center gap-2 px-3 py-2 md:hidden">
+        <header className="fx-panel sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 mx-[max(0.5rem,env(safe-area-inset-left))] mt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 px-2 py-1.5 md:hidden">
           <DialogPrimitive.Trigger asChild>
             <Button variant="ghost" size="icon" aria-label="Меню">
               <MenuIcon />
             </Button>
           </DialogPrimitive.Trigger>
-          <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[var(--violet)] to-[var(--pink)] text-white">
-            <CloudIcon className="size-4" />
-          </span>
-          <span className="text-lg font-extrabold tracking-tight">tcloud</span>
+          <Link to="/dashboard" className="flex items-center rounded-md px-1 py-2 pointer-coarse:py-3" aria-label="tcloud — дашборд">
+            <Brand />
+          </Link>
+          <Button variant="ghost" size="icon" className="ml-auto" aria-label="Команды и поиск" onClick={openPalette}>
+            <SearchIcon />
+          </Button>
         </header>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] md:hidden" />
           <DialogPrimitive.Content
             aria-describedby={undefined}
-            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] p-2 outline-none md:hidden data-open:animate-in data-open:slide-in-from-left"
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] outline-none md:hidden data-open:animate-in data-open:slide-in-from-left"
           >
             <DialogPrimitive.Title className="sr-only">Меню</DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
-              <Button variant="ghost" size="icon-sm" className="absolute top-5 right-5 z-20" aria-label="Закрыть меню">
+              <Button variant="ghost" size="icon-sm" className="absolute top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] right-5 z-20" aria-label="Закрыть меню">
                 <XIcon />
               </Button>
             </DialogPrimitive.Close>
@@ -311,7 +325,8 @@ export function Layout() {
       <div className="min-w-0 flex-1">
         <TaskWatcher />
         <CommandPalette />
-        <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
+        <CornerHint />
+        <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-12 md:py-10">
           <Outlet />
         </main>
       </div>

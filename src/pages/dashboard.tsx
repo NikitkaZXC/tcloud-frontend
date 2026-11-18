@@ -1,252 +1,176 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUpRightIcon, XIcon } from 'lucide-react'
+import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { ResumeLink } from '@/components/storages'
-import { CountUp, PageTitle, StatusChip, StatusLight, UploadPulse } from '@/components/fx'
+import { StorageCard } from '@/components/storages'
+import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { useProgress } from '@/hooks/use-fx'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorageActivity, useStorages } from '@/hooks/use-storages'
+import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
+import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
-import { easeOut } from '@/lib/fx'
-import { TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
+import { TASK_STAGE, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
-function Stat({ label, value, format }: { label: string; value: number; format?: (value: number) => string }) {
-  return (
-    <div className="grid content-center gap-1 px-5 py-4 text-center">
-      <span className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-        <CountUp value={value} format={format} />
-      </span>
-      <span className="text-xs text-muted-foreground">{label}</span>
-    </div>
-  )
+const MAX_FILE = 4 * 1024 ** 3
+
+const rings = 'flex flex-wrap justify-center gap-x-6 gap-y-5 sm:justify-start'
+
+function useAccount() {
+  return useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
 }
 
-function Gauge({ ratio }: { ratio: number }) {
-  const progress = useProgress(1200, ratio)
-  const length = 2 * Math.PI * 40
-  return (
-    <svg viewBox="0 0 100 100" className="size-28 shrink-0 -rotate-90" role="img" aria-label={`${Math.round(ratio * 100)}% в норме`}>
-      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--well)" strokeWidth="8" />
-      <circle
-        cx="50"
-        cy="50"
-        r="40"
-        fill="none"
-        stroke={ratio === 1 ? 'var(--success)' : 'var(--destructive)'}
-        strokeLinecap="round"
-        strokeWidth="8"
-        strokeDasharray={length}
-        strokeDashoffset={length * (1 - ratio * easeOut(progress))}
-        style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
-      />
-      <text x="50" y="50" className="rotate-90 fill-foreground text-base font-bold tabular-nums" style={{ transformOrigin: '50px 50px' }} textAnchor="middle" dominantBaseline="central">
-        {Math.round(ratio * 100)}%
-      </text>
-    </svg>
-  )
+function useTrackedData(): Task[] {
+  return useTasks(useTrackedTasks())
+    .map((result) => result.data)
+    .filter((task): task is Task => !!task)
 }
 
-function SystemPanel() {
+function SystemSection() {
   const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
   const checks = health.data ? healthChecks(health.data) : []
   const ok = checks.filter(([, value]) => value).length
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2">
-          Система {health.data && <StatusChip status={health.data.ok ? 'ok' : 'fail'} label={health.data.ok ? 'в норме' : 'сбой'} />}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {health.isPending && <StatusChip status="wait" label="проверка" />}
-        {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
-        {checks.length > 0 && (
-          <div className="flex items-center gap-4">
-            <Gauge ratio={ok / checks.length} />
-            <ul className="fx-stagger grid min-w-0 flex-1 gap-2 text-sm">
-              {checks.map(([key, value]) => (
-                <li key={key} className="flex items-center gap-2">
-                  <StatusLight ok={value} />
-                  <span className="truncate">{HEALTH_LABELS[key] ?? key}</span>
-                  <span className={value ? 'ml-auto text-xs text-muted-foreground' : 'ml-auto text-xs font-semibold text-destructive'}>{value ? 'в сети' : 'недоступен'}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <Section label="Система">
+      {health.isPending && <StatusChip status="wait" label="проверка" />}
+      {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
+      {checks.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
+          <Ring
+            size="lg"
+            value={ok / checks.length}
+            label={health.data?.ok ? 'в норме' : 'есть сбой'}
+            caption={`${ok} из ${checks.length} компонентов`}
+            tone={health.data?.ok ? 'ok' : 'fail'}
+          />
+          <ul className={`fx-stagger ${rings} flex-1`}>
+            {checks.map(([key, value]) => (
+              <li key={key}>
+                <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ?? key} tone={value ? 'ok' : 'fail'} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Section>
   )
 }
 
-function StorageUsage() {
+function ChannelsSection() {
+  const account = useAccount()
+  const storages = useStorages().data ?? []
+  const usage = channelUsage(account.data, storages.length)
+
+  return (
+    <Section label="Каналы">
+      {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
+      <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
+        <ChannelsRing usage={usage} />
+        <div className={rings}>
+          {usage.accountWide && <Ring value={storages.length / Math.max(usage.used, 1)} center={storages.length} label="хранилищ" caption="из каналов аккаунта" />}
+          {account.data && (
+            <Ring value={account.data.premium ? 1 : 0} center={account.data.premium ? 'да' : 'нет'} label="premium" caption={`лимит каналов ${usage.limit}`} tone={account.data.premium ? 'ok' : 'idle'} />
+          )}
+          {account.data && (
+            <Ring value={account.data.file_limit / MAX_FILE} center={formatBytes(account.data.file_limit)} label="лимит файла" caption="из 4 GB с Premium" />
+          )}
+        </div>
+      </div>
+      <p className="max-w-xl text-xs text-muted-foreground">
+        Лимит считает все каналы и группы аккаунта Telegram, не только хранилища.{' '}
+        <Link to="/files" className="fx-more">
+          Хранилища
+        </Link>
+      </p>
+    </Section>
+  )
+}
+
+function ActivitySection() {
+  const sending = useSending()
+  const tasks = useTrackedData()
+  const counts = taskCounts(tasks)
+  const total = Math.max(tasks.length + sending.length, 1)
+  const running = tasks.filter((task) => task.status === 'running' || task.status === 'queued')
+  const statuses: [string, number, 'busy' | 'idle' | 'ok' | 'fail'][] = [
+    ['в работе', counts.running + sending.length, 'busy'],
+    ['в очереди', counts.queued, 'idle'],
+    ['готово', counts.done, 'ok'],
+    ['ошибки', counts.failed + counts.cancelled, 'fail'],
+  ]
+
+  return (
+    <Section label="Активность">
+      <ul className={rings}>
+        {statuses.map(([label, count, tone]) => (
+          <li key={label}>
+            <Ring value={count / total} center={count} label={label} tone={count ? tone : undefined} />
+          </li>
+        ))}
+      </ul>
+      {sending.length + running.length > 0 && (
+        <ul className={`fx-stagger fx-dotted border-t pt-5 ${rings}`} aria-label="Загрузки в процессе">
+          {sending.slice(0, 8).map((item) => (
+            <li key={`s${item.id}`} className="w-28">
+              <Ring
+                size="sm"
+                value={item.loaded / Math.max(item.total, 1)}
+                label="отправка"
+                caption={<span className="block max-w-28 truncate">{item.path.split('/').pop()}</span>}
+                tone="busy"
+              />
+            </li>
+          ))}
+          {running.slice(0, 8).map((task) => (
+            <li key={task.id} className="w-28">
+              <Ring
+                size="sm"
+                value={task.status === 'queued' ? 0 : taskFraction(task)}
+                label={task.status === 'queued' ? (task.queue_position != null ? `очередь #${task.queue_position}` : 'в очереди') : (TASK_STAGE[task.stage] ?? task.stage)}
+                caption={<span className="block max-w-28 truncate">{task.archive?.name ?? task.path.split('/').pop()}</span>}
+                tone={task.archive ? 'read' : 'busy'}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button asChild variant="outline" size="sm" className="justify-self-start">
+        <Link to="/tasks">Все задачи</Link>
+      </Button>
+    </Section>
+  )
+}
+
+function StoragesSection() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
+  const io = useStorageIo(storages.data ?? [])
 
   return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Хранилища</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        {storages.isPending && <StatusChip status="wait" label="загрузка" />}
-        {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
-        {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">Хранилищ пока нет</p>}
-        <ul className="fx-stagger grid gap-3">
-          {storages.data?.map((storage) => (
-            <li key={storage.id} className="grid gap-1">
-              <div className="flex items-center gap-2 text-sm">
-                <StatusLight ok={storage.available} />
-                <Link to={`/files?path=${encodeURIComponent(storage.path)}`} className="min-w-0 flex-1 truncate font-semibold hover:underline">
-                  {storage.name ?? storage.id}
-                </Link>
-              </div>
-              {activity[storage.id] && <UploadPulse activity={activity[storage.id]} />}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  )
-}
-
-function AccountPanel() {
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
-  const totals = storageTotals(useStorages().data ?? [])
-  const limit = account.data?.premium ? 1000 : 500
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Аккаунт Telegram</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <div className="grid gap-1">
-          <span className="text-4xl font-extrabold tracking-tight">
-            <CountUp value={totals.size} format={formatBytes} />
-          </span>
-          <span className="text-xs text-muted-foreground">хранится во всех хранилищах</span>
-        </div>
-        {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
-        <ul className="grid text-sm">
-          {account.data && (
-            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5">
-              <span className="text-muted-foreground">Premium</span>
-              <span className="font-semibold">{account.data.premium ? 'да' : 'нет'}</span>
-            </li>
-          )}
-          {account.data && (
-            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5">
-              <span className="text-muted-foreground">лимит файла</span>
-              <span className="font-semibold tabular-nums">{formatBytes(account.data.file_limit)}</span>
-            </li>
-          )}
-          <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
-            <span className="text-muted-foreground">хранилищ</span>
-            <span className="font-semibold tabular-nums">{totals.storages}</span>
+    <Section label="Хранилища">
+      {storages.isPending && <StatusChip status="wait" label="загрузка" />}
+      {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
+      {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">Хранилищ пока нет</p>}
+      <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {storages.data?.map((storage) => (
+          <li key={storage.id}>
+            <StorageCard storage={storage} activity={activity[storage.id]} io={io[storage.id]} />
           </li>
-          {account.data?.channels_used != null && (
-            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
-              <span className="text-muted-foreground">каналов у аккаунта</span>
-              <span className="font-semibold tabular-nums">{account.data.channels_used}</span>
-            </li>
-          )}
-          {account.data && (
-            <li className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
-              <span className="text-muted-foreground">лимит каналов аккаунта</span>
-              <span className="font-semibold tabular-nums">{limit}</span>
-            </li>
-          )}
-        </ul>
-        <p className="text-xs text-muted-foreground">Лимит считает все каналы и группы аккаунта, не только хранилища.</p>
-      </CardContent>
-    </Card>
+        ))}
+      </ul>
+    </Section>
   )
 }
 
-function line(task: Task): { status: 'ok' | 'fail' | 'wait'; text: string } {
-  if (task.status === 'done') return { status: 'ok', text: TASK_STATUS.done.label }
-  if (task.status === 'failed' || task.status === 'cancelled') return { status: 'fail', text: task.error?.message ?? TASK_STATUS[task.status].label }
-  if (task.status === 'queued') return { status: 'wait', text: task.queue_position != null ? `в очереди #${task.queue_position}` : TASK_STATUS.queued.label }
-  return { status: 'wait', text: TASK_STAGE[task.stage] ?? task.stage }
-}
-
-function Feed() {
-  const sending = useSending()
-  const tasks = useTasks(useTrackedTasks())
-    .map((result) => result.data)
-    .filter((task): task is Task => !!task)
-  const counts = taskCounts(tasks)
-
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex flex-wrap items-center justify-between gap-2">
-          Активность
-          <span className="flex flex-wrap gap-1.5 text-xs font-semibold tabular-nums">
-            <span className="fx-chip text-warning">в работе {counts.running + sending.length}</span>
-            <span className="fx-chip text-muted-foreground">в очереди {counts.queued}</span>
-            <span className="fx-chip text-success">готово {counts.done}</span>
-            <span className="fx-chip text-destructive">ошибки {counts.failed + counts.cancelled}</span>
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="fx-stagger fx-well grid max-h-96 gap-3 overflow-y-auto rounded-2xl p-3 text-sm">
-          {sending.map((item) => (
-            <li key={`s${item.id}`} className="grid gap-1">
-              <div className="flex items-center gap-2">
-                <StatusChip status="wait" label="отправка" />
-                <span className="min-w-0 flex-1 truncate">{item.path.split('/').pop()}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {formatBytes(item.loaded)} / {formatBytes(item.total)}
-                </span>
-              </div>
-              <Progress value={(item.loaded / Math.max(item.total, 1)) * 100} />
-            </li>
-          ))}
-          {tasks.slice(0, 20).map((task) => {
-            const { status, text } = line(task)
-            return (
-              <li key={task.id} className="grid gap-1">
-                <div className="flex items-center gap-2">
-                  <StatusChip status={status} />
-                  <span className="min-w-0 flex-1 truncate">{task.archive?.name ?? task.path.split('/').pop()}</span>
-                  <span className={status === 'fail' ? 'shrink-0 text-xs text-destructive' : 'shrink-0 text-xs text-muted-foreground tabular-nums'}>
-                    {text}
-                    {task.status === 'running' && task.progress != null && ` · ${(task.progress * 100).toFixed(0)}%`}
-                  </span>
-                </div>
-                {task.status === 'running' && <Progress value={task.progress != null ? task.progress * 100 : null} />}
-              </li>
-            )
-          })}
-          {sending.length + tasks.length === 0 && <li className="py-2 text-center text-muted-foreground">Задач нет</li>}
-        </ul>
-        <Button asChild variant="outline" size="sm" className="mt-3">
-          <Link to="/tasks">
-            Все задачи <ArrowUpRightIcon />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
-
-function UsersPanel() {
+function UsersSection() {
   const users = useQuery({ queryKey: ['users'], queryFn: () => api.get<User[]>('/users') })
   const list = users.data ?? []
+  const total = Math.max(list.length, 1)
   const rows: [string, number][] = [
     ['root', list.filter((u) => u.role === 'root').length],
     ['admin', list.filter((u) => u.role === 'admin').length],
@@ -255,27 +179,16 @@ function UsersPanel() {
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Пользователи
-          <span className="text-3xl font-extrabold text-primary">
-            <CountUp value={list.length} />
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
-        <ul className="fx-stagger grid text-sm">
-          {rows.map(([label, count]) => (
-            <li key={label} className="fx-dotted flex justify-between gap-2 border-b py-1.5 last:border-b-0">
-              <span className="text-muted-foreground">{label}</span>
-              <span className={label === 'blocked' && count ? 'font-semibold text-destructive tabular-nums' : 'font-semibold tabular-nums'}>{count}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <Section label="Пользователи">
+      {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
+      <ul className={`fx-stagger ${rings}`}>
+        {rows.map(([label, count]) => (
+          <li key={label}>
+            <Ring size="sm" value={count / total} center={count} label={label} tone={label === 'blocked' && count ? 'fail' : undefined} />
+          </li>
+        ))}
+      </ul>
+    </Section>
   )
 }
 
@@ -283,84 +196,71 @@ function Checklist() {
   const [hidden, setHidden] = useState(isDismissed)
   const telegram = useQuery({ queryKey: ['telegram'], queryFn: () => api.get<{ sessions: TelegramSessionState[] }>('/telegram') })
   const storages = useStorages()
+  const tasks = useTrackedData()
   if (hidden || !telegram.data || !storages.data) return null
-  const steps = checklist(telegram.data.sessions, storages.data)
+  const steps = checklist(telegram.data.sessions, storages.data, tasks)
   if (steps.every((step) => step.done)) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2">
-          Первый запуск
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Скрыть чек-лист"
-            onClick={() => {
-              dismiss()
-              setHidden(true)
-            }}
-          >
-            <XIcon />
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ol className="fx-stagger grid gap-2 text-sm">
-          {steps.map((step, i) => (
-            <li key={step.key} className="flex flex-wrap items-center gap-2">
-              <StatusChip status={step.done ? 'ok' : 'wait'} label={step.done ? 'готово' : 'нужно'} />
-              <span className={step.done ? 'text-muted-foreground line-through' : ''}>
-                {i + 1}. {step.label}
-              </span>
-              {!step.done && (
-                <Button asChild size="sm" variant="outline" className="ml-auto">
-                  <Link to={step.to}>{step.action}</Link>
-                </Button>
-              )}
-            </li>
-          ))}
-        </ol>
-      </CardContent>
-    </Card>
+    <Section label="Первый запуск">
+      <div className="-mb-3 flex justify-end">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Скрыть чек-лист"
+          onClick={() => {
+            dismiss()
+            setHidden(true)
+          }}
+        >
+          <XIcon />
+        </Button>
+      </div>
+      <ol className="fx-stagger grid gap-2 text-sm">
+        {steps.map((step, i) => (
+          <li key={step.key} className="flex flex-wrap items-center gap-2">
+            <StatusChip status={step.done ? 'ok' : 'wait'} label={step.done ? 'готово' : 'нужно'} />
+            <span className={step.done ? 'text-muted-foreground line-through' : ''}>
+              {i + 1}. {step.label}
+            </span>
+            {!step.done && (
+              <Button asChild size="sm" variant="outline" className="ml-auto">
+                <Link to={step.to}>{step.action}</Link>
+              </Button>
+            )}
+          </li>
+        ))}
+      </ol>
+    </Section>
   )
 }
 
 export function DashboardPage() {
   const { data: me } = useMe()
   const totals = storageTotals(useStorages().data ?? [])
-  const active = useTasks(useTrackedTasks()).filter((r) => r.data?.status === 'queued' || r.data?.status === 'running').length + useSending().length
+  const tasks = useTrackedData()
+  const active = tasks.filter((t) => t.status === 'queued' || t.status === 'running').length + useSending().length
 
   return (
-    <div className="grid gap-5">
-      <header className="relative isolate grid gap-2 py-6 md:py-10">
-        <span className="absolute inset-0 -z-10 overflow-hidden" aria-hidden>
-          <span className="fx-numeral -top-2 right-0 text-[clamp(5rem,16vw,12rem)]">{formatBytes(totals.size)}</span>
-        </span>
-        <span className="fx-orb top-2 -left-6 size-36" aria-hidden />
-        <PageTitle text="Дашборд" className="text-4xl md:text-5xl" />
-        <p className="text-sm text-muted-foreground">Хранилища, задачи и состояние системы</p>
-        <ResumeLink />
+    <div className="grid">
+      <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
+        <div className="grid gap-4">
+          <PageTitle text="Дашборд" eyebrow="Хранилища, задачи и состояние системы — то, что уже знает API." className="text-[50px] md:text-[80px]" />
+        </div>
+        <WireCubes className="hidden w-64 md:block" />
       </header>
       {me?.role === 'root' && <Checklist />}
-      <section aria-label="Сводка" className="fx-panel flex items-stretch">
-        <span className="fx-vlabel hidden border-r fx-dotted px-3 py-4 text-center sm:block" aria-hidden>
-          сводка
-        </span>
-        <div className="fx-stagger grid flex-1 grid-cols-2 lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0 [&>*:not(:first-child)]:border-l [&>*:nth-child(3)]:border-l-0 lg:[&>*:nth-child(3)]:border-l">
-          <Stat label="хранилища" value={totals.storages} />
-          <Stat label="файлы" value={totals.files} />
-          <Stat label="объём" value={totals.size} format={formatBytes} />
-          <Stat label="в работе" value={active} />
-        </div>
+      <section aria-label="Сводка" className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l lg:[&>*:not(:first-child)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0">
+        <Stat label="файлов загружено" value={totals.files} />
+        <Stat label="объём во всех хранилищах" value={totals.size} format={formatBytes} />
+        <Stat label="хранилищ" value={totals.storages} />
+        <Stat label="задач в работе" value={active} />
       </section>
-      <div className="fx-stagger grid gap-4 lg:grid-cols-3">
-        <SystemPanel />
-        <StorageUsage />
-        <Feed />
-        <AccountPanel />
-        {isAdmin(me) && <UsersPanel />}
-      </div>
+      <ChannelsSection />
+      <StoragesSection />
+      <ActivitySection />
+      <SystemSection />
+      {isAdmin(me) && <UsersSection />}
     </div>
   )
 }

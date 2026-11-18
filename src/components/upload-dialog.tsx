@@ -12,7 +12,7 @@ import type { Picked } from '@/lib/dir-upload'
 import { formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
-import { finishSending, startSending, updateSending, uploadFile } from '@/lib/upload'
+import { finishSending, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
 
 type Options = Omit<UploadOptions, 'path'>
 
@@ -21,7 +21,7 @@ const DEFAULTS: Options = {
   on_conflict: 'error',
   priority: 'normal',
   allow_unscannable: false,
-  encrypt: false,
+  encrypt: true,
 }
 
 function OptionsFields({ options, setOptions }: { options: Options; setOptions: (o: Options) => void }) {
@@ -31,7 +31,7 @@ function OptionsFields({ options, setOptions }: { options: Options; setOptions: 
         <Label>Отправить как</Label>
         <Select
           value={options.send_as}
-          onValueChange={(v) => setOptions({ ...options, send_as: v as SendAs, encrypt: v === 'media' ? false : options.encrypt })}
+          onValueChange={(v) => setOptions(withSendAs(options, v as SendAs))}
         >
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent>

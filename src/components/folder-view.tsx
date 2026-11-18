@@ -64,6 +64,7 @@ import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
 import { selectRange, SORT_LABELS, type Sort, type SortKey, viewFiles, viewFolders } from '@/lib/files'
 import { crumbs, downloadUrl, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { load, save } from '@/lib/prefs'
+import { markRead } from '@/lib/reads'
 import { trackTask } from '@/lib/tasks'
 import type { ArchiveFormat, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -100,7 +101,8 @@ function ArchiveMenu({ onArchive, children }: { onArchive: (format: ArchiveForma
   )
 }
 
-function FileMenu({ file, onOpen }: { file: TFile; onOpen: () => void }) {
+function FileMenu({ file, onOpen, onDelete }: { file: TFile; onOpen: () => void; onDelete: () => void }) {
+  const [confirm, setConfirm] = useState(false)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -108,7 +110,15 @@ function FileMenu({ file, onOpen }: { file: TFile; onOpen: () => void }) {
           <MoreHorizontalIcon />
         </Button>
       </DropdownMenuTrigger>
+      <Confirm title={`Удалить «${file.name}»?`} open={confirm} onOpenChange={setConfirm} onConfirm={onDelete}>
+        <span hidden />
+      </Confirm>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild className="sm:hidden">
+          <a href={downloadUrl(file)} download={file.name} onClick={() => markRead(file.path)}>
+            <DownloadIcon /> Скачать
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => copy(file.path, 'путь')}>
           <CopyIcon /> Копировать путь
         </DropdownMenuItem>
@@ -117,6 +127,10 @@ function FileMenu({ file, onOpen }: { file: TFile; onOpen: () => void }) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onOpen}>Свойства</DropdownMenuItem>
+        <DropdownMenuSeparator className="sm:hidden" />
+        <DropdownMenuItem variant="destructive" className="sm:hidden" onSelect={() => setConfirm(true)}>
+          <Trash2Icon /> Удалить…
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -191,10 +205,6 @@ export function FolderView({ path }: { path: string }) {
   const picked = order.filter((key) => selected.has(key))
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
 
-  useEffect(() => {
-    if (listing.isSuccess) save('last-folder', path)
-  }, [listing.isSuccess, path])
-
   const archive = useAction(
     ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format }),
     { success: 'Архив собирается — когда будет готов, появится кнопка «Скачать»', onSuccess: (task) => trackTask(task.id) },
@@ -245,6 +255,7 @@ export function FolderView({ path }: { path: string }) {
     dirs.forEach((folder) => archive.mutate({ target: folder.path, format: 'zip' }))
     if (chosen.length > 1) toast.info(`Скачивание файлов: ${chosen.length}. Браузер может спросить разрешение на несколько загрузок`)
     for (const file of chosen) {
+      markRead(file.path)
       const a = document.createElement('a')
       a.href = downloadUrl(file)
       a.download = file.name
@@ -331,17 +342,17 @@ export function FolderView({ path }: { path: string }) {
 
   const fileButtons = (file: TFile) => (
     <>
-      <Button variant="ghost" size="icon-sm" asChild>
-        <a href={downloadUrl(file)} download={file.name} aria-label={`Скачать «${file.name}»`}>
+      <Button variant="ghost" size="icon-sm" className="max-sm:hidden" asChild>
+        <a href={downloadUrl(file)} download={file.name} aria-label={`Скачать «${file.name}»`} onClick={() => markRead(file.path)}>
           <DownloadIcon />
         </a>
       </Button>
-      <Button variant="ghost" size="icon-sm" aria-label="Копировать ссылку" onClick={() => copy(absoluteUrl(downloadUrl(file)), 'ссылка на скачивание')}>
+      <Button variant="ghost" size="icon-sm" className="max-sm:hidden" aria-label="Копировать ссылку" onClick={() => copy(absoluteUrl(downloadUrl(file)), 'ссылка на скачивание')}>
         <LinkIcon />
       </Button>
-      <FileMenu file={file} onOpen={() => setOpened(file)} />
+      <FileMenu file={file} onOpen={() => setOpened(file)} onDelete={() => removeFile.mutate(file)} />
       <Confirm title={`Удалить «${file.name}»?`} onConfirm={() => removeFile.mutate(file)}>
-        <Button variant="ghost" size="icon-sm" aria-label={`Удалить «${file.name}»`}>
+        <Button variant="ghost" size="icon-sm" className="max-sm:hidden" aria-label={`Удалить «${file.name}»`}>
           <Trash2Icon />
         </Button>
       </Confirm>
@@ -389,7 +400,7 @@ export function FolderView({ path }: { path: string }) {
       onDrop={onDrop}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-background/60 font-semibold text-primary backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/60 font-semibold text-primary backdrop-blur-md">
           Отпустите, чтобы загрузить файлы или папки
         </div>
       )}
@@ -400,7 +411,7 @@ export function FolderView({ path }: { path: string }) {
           <UploadIcon /> Загрузить
         </Button>
         <Button variant="outline" onClick={() => dirInput.current?.click()}>
-          <FolderUpIcon /> Загрузить папку
+          <FolderUpIcon /> <span className="max-sm:sr-only">Загрузить папку</span>
         </Button>
         <input
           ref={input}
@@ -424,14 +435,14 @@ export function FolderView({ path }: { path: string }) {
           }}
         />
         <Button variant="outline" onClick={() => setUrlOpen(true)}>
-          <LinkIcon /> По ссылке
+          <LinkIcon /> <span className="max-sm:sr-only">По ссылке</span>
         </Button>
         <Button variant="outline" onClick={() => setFolderOpen(true)}>
-          <FolderPlusIcon /> Папка
+          <FolderPlusIcon /> <span className="max-sm:sr-only">Новая папка</span>
         </Button>
         <ArchiveMenu onArchive={(format) => archive.mutate({ target: path, format })}>
           <Button variant="outline" disabled={archive.isPending}>
-            <ArchiveIcon /> Скачать папку
+            <ArchiveIcon /> <span className="max-sm:sr-only">Скачать папку</span>
           </Button>
         </ArchiveMenu>
         {!isRoot && (
@@ -441,7 +452,7 @@ export function FolderView({ path }: { path: string }) {
             onConfirm={() => removeFolder.mutate(path)}
           >
             <Button variant="destructive">
-              <Trash2Icon /> Удалить папку
+              <Trash2Icon /> <span className="max-sm:sr-only">Удалить папку</span>
             </Button>
           </Confirm>
         )}
@@ -494,7 +505,7 @@ export function FolderView({ path }: { path: string }) {
       )}
 
       {picked.length > 0 && (
-        <div role="toolbar" aria-label="Выбранные" className="fx-glass sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-full px-3 py-2 text-xs md:top-3">
+        <div role="toolbar" aria-label="Выбранные" className="fx-glass sticky top-20 z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
           <span className="px-1 font-semibold text-primary tabular-nums">Выбрано: {picked.length}</span>
           <Button size="sm" variant="outline" onClick={bulkDownload}>
             <DownloadIcon /> Скачать
@@ -520,8 +531,8 @@ export function FolderView({ path }: { path: string }) {
       {listing.error && <p className="text-destructive">{listing.error.message}</p>}
       {empty && (
         <div className="fx-panel grid justify-items-center gap-3 p-10 text-center">
-          <UploadIcon className="size-8 text-primary drop-shadow-[0_0_8px_var(--violet)]" />
-          <p className="text-lg font-bold">Папка пуста</p>
+          <UploadIcon className="size-8 text-primary" />
+          <p className="fx-pixel text-[20px] uppercase">Папка пуста</p>
           <p className="max-w-md text-sm text-muted-foreground">
             Перетащите сюда файлы или целые папки, вставьте файл из буфера (Ctrl+V) или выберите на устройстве.
           </p>
@@ -594,29 +605,54 @@ export function FolderView({ path }: { path: string }) {
         </div>
       )}
       {!empty && order.length > 0 && view === 'grid' && (
-        <ul className="fx-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {folders.map((folder) => (
-            <li key={folder.id} className={cn('fx-panel grid gap-2 p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(folderKey(folder.path)) && 'shadow-[var(--glow)]!')}>
-              <div className="absolute top-2 left-2">{check(folderKey(folder.path), folder.name)}</div>
-              <Link to={link(folder.path)} className="grid justify-items-center gap-2 pt-3 text-center hover:underline">
-                <FolderIcon className="size-10 text-primary" />
-                <span className="w-full truncate text-sm font-medium">{folder.name}</span>
-              </Link>
-              <div className="flex justify-center">{folderButtons(folder)}</div>
+            <li key={folder.id} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(folderKey(folder.path)) && 'border-ink')}>
+              <div className="relative">
+                <span className="fx-thumb">
+                  <FolderIcon className="size-6 text-primary" />
+                </span>
+                <div className="absolute top-1 left-1">{check(folderKey(folder.path), folder.name)}</div>
+              </div>
+              <div className="grid min-w-0 flex-1 content-between gap-1">
+                <Link to={link(folder.path)} className="truncate font-medium hover:underline pointer-coarse:py-2.5">
+                  {folder.name}
+                </Link>
+                <span className="text-xs text-muted-foreground">папка · {formatDate(folder.updated_at)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <Link to={link(folder.path)} className="fx-more" tabIndex={-1} aria-hidden>
+                    Открыть
+                  </Link>
+                  <div className="-mr-1 flex">{folderButtons(folder)}</div>
+                </div>
+              </div>
             </li>
           ))}
           {shownFiles.map((file) => {
             const Icon = KIND_ICONS[file.kind] ?? FileIcon
             return (
-              <li key={file.uuid} className={cn('fx-panel grid gap-2 p-3 transition-shadow hover:shadow-[var(--glow)]', selected.has(fileKey(file.uuid)) && 'shadow-[var(--glow)]!')}>
-                <div className="absolute top-2 left-2">{check(fileKey(file.uuid), file.name)}</div>
-                {file.encrypted && <LockIcon className="absolute top-2 right-2 size-3 text-muted-foreground" aria-label="зашифрован" />}
-                <button type="button" onClick={() => setOpened(file)} className="grid justify-items-center gap-2 pt-3 text-center hover:underline">
-                  <Icon className="size-10 text-muted-foreground" />
-                  <span className="w-full truncate text-sm">{file.name}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">{formatBytes(file.size)}</span>
-                </button>
-                <div className="flex justify-center">{fileButtons(file)}</div>
+              <li key={file.uuid} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(fileKey(file.uuid)) && 'border-ink')}>
+                <div className="relative">
+                  <span className="fx-thumb">
+                    <Icon className="size-6" />
+                  </span>
+                  <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
+                </div>
+                <div className="grid min-w-0 flex-1 content-between gap-1">
+                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left font-medium hover:underline pointer-coarse:py-2.5">
+                    <span className="truncate">{file.name}</span>
+                    {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
+                  </button>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatBytes(file.size)} · {formatDate(file.updated_at)}
+                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <button type="button" onClick={() => setOpened(file)} className="fx-more" tabIndex={-1} aria-hidden>
+                      Подробнее
+                    </button>
+                    <div className="-mr-1 flex">{fileButtons(file)}</div>
+                  </div>
+                </div>
               </li>
             )
           })}

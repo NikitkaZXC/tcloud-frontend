@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes } from '@/lib/format'
-import { forgetTask, TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
+import { forgetTask, taskFraction, TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
 import type { Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
@@ -59,7 +59,7 @@ export function FolderUploads({ path }: { path: string }) {
           key={task.id}
           name={name(task.path)}
           status={taskStatus(task)}
-          percent={task.progress != null && task.status !== 'failed' ? task.progress * 100 : null}
+          percent={task.status !== 'failed' && task.progress != null ? taskFraction(task)! * 100 : null}
           error={task.status === 'failed' ? (task.error?.message ?? TASK_STATUS.failed.label) : undefined}
           onForget={task.status === 'failed' ? () => forgetTask(task.id) : undefined}
         />

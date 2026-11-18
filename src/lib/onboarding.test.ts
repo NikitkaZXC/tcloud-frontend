@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checklist } from './onboarding'
-import type { Storage, TelegramSessionState } from './types'
+import type { Storage, Task, TelegramSessionState } from './types'
 
 const session = (authorized: boolean) => ({ session: 'api', authorized, login: null }) as TelegramSessionState
 
@@ -12,5 +12,7 @@ describe('first-run checklist', () => {
     expect(steps.map((s) => s.done)).toEqual([true, true, false])
     expect(steps[2].to).toBe('/files?path=tcloud%2Fa')
     expect(checklist([], [{ ...storages[0], files: 2 }]).map((s) => s.done)).toEqual([false, true, true])
+    expect(checklist([], storages, [{ status: 'done', archive: null }] as Task[])[2].done).toBe(true)
+    expect(checklist([], storages, [{ status: 'done', archive: { name: 'a.zip' } }] as Task[])[2].done).toBe(false)
   })
 })

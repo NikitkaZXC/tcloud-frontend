@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError } from '@/lib/api'
+import { markRead } from '@/lib/reads'
 import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
 
@@ -30,12 +31,19 @@ export function TaskWatcher() {
       if (before === undefined || before === task.status || !isFinished(task)) continue
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
+      queryClient.invalidateQueries({ queryKey: ['account'] })
       const name = task.archive?.name ?? task.path.split('/').pop()
       if (task.status === 'done' && task.archive) {
-        const id = task.id
+        const { id, path } = task
         toast.success(`Архив готов: ${name}`, {
           duration: 30000,
-          action: { label: 'Скачать', onClick: () => location.assign(`/api/tasks/${id}/archive`) },
+          action: {
+            label: 'Скачать',
+            onClick: () => {
+              markRead(path)
+              location.assign(`/api/tasks/${id}/archive`)
+            },
+          },
         })
       } else if (task.status === 'done') toast.success(`Готово: ${name}`)
       if (task.status === 'failed') toast.error(`Ошибка: ${name} — ${task.error?.message ?? ''}`)

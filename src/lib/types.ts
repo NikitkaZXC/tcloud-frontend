@@ -147,7 +147,8 @@ export interface Health {
 export interface Account {
   premium: boolean
   file_limit: number
-  channels_used?: number
+  channels_used?: number | null
+  channels_limit?: number | null
 }
 
 export interface TelegramLogin {

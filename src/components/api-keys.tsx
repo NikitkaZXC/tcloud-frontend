@@ -47,7 +47,7 @@ export function ApiKeys({ userId }: { userId: string }) {
           </Button>
         </form>
         {issued && (
-          <div className="grid gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+          <div className="grid gap-2 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
             <span>Ключ показывается один раз — сохраните его. Передавайте в заголовке X-API-Key.</span>
             <div className="flex gap-2">
               <code className="min-w-0 flex-1 break-all rounded bg-background px-2 py-1">{issued}</code>

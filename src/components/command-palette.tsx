@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { type Command, filterCommands, type FolderAction, OPEN_PALETTE, runFolderAction } from '@/lib/commands'
-import { load } from '@/lib/prefs'
 import type { FolderListing } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -43,7 +42,6 @@ export function CommandPalette() {
   const folder = pathname === '/files' ? params.get('path') : null
   const go = (to: string) => () => navigate(to)
   const act = (action: FolderAction) => () => runFolderAction(action)
-  const last = load('last-folder')
   const listing = open && folder ? queryClient.getQueryData<FolderListing>(['folder', folder]) : undefined
 
   const commands: Command[] = [
@@ -58,7 +56,6 @@ export function CommandPalette() {
         ] as [FolderAction, string][]).map(([action, label]) => ({ id: `a:${action}`, group: 'Действия', label, run: act(action) }))
       : []),
     ...(listing?.folders ?? []).map((f) => ({ id: `f:${f.path}`, group: 'Папки', label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
-    ...(last && last !== folder ? [{ id: 'last', group: 'Переход', label: 'Последняя открытая папка', hint: last.split('/').slice(2).join('/') || 'корень', run: go(folderLink(last)) }] : []),
     { id: 'p:dashboard', group: 'Страницы', label: 'Дашборд', run: go('/dashboard') },
     { id: 'p:files', group: 'Страницы', label: 'Хранилища', run: go('/files') },
     { id: 'p:tasks', group: 'Страницы', label: 'Задачи', run: go('/tasks') },
@@ -121,9 +118,11 @@ export function CommandPalette() {
             placeholder="перейти, загрузить, найти…"
             className="h-9 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
-          <kbd className="fx-chip h-5 px-1.5 text-[10px] text-muted-foreground">Esc</kbd>
+          <button type="button" onClick={() => close(false)} className="fx-chip text-[10px] text-muted-foreground pointer-coarse:h-11 pointer-coarse:px-3" aria-label="Закрыть">
+            Esc
+          </button>
         </div>
-        <ul id={listId} role="listbox" aria-label="Команды" className="max-h-80 overflow-y-auto p-1.5 text-sm">
+        <ul id={listId} role="listbox" aria-label="Команды" className="max-h-80 overflow-y-auto p-1.5 text-sm max-sm:max-h-none">
           {shown.map((command, i) => (
             <li
               key={command.id}
@@ -135,16 +134,16 @@ export function CommandPalette() {
               ref={(el) => {
                 if (i === current) el?.scrollIntoView({ block: 'nearest' })
               }}
-              className={cn('flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 transition-colors', i === current && 'bg-primary/15 text-foreground shadow-[inset_0_1px_0_var(--edge)]')}
+              className={cn('flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors pointer-coarse:py-3', i === current && 'bg-foreground/8 text-foreground shadow-[inset_2px_0_0_var(--primary-ink)]')}
             >
-              <span className="w-24 shrink-0 truncate text-[11px] font-semibold text-muted-foreground">{command.group}</span>
+              <span className="fx-label w-24 shrink-0 truncate text-[10px] max-sm:hidden">{command.group}</span>
               <span className="min-w-0 flex-1 truncate">{command.label}</span>
               {command.hint && <span className="max-w-40 truncate text-xs text-muted-foreground">{command.hint}</span>}
             </li>
           ))}
           {shown.length === 0 && <li className="px-3 py-4 text-center text-muted-foreground">Ничего не найдено</li>}
         </ul>
-        <p className="border-t px-4 py-2 text-[11px] text-muted-foreground">↑↓ выбор · enter запуск · ctrl+k открыть/закрыть</p>
+        <p className="border-t px-4 py-2 text-[11px] text-muted-foreground max-sm:hidden">↑↓ выбор · enter запуск · ctrl+k открыть/закрыть</p>
       </DialogContent>
     </Dialog>
   )

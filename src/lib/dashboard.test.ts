@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { healthChecks, storageActivity, storageTotals, taskCounts } from './dashboard'
+import { channelUsage, healthChecks, IO_HOLD_MS, lingerIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -24,8 +24,46 @@ describe('dashboard', () => {
       { path: 'tcloud/a/z.txt', status: 'queued', bytes_done: 0, bytes_total: null },
       { path: 'tcloud/a/old.txt', status: 'done', bytes_done: 10, bytes_total: 10 },
       { path: 'tcloud/ab/q.txt', status: 'running', bytes_done: 0, bytes_total: null },
+      { path: 'tcloud/c/docs', status: 'running', stage: 'archiving', bytes_done: 0, bytes_total: null, archive: { name: 'docs.zip' } },
     ] as Task[]
     expect(storageActivity(storages, sending, tasks)).toEqual({ a: { count: 3, percent: 25 }, ab: { count: 1, percent: null } })
+  })
+
+  it('marks storages as written, read or both', () => {
+    const storages = [{ id: 'a', path: 'tcloud/a' }, { id: 'ab', path: 'tcloud/ab' }, { id: 'c', path: 'tcloud/c' }, { id: 'd', path: 'tcloud/d' }] as Storage[]
+    const activity = { a: { count: 1, percent: null }, c: { count: 1, percent: 10 } }
+    const tasks = [
+      { path: 'tcloud/ab/docs', status: 'running', stage: 'archiving', archive: { name: 'docs.zip' } },
+      { path: 'tcloud/d/old', status: 'done', stage: 'done', archive: { name: 'old.zip' } },
+    ] as Task[]
+    expect(storageIo(storages, activity, tasks, [{ path: 'tcloud/c/x.jpg' }])).toEqual({ a: 'write', ab: 'read', c: 'both' })
+  })
+
+  it('keeps activity visible for a minimum time after it ends', () => {
+    let state = lingerIo({ a: 'write' }, {}, 1000)
+    expect(state.io).toEqual({ a: 'write' })
+    expect(state.wake).toBeNull()
+    state = lingerIo({ b: 'read' }, state.seen, 1500)
+    expect(state.io).toEqual({ a: 'write', b: 'read' })
+    expect(state.wake).toBe(1000 + IO_HOLD_MS)
+    state = lingerIo({ a: 'read' }, state.seen, 2000)
+    expect(state.io).toEqual({ a: 'both', b: 'read' })
+    state = lingerIo({}, state.seen, 1000 + IO_HOLD_MS)
+    expect(state.io).toEqual({ a: 'read', b: 'read' })
+    expect(lingerIo({}, state.seen, 2000 + IO_HOLD_MS).io).toEqual({})
+  })
+
+  it('matches storage paths at the root, nested and by id', () => {
+    const storages = [{ id: 'u1', path: 'tcloud/u1' }] as Storage[]
+    const tasks = [{ path: 'tcloud/u1/a.txt', status: 'running', bytes_done: 1, bytes_total: 2 }] as Task[]
+    expect(storageActivity(storages, [{ id: 1, path: 'tcloud/u1/x/y.txt', loaded: 0, total: 0 }], tasks).u1.count).toBe(2)
+    expect(storageActivity([{ id: 'u1', path: 'tcloud/u1/' }] as Storage[], [], tasks).u1.count).toBe(1)
+  })
+
+  it('uses account channel counters when the API has them', () => {
+    expect(channelUsage({ premium: false, file_limit: 1, channels_used: 42, channels_limit: 500 }, 3)).toEqual({ used: 42, limit: 500, accountWide: true })
+    expect(channelUsage({ premium: true, file_limit: 1 }, 3)).toEqual({ used: 3, limit: 1000, accountWide: false })
+    expect(channelUsage(undefined, 2)).toEqual({ used: 2, limit: 500, accountWide: false })
   })
 
   it('lists health checks with workers', () => {

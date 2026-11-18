@@ -1,15 +1,19 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useId } from 'react'
 import { useProgress } from '@/hooks/use-fx'
-import type { Activity } from '@/lib/dashboard'
-import { easeOut, prefersReducedMotion } from '@/lib/fx'
+import { openPalette } from '@/lib/commands'
+import type { Activity, ChannelUsage, Io } from '@/lib/dashboard'
+import { easeOut } from '@/lib/fx'
 import { cn } from '@/lib/utils'
 
-export function PageTitle({ text, children, className }: { text: string; children?: ReactNode; className?: string }) {
+export function PageTitle({ text, eyebrow, children, className }: { text: string; eyebrow?: ReactNode; children?: ReactNode; className?: string }) {
   return (
-    <h1 className={cn('fx-page flex items-center gap-2 text-3xl font-extrabold tracking-tight', className)}>
-      {text}
-      {children}
-    </h1>
+    <div className="fx-page grid gap-2">
+      <h1 className={cn('fx-pixel flex flex-wrap items-center gap-3 text-[40px] uppercase md:text-[50px]', className)}>
+        {text}
+        {children}
+      </h1>
+      {eyebrow && <p className="max-w-lg text-sm text-muted-foreground">{eyebrow}</p>}
+    </div>
   )
 }
 
@@ -18,8 +22,10 @@ export function CountUp({ value, format = String }: { value: number; format?: (v
   return <span className="tabular-nums">{format(Math.round(value * easeOut(progress)))}</span>
 }
 
+export type Tone = 'ok' | 'busy' | 'fail' | 'read' | 'idle'
+
 export function StatusLight({ ok }: { ok: boolean | 'wait' }) {
-  return <span className="fx-light" data-ok={ok} aria-hidden />
+  return <span className="fx-light" data-tone={ok === 'wait' ? 'busy' : ok ? 'ok' : 'fail'} aria-hidden />
 }
 
 const STATUS = {
@@ -38,32 +44,192 @@ export function StatusChip({ status, label }: { status: keyof typeof STATUS; lab
   )
 }
 
+const SEGMENTS = 24
+
+export function Ring({
+  value,
+  center,
+  label,
+  caption,
+  tone,
+  size = 'md',
+}: {
+  value: number | null
+  center?: ReactNode
+  label: string
+  caption?: ReactNode
+  tone?: Tone
+  size?: 'sm' | 'md' | 'lg'
+}) {
+  const progress = useProgress(1100, value)
+  const id = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const raw = value == null ? 0.25 : Math.min(Math.max(value, 0), 1) * easeOut(progress)
+  const ratio = raw > 0 ? Math.max(Math.round(raw * SEGMENTS), 1) / SEGMENTS : 0
+  const r = 42
+  const length = 2 * Math.PI * r
+  const segment = length / SEGMENTS
+  return (
+    <figure className="fx-ring" data-size={size} data-tone={tone} data-busy={value == null || undefined}>
+      <div className="relative">
+        <svg viewBox="0 0 100 100" className="-rotate-90" role="img" aria-label={`${label}: ${value == null ? 'выполняется' : `${Math.round(value * 100)}%`}`}>
+          <defs>
+            <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" style={{ stopColor: 'var(--ring-from)' }} />
+              <stop offset="1" style={{ stopColor: 'var(--ring-to)' }} />
+            </linearGradient>
+            <pattern id={`${id}d`} width="2" height="2" patternUnits="userSpaceOnUse">
+              <rect width="2" height="2" className="fx-dither-a" />
+              <rect width="1" height="1" className="fx-dither-b" />
+              <rect x="1" y="1" width="1" height="1" className="fx-dither-b" />
+            </pattern>
+            <mask id={`${id}m`}>
+              <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeWidth="10" strokeDasharray={`${segment - 2.5} 2.5`} />
+            </mask>
+          </defs>
+          <g mask={`url(#${id}m)`}>
+            <circle cx="50" cy="50" r={r} className="fx-ring-track" stroke={`url(#${id}d)`} />
+            <circle cx="50" cy="50" r={r} className="fx-ring-bar" stroke={`url(#${id}g)`} strokeDasharray={length} strokeDashoffset={length * (1 - ratio)} />
+          </g>
+        </svg>
+        <span className="fx-ring-center">{center ?? (value == null ? '…' : `${Math.round(value * 100)}%`)}</span>
+        {tone && <span className="fx-light absolute top-0 right-0" data-tone={tone} aria-hidden />}
+      </div>
+      <figcaption className="grid justify-items-center gap-0.5 text-center">
+        <span className="fx-label">{label}</span>
+        {caption && <span className="text-xs text-muted-foreground">{caption}</span>}
+      </figcaption>
+    </figure>
+  )
+}
+
+export function ChannelsRing({ usage, size = 'lg' }: { usage: ChannelUsage; size?: 'md' | 'lg' }) {
+  return (
+    <Ring
+      size={size}
+      value={usage.used / usage.limit}
+      center={
+        <span className="grid leading-none">
+          <span>{usage.used}</span>
+          <span className="text-[0.45em] text-muted-foreground">/ {usage.limit}</span>
+        </span>
+      }
+      label={usage.accountWide ? 'каналов использовано' : 'хранилищ из лимита'}
+      caption={usage.accountWide ? `${usage.used} из ${usage.limit}` : `хранилищ ${usage.used}, всего каналов — нет данных`}
+      tone={usage.used / usage.limit > 0.9 ? 'fail' : usage.used / usage.limit > 0.75 ? 'busy' : 'ok'}
+    />
+  )
+}
+
+const DRIVE: [number, number, number, number][] = [
+  [3, 1, 19, 1],
+  [21, 1, 1, 13],
+  [2, 2, 1, 1],
+  [20, 2, 1, 1],
+  [20, 14, 1, 1],
+  [1, 3, 19, 1],
+  [1, 15, 19, 1],
+  [1, 3, 1, 13],
+  [19, 3, 1, 13],
+]
+const DRIVE_FAINT: [number, number, number, number][] = [
+  [3, 9, 15, 1],
+  [3, 12, 15, 1],
+  [11, 5, 1, 2],
+  [13, 5, 1, 2],
+  [15, 5, 1, 2],
+  [17, 5, 1, 2],
+]
+
+export function StorageIcon({ io, off, scale = 2, className }: { io?: Io; off?: boolean; scale?: 1 | 2 | 3; className?: string }) {
+  const read = io === 'read' || io === 'both'
+  const write = io === 'write' || io === 'both'
+  return (
+    <svg
+      viewBox="0 0 23 17"
+      width={23 * scale}
+      height={17 * scale}
+      className={cn('fx-drive', className)}
+      data-read={read || undefined}
+      data-write={write || undefined}
+      data-off={off || undefined}
+      role="img"
+      aria-label={off ? 'канал недоступен' : write && read ? 'запись и чтение' : write ? 'идёт запись' : read ? 'идёт чтение' : 'хранилище'}
+    >
+      {DRIVE.map(([x, y, w, h]) => (
+        <rect key={`${x}-${y}-${w}`} x={x} y={y} width={w} height={h} />
+      ))}
+      {DRIVE_FAINT.map(([x, y, w, h]) => (
+        <rect key={`${x}-${y}-${w}`} x={x} y={y} width={w} height={h} className="fx-drive-faint" />
+      ))}
+      <rect x="3" y="5" width="2" height="2" className="fx-drive-led fx-drive-read" />
+      <rect x="6" y="5" width="2" height="2" className="fx-drive-led fx-drive-write" />
+    </svg>
+  )
+}
+
+export const WRITTEN: Activity = { count: 0, percent: 100 }
+
 function activityLabel({ count, percent }: Activity): string {
+  if (!count) return 'записано'
   return `загружается ${count}${percent != null ? ` · ${percent}%` : ''}`
 }
 
 export function UploadPulse({ activity, compact }: { activity: Activity; compact?: boolean }) {
-  if (compact) return <span className="fx-flow h-0.5" role="status" aria-label={activityLabel(activity)} title={activityLabel(activity)} />
+  if (compact) return <span className="fx-flow" role="status" aria-label={activityLabel(activity)} title={activityLabel(activity)} />
   return (
     <span className="flex items-center gap-2" role="status">
       <span className="fx-flow flex-1" aria-hidden />
-      <span className="shrink-0 text-xs font-semibold text-primary tabular-nums">{activityLabel(activity)}</span>
+      <span className="fx-label shrink-0 text-foreground tabular-nums">{activityLabel(activity)}</span>
     </span>
   )
 }
 
-export function Backdrop() {
-  useEffect(() => {
-    if (prefersReducedMotion()) return
-    const move = (event: PointerEvent) => {
-      const card = (event.target as Element | null)?.closest?.<HTMLElement>('[data-slot=card]')
-      if (!card) return
-      const box = card.getBoundingClientRect()
-      card.style.setProperty('--mx', `${event.clientX - box.left}px`)
-      card.style.setProperty('--my', `${event.clientY - box.top}px`)
-    }
-    document.addEventListener('pointermove', move, { passive: true })
-    return () => document.removeEventListener('pointermove', move)
-  }, [])
-  return <div className="fx-bg" aria-hidden />
+export function WireCubes({ className }: { className?: string }) {
+  const cube = (x: number, y: number, s: number) =>
+    `M${x} ${y + s * 0.3} L${x + s * 0.5} ${y} L${x + s} ${y + s * 0.3} L${x + s} ${y + s} L${x + s * 0.5} ${y + s * 1.3} L${x} ${y + s} Z M${x} ${y + s * 0.3} L${x + s * 0.5} ${y + s * 0.6} L${x + s} ${y + s * 0.3} M${x + s * 0.5} ${y + s * 0.6} V${y + s * 1.3}`
+  const dots = [[20, 30], [150, 20], [210, 60], [30, 150], [230, 140], [120, 175], [185, 110], [75, 10]]
+  return (
+    <svg viewBox="0 0 250 200" className={cn('fx-cubes', className)} aria-hidden>
+      <path d={cube(40, 40, 60)} />
+      <path d={cube(110, 70, 70)} />
+      <path d={cube(60, 110, 45)} />
+      <path d={cube(170, 30, 38)} className="fx-cubes-solid" />
+      {dots.map(([x, y]) => (
+        <rect key={`${x}-${y}`} x={x} y={y} width="5" height="5" className="fx-cubes-dot" />
+      ))}
+    </svg>
+  )
+}
+
+export function CornerHint() {
+  return (
+    <button type="button" onClick={openPalette} className="fx-corner fx-label hidden md:block" aria-label="Команды и поиск (Ctrl+K)">
+      Ctrl K
+    </button>
+  )
+}
+
+export function Section({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <section aria-label={label} className={cn('fx-dotted flex gap-4 border-t py-6 md:gap-8 md:py-8', className)}>
+      <span className="fx-vlabel hidden shrink-0 sm:block" aria-hidden>
+        {label}
+      </span>
+      <div className="grid min-w-0 flex-1 content-start gap-5">
+        <h2 className="fx-label sm:sr-only">{label}</h2>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+export function Stat({ label, value, format }: { label: string; value: number; format?: (value: number) => string }) {
+  return (
+    <div className="grid content-center justify-items-center gap-2 px-3 py-5 text-center">
+      <span className="fx-pixel text-[30px] sm:text-[45px]">
+        <CountUp value={value} format={format} />
+      </span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  )
 }

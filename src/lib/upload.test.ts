@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { finishSending, getSending, startSending, updateSending } from './upload'
+import { finishSending, getSending, startSending, updateSending, withSendAs } from './upload'
 
 describe('sending', () => {
   it('tracks body progress until the upload is accepted', () => {
@@ -13,5 +13,11 @@ describe('sending', () => {
     finishSending(a)
     finishSending(b)
     expect(getSending()).toEqual([])
+  })
+
+  it('turns encryption off for media and back on for file', () => {
+    const media = withSendAs({ send_as: 'file', encrypt: true }, 'media')
+    expect(media).toEqual({ send_as: 'media', encrypt: false })
+    expect(withSendAs(media, 'file')).toEqual({ send_as: 'file', encrypt: true })
   })
 })

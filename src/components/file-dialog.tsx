@@ -1,12 +1,19 @@
 import { CopyIcon, DownloadIcon, ExternalLinkIcon, LinkIcon, LockIcon } from 'lucide-react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/format'
+import { markRead } from '@/lib/reads'
 import type { TFile } from '@/lib/types'
+
+const PREVIEW = ['photo', 'animation', 'video', 'audio']
 
 function Preview({ file }: { file: TFile }) {
   const src = downloadUrl(file)
+  useEffect(() => {
+    if (PREVIEW.includes(file.kind)) markRead(file.path)
+  }, [file])
   if (file.kind === 'photo' || file.kind === 'animation') {
     if (file.mime.startsWith('video/')) return <video src={src} autoPlay loop muted className="max-h-96 w-full rounded-md" />
     return <img src={src} alt={file.name} className="max-h-96 w-full rounded-md object-contain" />
@@ -55,7 +62,7 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
             </dl>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
-                <a href={downloadUrl(file)} download={file.name}>
+                <a href={downloadUrl(file)} download={file.name} onClick={() => markRead(file.path)}>
                   <DownloadIcon /> Скачать
                 </a>
               </Button>

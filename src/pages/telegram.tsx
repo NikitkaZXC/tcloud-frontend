@@ -106,7 +106,7 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
   return (
     <li
       aria-current={active ? 'step' : undefined}
-      className={cn('flex items-center gap-3 rounded-2xl px-3 py-2 transition-colors', active && 'bg-accent shadow-[inset_0_1px_0_var(--edge),0_0_0_1px_color-mix(in_oklab,var(--violet)_30%,transparent)]')}
+      className={cn('flex items-center gap-3 border border-transparent px-3 py-2 transition-colors', active && 'border-foreground')}
     >
       <span className="text-xs font-semibold text-muted-foreground tabular-nums">
         {index + 1} / {total}
@@ -240,7 +240,7 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
           {mode === 'qr' ? (
             <div className="grid justify-items-start gap-2">
               {qr && qrLeft > 0 && !needQr ? (
-                <div className="grid justify-items-center gap-2 rounded-2xl bg-white p-4 shadow-[0_12px_32px_-12px_var(--drop)]">
+                <div className="grid justify-items-center gap-2 bg-white p-4">
                   <QRCodeSVG value={qr.url} size={192} />
                   <p className="text-center text-xs text-neutral-600">Telegram → Настройки → Устройства → Подключить устройство</p>
                   <p className="text-xs text-neutral-600 tabular-nums">обновится через {qrLeft} с</p>

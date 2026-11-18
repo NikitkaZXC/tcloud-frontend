@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { CloudIcon, EyeIcon, EyeOffIcon, TriangleAlertIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, TriangleAlertIcon } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { StatusLight } from '@/components/fx'
+import { StatusLight, StorageIcon, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -46,17 +46,19 @@ export function LoginPage() {
   const onKey = (event: KeyboardEvent) => setCaps(event.getModifierState('CapsLock'))
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
-      <div className="relative isolate w-full max-w-sm">
-        <span className="fx-orb -top-24 -right-20 size-64" aria-hidden />
-        <span className="fx-orb -bottom-16 -left-16 size-40" aria-hidden />
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fx-page flex w-full max-w-sm items-end justify-between gap-4">
+        <p className="fx-pixel text-[50px] uppercase sm:text-[70px]" aria-hidden>
+          tcloud
+        </p>
+        <StorageIcon scale={3} className="mb-2 text-muted-foreground" />
+      </div>
+      <WireCubes className="pointer-events-none fixed top-8 right-8 hidden w-72 lg:block" />
+      <div className="w-full max-w-sm">
         <Card className="fx-page w-full gap-6 [--card-spacing:--spacing(7)]">
-          <CardHeader className="gap-3">
-            <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--violet)] to-[var(--pink)] text-white shadow-[0_0_28px_-6px_var(--violet)]">
-              <CloudIcon className="size-6" />
-            </span>
-            <CardTitle className="text-3xl font-extrabold">tcloud</CardTitle>
-            <p className="text-sm text-muted-foreground">Вход в хранилище</p>
+          <CardHeader className="gap-2">
+            <CardTitle className="text-base">Вход</CardTitle>
+            <p className="text-sm text-muted-foreground">Файловое хранилище в Telegram</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="grid gap-4" aria-busy={busy}>
@@ -99,7 +101,7 @@ export function LoginPage() {
                 )}
               </div>
               {error && (
-                <div className="fx-well grid gap-1 rounded-2xl px-4 py-3 text-sm" role="alert">
+                <div className="fx-well grid gap-1 px-4 py-3 text-sm" role="alert">
                   <p className="flex items-center gap-2 font-semibold text-destructive">
                     <StatusLight ok={false} /> {error}
                   </p>

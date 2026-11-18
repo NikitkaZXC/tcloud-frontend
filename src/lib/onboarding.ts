@@ -1,4 +1,4 @@
-import type { Storage, TelegramSessionState } from './types'
+import type { Storage, Task, TelegramSessionState } from './types'
 
 export interface Step {
   key: 'telegram' | 'storage' | 'file'
@@ -10,7 +10,7 @@ export interface Step {
 
 const folderLink = (path: string) => `/files?path=${encodeURIComponent(path)}`
 
-export function checklist(sessions: TelegramSessionState[], storages: Storage[]): Step[] {
+export function checklist(sessions: TelegramSessionState[], storages: Storage[], tasks: Task[] = []): Step[] {
   const authorized = sessions.filter((s) => s.authorized).length
   const target = storages.find((s) => s.available) ?? storages[0]
   return [
@@ -25,7 +25,7 @@ export function checklist(sessions: TelegramSessionState[], storages: Storage[])
     {
       key: 'file',
       label: 'Загрузить первый файл',
-      done: storages.some((s) => (s.files ?? 0) > 0),
+      done: storages.some((s) => (s.files ?? 0) > 0) || tasks.some((t) => !t.archive && t.status === 'done'),
       to: target ? folderLink(target.path) : '/files',
       action: 'Загрузить',
     },

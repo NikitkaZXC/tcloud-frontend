@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { Task } from './types'
 
 export const TASK_STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   queued: { label: 'в очереди', variant: 'outline' },
@@ -60,4 +61,8 @@ export function useTrackedTasks(): string[] {
     },
     () => ids,
   )
+}
+
+export function taskFraction(task: Pick<Task, 'progress'>): number | null {
+  return task.progress == null ? null : Math.min(Math.max(task.progress / 100, 0), 1)
 }
