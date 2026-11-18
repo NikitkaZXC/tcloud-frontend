@@ -61,8 +61,22 @@ flowchart LR
 - Свои: `--success`, `--warning` (запись/занято), `--read` (чтение), `--dots` (точечные разделители), `--track` и
   `--dither` (дорожки колец, дизеринг), `--ring-from`/`--ring-to` (градиент колец), `--glow` (свечение фона),
   `--backdrop` (градиент фона страницы), `color-scheme`.
-- Шрифты и кегли (`--font-heading`, `--font-pixel` = Tiny5, `--font-sans` = Handjet, `--text-xs…lg`) — в `@theme inline`,
-  от темы не зависят.
+- Шрифты и кегли (`--font-heading` и `--font-sans` = Handjet, `--font-pixel` = Tiny5, `--text-xs…lg`) — в `@theme inline`,
+  от темы не зависят (см. «Типографика»).
+
+## Типографика
+
+- **Текст — Handjet со сглаживанием.** Всё, что читают: списки, таблицы, формы, кнопки, подсказки, диалоги, заголовки
+  карточек и диалогов (`[data-slot=*-title]`), подписи `fx-label`/`fx-vlabel`, плашки `fx-io`, малые кольца. Кегли
+  `text-xs/sm/base/lg` = 16/18/20/22 px (межстрочный 1.3–1.45), у `html` трекинг `0.02em`; ничего мельче 12 px.
+- **Дисплей — Tiny5 без сглаживания**, только от 20 px и кратно 5 px: `fx-pixel` (заголовки страниц, логотип, крупные
+  цифры), центры колец (`fx-ring-center`, кроме `data-size=sm`), табло `fx-flap`. Для них
+  `-webkit-font-smoothing: none`, для остального сглаживание браузера (`antialiased` на `body`).
+- Почему не Pixelify Sans: в шрифте нет кириллических `О` и `П` (U+041E, U+041F — подставляется чужой шрифт), а
+  `ь`/`в`/`з` нарисованы как `b`/`e`/`э`. Другие мягкие пиксельные шрифты Google Fonts без кириллицы (Silkscreen,
+  VT323, Jersey, Micro 5, Bytesized, Doto, Bitcount) или с кириллицей во всю ширину (DotGothic16). Резкость давало
+  выключенное сглаживание, а не сам Handjet.
+- Google Fonts грузится в `index.html` с `preconnect` и `display=swap`, только нужные веса: Handjet `400..600`, Tiny5.
 
 ## Анимации
 
