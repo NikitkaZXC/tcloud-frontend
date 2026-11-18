@@ -283,7 +283,7 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
 
 function SystemCard() {
   const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
+  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
   const checks = health.data ? healthChecks(health.data) : []
 
   return (
@@ -301,7 +301,7 @@ function SystemCard() {
             </Badge>
           ))}
         </div>
-        {account.data && (
+        {account.data?.telegram_connected && (
           <p className="text-muted-foreground">
             Premium: {t(account.data.premium ? 'common.yes' : 'common.no')} · {t('dashboard.fileLimit')} {formatBytes(account.data.file_limit)}
           </p>

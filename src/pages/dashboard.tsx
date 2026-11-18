@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
 import { channelUsage, HEALTH_LABELS, healthGroups, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
@@ -26,7 +26,7 @@ const MAX_FILE = 4 * 1024 ** 3
 const rings = 'flex flex-wrap justify-center gap-x-6 gap-y-5 sm:justify-start'
 
 function useAccount() {
-  return useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
+  return useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
 }
 
 function useTrackedData(): Task[] {
@@ -90,19 +90,16 @@ function ChannelsSection() {
 
   return (
     <Section label={t('dashboard.channels')}>
-      {account.error instanceof ApiError && account.error.code === 'telegram_unauthorized' ? (
-        <p className="text-sm text-muted-foreground">{t('dashboard.telegramOff')}</p>
-      ) : (
-        account.error && <p className="text-sm text-destructive">{account.error.message}</p>
-      )}
+      {account.data?.telegram_connected === false && <p className="text-sm text-muted-foreground">{t('dashboard.telegramOff')}</p>}
+      {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
       <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
         <ChannelsRing usage={usage} />
         <div className={rings}>
           {usage.accountWide && <Ring value={storages.length / Math.max(usage.used, 1)} center={storages.length} label={t('dashboard.storagesShort')} caption={t('dashboard.ofAccountChannels')} />}
-          {account.data && (
+          {account.data?.telegram_connected && (
             <Ring value={account.data.premium ? 1 : 0} center={t(account.data.premium ? 'common.yes' : 'common.no')} label="premium" caption={t('dashboard.channelLimit', { n: usage.limit })} tone={account.data.premium ? 'ok' : 'idle'} />
           )}
-          {account.data && (
+          {account.data?.file_limit != null && (
             <Ring value={account.data.file_limit / MAX_FILE} center={formatBytes(account.data.file_limit)} label={t('dashboard.fileLimit')} caption={t('dashboard.fileLimitCaption')} />
           )}
         </div>

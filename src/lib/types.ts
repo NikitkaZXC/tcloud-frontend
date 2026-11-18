@@ -152,10 +152,11 @@ export interface Health {
 }
 
 export interface Account {
-  premium: boolean
-  file_limit: number
+  telegram_connected: boolean
+  premium: boolean | null
+  file_limit: number | null
   channels_used: number | null
-  channels_limit: number
+  channels_limit: number | null
 }
 
 export interface TelegramLogin {

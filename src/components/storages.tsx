@@ -59,7 +59,7 @@ export function StorageList() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
   const io = useStorageIo(storages.data ?? [])
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), retry: false })
+  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
   const { data: me } = useMe()
   const admin = isAdmin(me)
   const totals = storageTotals(storages.data ?? [])
@@ -81,12 +81,12 @@ export function StorageList() {
           <ChannelsRing usage={usage} />
           <div className="grid max-w-md gap-3 text-sm text-muted-foreground">
             <p>
-              {t(account.data?.premium ? 'storages.limitPremium' : 'storages.limitFree', { n: usage.limit })}
+              {account.data?.telegram_connected === false ? t('dashboard.telegramOff') : t(account.data?.premium ? 'storages.limitPremium' : 'storages.limitFree', { n: usage.limit })}
             </p>
             <p className="fx-dotted border-l-4 pl-3 text-foreground">
               {t('storages.needMore')}
             </p>
-            {!usage.accountWide && <p className="text-xs">{t('storages.noTelegram')}</p>}
+            {!usage.accountWide && account.data?.telegram_connected !== false && <p className="text-xs">{t('storages.noTelegram')}</p>}
           </div>
         </div>
       </Section>

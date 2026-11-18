@@ -17,7 +17,7 @@
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `staleTime` 60 с, `retry: false` |
 | `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется при `activity_map = false` |
-| `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | `retry: false` (`503 telegram_unauthorized` до входа) |
+| `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
 | `['health']` | `GET /health` | `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с |
 | `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
 | `['telegram-devices']` | `GET /telegram/sessions` | `pages/telegram.tsx` | `retry: false` |
