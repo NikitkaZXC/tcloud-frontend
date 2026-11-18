@@ -1,4 +1,4 @@
-import { FolderIcon, LockIcon } from 'lucide-react'
+import { ChevronDownIcon, FolderIcon, LockIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { FileDialog } from '@/components/file-dialog'
@@ -6,6 +6,7 @@ import { PageTitle } from '@/components/fx'
 import { Thumb } from '@/components/thumb'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,11 +15,10 @@ import { useStorages } from '@/hooks/use-storages'
 import { ApiError } from '@/lib/api'
 import { filesCount, formatBytes, formatDate, parentPath } from '@/lib/format'
 import { foundLocation } from '@/lib/names'
-import { hasCriteria, hasFilters, isDesc, KINDS, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
+import { hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
 import type { FoundFile } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
-const ANY = 'any'
 const folderLink = (path: string) => `/files?path=${encodeURIComponent(path)}`
 
 function describe(error: unknown): string {
@@ -67,7 +67,7 @@ function SizeFilter({ state, update }: { state: SearchState; update: (patch: Par
 function Filters({ state, update }: { state: SearchState; update: (patch: Partial<SearchState>, replace?: boolean) => void }) {
   const mimes = useMimes(scopePath(state))
   const mimeList = mimes.data ?? []
-  const options = state.mime && !mimeList.some((m) => m.mime === state.mime) ? [{ mime: state.mime, files: 0 }, ...mimeList] : mimeList
+  const options = [...state.mimes.filter((mime) => !mimeList.some((m) => m.mime === mime)).map((mime) => ({ mime, files: 0 })), ...mimeList]
   const [open] = useState(() => hasFilters(state) || window.matchMedia('(min-width: 640px)').matches)
   return (
     <details open={open} className="fx-panel group p-4">
@@ -91,20 +91,34 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid content-start gap-1.5">
             <Label htmlFor="search-mime">{t('search.format')}</Label>
-            <Select value={state.mime ?? ANY} onValueChange={(v) => update({ mime: v === ANY ? null : v })}>
-              <SelectTrigger id="search-mime" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ANY}>{t('search.any')}</SelectItem>
-                {options.map((m) => (
-                  <SelectItem key={m.mime} value={m.mime}>
-                    {m.mime}
-                    {m.files > 0 && <span className="text-muted-foreground"> · {m.files}</span>}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button id="search-mime" type="button" variant="outline" className="w-full justify-between font-normal">
+                  <span className="truncate">{state.mimes.length === 0 ? t('search.any') : state.mimes.length === 1 ? state.mimes[0] : `${state.mimes[0]} +${state.mimes.length - 1}`}</span>
+                  <ChevronDownIcon className="text-muted-foreground" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-72">
+                <DropdownMenuCheckboxItem checked={state.mimes.length === 0} disabled={state.mimes.length === 0} onCheckedChange={() => update({ mimes: [] })}>
+                  {t('search.any')}
+                </DropdownMenuCheckboxItem>
+                {options.map((m) => {
+                  const on = state.mimes.includes(m.mime)
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={m.mime}
+                      checked={on}
+                      disabled={!on && state.mimes.length >= MIMES_MAX}
+                      onSelect={(e) => e.preventDefault()}
+                      onCheckedChange={() => update({ mimes: on ? state.mimes.filter((x) => x !== m.mime) : [...state.mimes, m.mime] })}
+                    >
+                      {m.mime}
+                      {m.files > 0 && <span className="text-muted-foreground"> · {m.files}</span>}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <SizeFilter state={state} update={update} />
           <fieldset className="grid gap-1.5 lg:col-span-2">
@@ -144,7 +158,7 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
               {isDesc(state) ? '▼' : '▲'}
             </Button>
             {hasFilters(state) && (
-              <Button type="button" variant="ghost" onClick={() => update({ kinds: [], mime: null, sizeMin: null, sizeMax: null, dateFrom: '', dateTo: '', encrypted: false })}>
+              <Button type="button" variant="ghost" onClick={() => update({ kinds: [], mimes: [], sizeMin: null, sizeMax: null, dateFrom: '', dateTo: '', encrypted: false })}>
                 {t('user.reset')}
               </Button>
             )}

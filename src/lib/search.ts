@@ -11,7 +11,7 @@ export interface SearchState {
   scope: Scope
   in: string | null
   kinds: Kind[]
-  mime: string | null
+  mimes: string[]
   sizeMin: number | null
   sizeMax: number | null
   dateFrom: string
@@ -39,6 +39,7 @@ export const SEARCH_SORTS: [SearchSort, Key][] = [
   ['size', 'searchSort.size'],
   ['date', 'searchSort.date'],
 ]
+export const MIMES_MAX = 50
 export const SIZE_UNITS: [string, number][] = [
   ['KB', 1024],
   ['MB', 1024 ** 2],
@@ -50,7 +51,7 @@ export const EMPTY_SEARCH: SearchState = {
   scope: 'all',
   in: null,
   kinds: [],
-  mime: null,
+  mimes: [],
   sizeMin: null,
   sizeMax: null,
   dateFrom: '',
@@ -84,7 +85,7 @@ export function parseSearch(params: URLSearchParams): SearchState {
     in: where,
     scope: scopesFor(where).includes(scope) ? scope : defaultScope(where),
     kinds: params.getAll('kind').filter((kind): kind is Kind => KINDS.some(([k]) => k === kind)),
-    mime: params.get('mime') || null,
+    mimes: [...new Set(params.getAll('mime').filter(Boolean))].slice(0, MIMES_MAX),
     sizeMin: bytes(params.get('size_min')),
     sizeMax: bytes(params.get('size_max')),
     dateFrom: day(params.get('from')),
@@ -101,7 +102,7 @@ export function searchUrl(state: SearchState): string {
   if (state.in) params.set('in', state.in)
   if (state.in && state.scope !== defaultScope(state.in)) params.set('scope', state.scope)
   state.kinds.forEach((kind) => params.append('kind', kind))
-  if (state.mime) params.set('mime', state.mime)
+  state.mimes.forEach((mime) => params.append('mime', mime))
   if (state.sizeMin != null) params.set('size_min', String(state.sizeMin))
   if (state.sizeMax != null) params.set('size_max', String(state.sizeMax))
   if (state.dateFrom) params.set('from', state.dateFrom)
@@ -123,7 +124,7 @@ export function scopePath(state: Pick<SearchState, 'scope' | 'in'>): string | un
 }
 
 export function hasFilters(state: SearchState): boolean {
-  return state.kinds.length > 0 || !!state.mime || state.sizeMin != null || state.sizeMax != null || !!state.dateFrom || !!state.dateTo || state.encrypted
+  return state.kinds.length > 0 || state.mimes.length > 0 || state.sizeMin != null || state.sizeMax != null || !!state.dateFrom || !!state.dateTo || state.encrypted
 }
 
 export function hasCriteria(state: SearchState): boolean {
@@ -136,7 +137,7 @@ export function searchQuery(state: SearchState, offset = 0, limit = 50): string 
   const path = scopePath(state)
   if (path) params.set('path', path)
   state.kinds.forEach((kind) => params.append('kind', kind))
-  if (state.mime) params.append('mime', state.mime)
+  state.mimes.forEach((mime) => params.append('mime', mime))
   if (state.sizeMin != null) params.set('size_min', String(state.sizeMin))
   if (state.sizeMax != null) params.set('size_max', String(state.sizeMax))
   if (state.dateFrom) params.set('date_from', new Date(`${state.dateFrom}T00:00:00`).toISOString())

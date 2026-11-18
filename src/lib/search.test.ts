@@ -14,7 +14,7 @@ describe('search state', () => {
   })
 
   it('round-trips through the URL', () => {
-    const state = { ...EMPTY_SEARCH, q: 'отпуск', in: folder, scope: 'storage' as const, kinds: ['photo' as const, 'video' as const], mime: 'image/jpeg', sizeMin: 1024, dateFrom: '2026-01-02', encrypted: true, sort: 'size' as const, desc: false }
+    const state = { ...EMPTY_SEARCH, q: 'отпуск', in: folder, scope: 'storage' as const, kinds: ['photo' as const, 'video' as const], mimes: ['image/jpeg', 'image/png'], sizeMin: 1024, dateFrom: '2026-01-02', encrypted: true, sort: 'size' as const, desc: false }
     const url = searchUrl(state)
     expect(url.startsWith('/search?')).toBe(true)
     expect(parseSearch(new URLSearchParams(url.split('?')[1]))).toEqual(state)
@@ -22,16 +22,17 @@ describe('search state', () => {
   })
 
   it('ignores junk in the URL', () => {
-    const state = parseSearch(new URLSearchParams('kind=pdf&kind=audio&size_min=-5&from=yesterday&sort=x&order=up'))
-    expect(state).toEqual({ ...EMPTY_SEARCH, kinds: ['audio'] })
+    const state = parseSearch(new URLSearchParams('kind=pdf&kind=audio&size_min=-5&from=yesterday&sort=x&order=up&mime=&mime=a/b&mime=a/b'))
+    expect(state).toEqual({ ...EMPTY_SEARCH, kinds: ['audio'], mimes: ['a/b'] })
   })
 
   it('builds the API query with repeated kinds and the scope path', () => {
-    const state = { ...EMPTY_SEARCH, q: '  cat ', in: folder, scope: 'storage' as const, kinds: ['photo' as const, 'video' as const], sizeMax: 10, encrypted: true }
+    const state = { ...EMPTY_SEARCH, q: '  cat ', in: folder, scope: 'storage' as const, kinds: ['photo' as const, 'video' as const], mimes: ['image/png', 'video/mp4'], sizeMax: 10, encrypted: true }
     const params = new URLSearchParams(searchQuery(state, 50, 50))
     expect(params.get('q')).toBe('cat')
     expect(params.get('path')).toBe(`tcloud/${sid}`)
     expect(params.getAll('kind')).toEqual(['photo', 'video'])
+    expect(params.getAll('mime')).toEqual(['image/png', 'video/mp4'])
     expect(params.get('size_max')).toBe('10')
     expect(params.get('encrypted')).toBe('true')
     expect(params.get('offset')).toBe('50')
