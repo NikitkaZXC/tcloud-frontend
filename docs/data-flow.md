@@ -61,11 +61,7 @@ flowchart LR
     end
     watcher["TaskWatcher:<br/>задача завершилась"]
 
-    delFile --> kFolder["folder"]
-    delFile --> kStorages["storages"]
-    delFolder --> kFolder
-    bulk --> kFolder
-    bulk --> kStorages
+    delFile & delFolder & bulk --> kDeleted["folder, storages, account,<br/>activity, search, mimes"]
     mkdir --> kFolderP["folder, parent"]
     stSave --> kStorages
     stPhoto --> kStorages
@@ -93,7 +89,8 @@ flowchart LR
   `setQueryData(['task', id], task)`; повтор ещё и `trackTask`.
 - Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
 - Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`).
-- `search`/`mimes` никто не инвалидирует: они перезапрашиваются при смене ключа (новый запрос) или монтировании.
+- `search`/`mimes` инвалидируют только удаления (`DELETED` в `folder-view.tsx`); иначе они перезапрашиваются при смене
+  ключа (новый запрос) или монтировании.
 
 ## Сторы вне TanStack Query
 

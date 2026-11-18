@@ -72,6 +72,7 @@ import { cn } from '@/lib/utils'
 import { t } from '@/lib/i18n'
 
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
+const DELETED = [['folder'], ['storages'], ['account'], ['activity'], ['search'], ['mimes']]
 
 const link = (path: string) => `/files?path=${encodeURIComponent(path)}`
 const folderKey = (path: string) => `d:${path}`
@@ -220,14 +221,14 @@ export function FolderView({ path }: { path: string }) {
     describe: archiveError,
   })
   const removeFolder = useAction((target: string) => api.del<FolderDeleteResponse>('/folders', { path: target }), {
-    invalidate: [['folder']],
+    invalidate: DELETED,
     onSuccess: (result) => {
       toast.success(t('folder.deletedFiles', { n: result.deleted_files }))
       if (result.path === path) navigate(link(parentPath(path)))
     },
   })
   const removeFile = useAction((file: TFile) => api.del(`/files/${file.uuid}`), {
-    invalidate: [['folder'], ['storages']],
+    invalidate: DELETED,
     success: t('folder.fileDeleted'),
   })
 
@@ -254,8 +255,7 @@ export function FolderView({ path }: { path: string }) {
       }
     }
     setSelected(new Set())
-    queryClient.invalidateQueries({ queryKey: ['folder'] })
-    queryClient.invalidateQueries({ queryKey: ['storages'] })
+    DELETED.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     toast.success(t('folder.deletedItems', { n: picked.length - failed }))
   }
 
