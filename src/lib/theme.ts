@@ -42,6 +42,7 @@ export function applyTheme(theme: Theme = getSettings().interface.theme) {
   const root = document.documentElement
   root.classList.toggle('light', themeMode(theme) === 'light')
   root.dataset.theme = resolveTheme(theme)
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_SWATCHES[resolveTheme(theme)][0])
   if (!watching) {
     watching = true
     subscribeSystem(() => applyTheme())

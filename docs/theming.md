@@ -34,7 +34,8 @@ flowchart TD
   вызове он один раз подписывается на `matchMedia(...).change`, поэтому `system` меняется вместе с ОС без перезагрузки.
 - `useTheme()` возвращает режим (`dark`/`light`) и тоже подписан на `matchMedia`.
 - До ответа `/users/me` тема берётся из `localStorage` `tcloud.mirror`, чтобы не мигала (см.
-  [data-flow.md](data-flow.md#настройки)). `<meta name="theme-color">` в `index.html` статичен.
+  [data-flow.md](data-flow.md#настройки)). `applyTheme` ставит `<meta name="theme-color">` в фон
+  темы — первый цвет `THEME_SWATCHES` (равен `--background` пресета).
 - Переключатель в профиле (`ThemeSwitch`, `components/layout.tsx`) с пресета переводит в `light`/`dark`; выбор всех
   тем с превью (`THEME_SWATCHES`) — на `/settings` (`THEME_LABELS`, `pages/settings.tsx`).
 
@@ -71,7 +72,7 @@ flowchart LR
 ## Как добавить тему
 
 1. `src/lib/settings.ts`: id в `THEMES`.
-2. `src/lib/theme.ts`: id в `LIGHT_THEMES`, если тема светлая; цвета превью в `THEME_SWATCHES`.
+2. `src/lib/theme.ts`: id в `LIGHT_THEMES`, если тема светлая; цвета превью в `THEME_SWATCHES`, первый — `--background` темы.
 3. `src/index.css`: блок `:root[data-theme=<id>]` после `:root.light` со всеми токенами из списка выше, включая
    `--backdrop`, `--ring-from`/`--ring-to`, `--glow` и `color-scheme`; пары текст/фон — не ниже WCAG AA (4.5:1).
 4. `src/pages/settings.tsx`: подпись в `THEME_LABELS`; ключ `settings.theme<Name>` в `src/lib/locales/ru.ts` и `en.ts`.
