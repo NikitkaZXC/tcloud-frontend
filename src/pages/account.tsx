@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LogOutIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -89,11 +89,16 @@ function PasswordCard() {
 
 function Sessions() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const signedOut = () => {
+    queryClient.clear()
+    navigate('/login')
+  }
   const sessions = useQuery({ queryKey: ['sessions'], queryFn: () => api.get<UserSession[]>('/auth/sessions') })
   const revoke = useAction((session: UserSession) => api.del(`/auth/sessions/${session.id}`), {
     invalidate: [['sessions']],
   })
-  const logoutAll = useAction(() => api.post('/auth/logout/all'), { onSuccess: () => navigate('/login') })
+  const logoutAll = useAction(() => api.post('/auth/logout/all'), { onSuccess: signedOut })
 
   return (
     <Card>
@@ -122,7 +127,7 @@ function Sessions() {
                 variant="ghost"
                 size="sm"
                 onClick={() =>
-                  revoke.mutate(session, { onSuccess: () => session.is_current && navigate('/login') })
+                  revoke.mutate(session, { onSuccess: () => session.is_current && signedOut() })
                 }
               >
                 {t('account.end')}

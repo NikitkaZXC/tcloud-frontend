@@ -88,7 +88,8 @@ flowchart LR
 - Действия на «Задачах» (`pages/tasks.tsx`: отмена, приоритет, повтор) кладут ответ прямо в кэш
   `setQueryData(['task', id], task)`; повтор ещё и `trackTask`.
 - Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
-- Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`).
+- Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, «Выйти везде» и завершение текущей сессии в
+  `pages/account.tsx`).
 - `search`/`mimes` инвалидируют только удаления (`DELETED` в `folder-view.tsx`); иначе они перезапрашиваются при смене
   ключа (новый запрос) или монтировании.
 
