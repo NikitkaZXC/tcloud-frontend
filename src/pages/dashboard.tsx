@@ -251,6 +251,7 @@ function Checklist() {
 
 export function DashboardPage() {
   const { data: me } = useMe()
+  const showMap = useSettings().interface.activity_map
   const totals = storageTotals(useStorages().data ?? [])
   const tasks = useTrackedData()
   const active = tasks.filter((t) => t.status === 'queued' || t.status === 'running').length + useSending().length
@@ -274,9 +275,11 @@ export function DashboardPage() {
       <ChannelsSection />
       <StoragesSection />
       <ActivitySection />
-      <Section label={t('dashboard.map')}>
-        <ActivityMap />
-      </Section>
+      {showMap && (
+        <Section label={t('dashboard.map')}>
+          <ActivityMap />
+        </Section>
+      )}
       <SystemSection />
       {isAdmin(me) && <UsersSection />}
     </div>

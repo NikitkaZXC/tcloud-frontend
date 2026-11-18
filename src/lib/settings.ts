@@ -28,6 +28,7 @@ export interface Settings {
     sort_order: 'asc' | 'desc'
     folders_first: boolean
     animations: boolean
+    activity_map: boolean
     confirm_delete: boolean
     start_page: StartPage
     tasks_filter: TasksFilter
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
     sort_order: 'asc',
     folders_first: true,
     animations: true,
+    activity_map: true,
     confirm_delete: true,
     start_page: 'dashboard',
     tasks_filter: 'all',

@@ -266,6 +266,7 @@ export function SettingsPage() {
             onChange={(tasks_filter) => setUi({ tasks_filter })}
           />
           <Toggle label={t('settings.animations')} hint={t('settings.animationsHint')} checked={ui.animations} onChange={(animations) => setUi({ animations })} />
+          <Toggle label={t('dashboard.map')} checked={ui.activity_map} onChange={(activity_map) => setUi({ activity_map })} />
           <Toggle
             label={t('settings.confirmDelete')}
             hint={t('settings.confirmDeleteHint')}
