@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, channelUsage, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -126,5 +126,27 @@ describe('dashboard', () => {
     expect(server).toEqual({ a: 'read', c: 'both' })
     expect(serverIo(undefined)).toEqual({})
     expect(mergeIo({ a: 'write', d: 'write' }, server)).toEqual({ a: 'both', c: 'both', d: 'write' })
+  })
+
+  it('orders dashboard blocks: stored first, then missing ones by default, unknown and duplicates dropped', () => {
+    expect(blockOrder(undefined)).toEqual([...DASHBOARD_BLOCKS])
+    expect(blockOrder([])).toEqual([...DASHBOARD_BLOCKS])
+    expect(blockOrder(['system', 'nope', 'summary', 'system', 3])).toEqual(['system', 'summary', 'previews', 'channels', 'storages', 'tasks', 'activity_map', 'users'])
+  })
+
+  it('moves a block onto another block position', () => {
+    const order = blockOrder(undefined)
+    expect(moveBlock(order, 'previews', 'summary').slice(0, 3)).toEqual(['previews', 'summary', 'channels'])
+    expect(moveBlock(order, 'summary', 'previews').slice(0, 3)).toEqual(['previews', 'summary', 'channels'])
+    expect(moveBlock(order, 'summary', 'users').at(-1)).toBe('summary')
+    expect(moveBlock(order, 'users', 'summary')[0]).toBe('users')
+    expect(moveBlock(order, 'tasks', 'tasks')).toEqual(order)
+  })
+
+  it('parses the local layout copy', () => {
+    expect(parseLayout('["system"]')).toEqual(['system'])
+    expect(parseLayout('{"a":1}')).toBeUndefined()
+    expect(parseLayout('{')).toBeUndefined()
+    expect(parseLayout(null)).toBeUndefined()
   })
 })

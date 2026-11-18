@@ -199,3 +199,27 @@ export function activityGrid(items: ActivityDay[], until: string, days = 365): A
   }
   return weeks
 }
+
+export const DASHBOARD_BLOCKS = ['summary', 'previews', 'channels', 'storages', 'tasks', 'activity_map', 'system', 'users'] as const
+export type DashboardBlock = (typeof DASHBOARD_BLOCKS)[number]
+
+export function blockOrder(stored: readonly unknown[] | undefined): DashboardBlock[] {
+  const known = [...new Set((stored ?? []).filter((id): id is DashboardBlock => DASHBOARD_BLOCKS.includes(id as DashboardBlock)))]
+  return [...known, ...DASHBOARD_BLOCKS.filter((id) => !known.includes(id))]
+}
+
+export function moveBlock(order: DashboardBlock[], id: DashboardBlock, to: DashboardBlock): DashboardBlock[] {
+  const index = order.indexOf(to)
+  const rest = order.filter((block) => block !== id)
+  rest.splice(index, 0, id)
+  return rest
+}
+
+export function parseLayout(raw: string | null): unknown[] | undefined {
+  try {
+    const value = JSON.parse(raw ?? 'null')
+    return Array.isArray(value) ? value : undefined
+  } catch {
+    return undefined
+  }
+}

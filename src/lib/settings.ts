@@ -39,6 +39,7 @@ export interface Settings {
     fx_confetti: boolean
     fx_cursor: boolean
     fx_easter_eggs: boolean
+    dashboard_layout?: string[]
   }
   telegram: { chat_folder: boolean }
 }

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { CpuIcon, SendIcon, ServerIcon, ShieldCheckIcon, XIcon } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, CpuIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, SendIcon, ServerIcon, ShieldCheckIcon, XIcon } from 'lucide-react'
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router'
 import { Achievements } from '@/components/extras'
 import { ActivityMap, Speedometer } from '@/components/meters'
@@ -11,15 +12,17 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { channelUsage, HEALTH_LABELS, healthGroups, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, HEALTH_LABELS, moveBlock, parseLayout, healthGroups, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { stageLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
-import { useSettings, visibleTasks } from '@/lib/settings'
+import { load, save } from '@/lib/prefs'
+import { settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
-import { t } from '@/lib/i18n'
+import { type Key, t } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 
 const MAX_FILE = 4 * 1024 ** 3
 
@@ -264,47 +267,205 @@ function Checklist() {
   )
 }
 
+const BLOCK_LABELS: Record<DashboardBlock, Key> = {
+  summary: 'dashboard.summary',
+  previews: 'dashboard.previews',
+  channels: 'dashboard.channels',
+  storages: 'nav.storages',
+  tasks: 'dashboard.activity',
+  activity_map: 'dashboard.map',
+  system: 'dashboard.system',
+  users: 'nav.users',
+}
+
+function moved(id: DashboardBlock, visible: (string | undefined)[]) {
+  return t('dashboard.moved', { name: t(BLOCK_LABELS[id]), n: visible.indexOf(id) + 1, total: visible.length })
+}
+
+function savedLayout(stored: string[] | undefined): DashboardBlock[] {
+  return blockOrder(stored ?? parseLayout(load('dashboard.layout')))
+}
+
 export function DashboardPage() {
   const { data: me } = useMe()
-  const showMap = useSettings().interface.activity_map
+  const ui = useSettings().interface
   const storageList = useStorages().data ?? []
   const totals = storageTotals(storageList)
   const previews = previewTotals(storageList)
   const counts = taskCounts(useTaskCounts().data)
   const active = counts.queued + counts.running + useSending().length
+  const [draft, setDraft] = useState<DashboardBlock[] | null>(null)
+  const [dragging, setDragging] = useState<DashboardBlock | null>(null)
+  const [announce, setAnnounce] = useState('')
+  const focus = useRef<[DashboardBlock, 'up' | 'down'] | null>(null)
+  const dragOrder = useRef<DashboardBlock[]>([])
+  const order = draft ?? savedLayout(ui.dashboard_layout)
 
-  return (
-    <div className="grid">
-      <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
-        <div className="grid gap-4">
-          <PageTitle text={t('nav.dashboard')} eyebrow={t('dashboard.eyebrow')} className="text-[40px] sm:text-[50px] md:text-[80px]" />
-        </div>
-        <WireCubes className="hidden w-64 md:block" />
-      </header>
-      <Achievements files={totals.files} size={totals.size} checklist={false} />
-      {me?.role === 'root' && <Checklist />}
+  const blocks: Record<DashboardBlock, ReactNode> = {
+    summary: (
       <section aria-label={t('dashboard.summary')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l lg:[&>*:not(:first-child)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0">
         <Stat label={t('dashboard.filesUploaded')} value={totals.files} />
         <Stat label={t('dashboard.totalSize')} value={totals.size} format={formatBytes} />
         <Stat label={t('dashboard.storagesShort')} value={totals.storages} />
         <Stat label={t('dashboard.activeTasks')} value={active} />
       </section>
-      {previews && (
-        <section aria-label={t('dashboard.previews')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l">
-          <Stat label={t('dashboard.previews')} value={previews.count} />
-          <Stat label={t('dashboard.previewsSize')} value={previews.bytes} format={formatBytes} />
-        </section>
+    ),
+    previews: previews && (
+      <section aria-label={t('dashboard.previews')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l">
+        <Stat label={t('dashboard.previews')} value={previews.count} />
+        <Stat label={t('dashboard.previewsSize')} value={previews.bytes} format={formatBytes} />
+      </section>
+    ),
+    channels: <ChannelsSection />,
+    storages: <StoragesSection />,
+    tasks: <ActivitySection />,
+    activity_map: ui.activity_map && (
+      <Section label={t('dashboard.map')}>
+        <ActivityMap />
+      </Section>
+    ),
+    system: <SystemSection />,
+    users: isAdmin(me) && <UsersSection />,
+  }
+  const shown = order.filter((id) => blocks[id])
+
+  const step = (id: DashboardBlock, dir: 'up' | 'down') => {
+    const to = shown[shown.indexOf(id) + (dir === 'up' ? -1 : 1)]
+    if (!to) return
+    const next = moveBlock(order, id, to)
+    setDraft(next)
+    focus.current = [id, dir]
+    setAnnounce(moved(id, next.filter((block) => shown.includes(block))))
+  }
+
+  useEffect(() => {
+    if (!focus.current) return
+    const [id, dir] = focus.current
+    focus.current = null
+    const buttons = document.querySelectorAll<HTMLButtonElement>(`[data-block="${id}"] [data-move]`)
+    const target = [...buttons].find((button) => button.dataset.move === dir && !button.disabled) ?? [...buttons].find((button) => !button.disabled)
+    target?.focus()
+  })
+
+  useEffect(() => {
+    if (!dragging) return
+    let latest = dragOrder.current
+    const move = (event: PointerEvent) => {
+      const y = event.clientY
+      if (y < 48) scrollBy(0, -16)
+      else if (y > innerHeight - 48) scrollBy(0, 16)
+      const el = document.elementFromPoint(event.clientX, y)?.closest<HTMLElement>('[data-block]')
+      const to = el?.dataset.block as DashboardBlock | undefined
+      if (!el || !to || to === dragging) return
+      const rect = el.getBoundingClientRect()
+      const middle = rect.top + rect.height / 2
+      if (latest.indexOf(to) > latest.indexOf(dragging) ? y < middle : y > middle) return
+      latest = moveBlock(latest, dragging, to)
+      setDraft(latest)
+    }
+    const end = () => {
+      setAnnounce(moved(dragging, [...document.querySelectorAll<HTMLElement>('[data-block]')].map((el) => el.dataset.block)))
+      setDragging(null)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+  }, [dragging])
+
+  const done = () => {
+    const next = order
+    setDraft(null)
+    if (next.join() === savedLayout(ui.dashboard_layout).join()) return
+    save('dashboard.layout', JSON.stringify(next))
+    updateSettings({ interface: { dashboard_layout: next } }).catch((error) => toast.error(settingsError(error)))
+  }
+
+  return (
+    <div className={cn('grid', dragging && 'select-none')}>
+      <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
+        <div className="grid gap-4">
+          <PageTitle text={t('nav.dashboard')} eyebrow={t('dashboard.eyebrow')} className="text-[40px] sm:text-[50px] md:text-[80px]" />
+          <div className="flex flex-wrap items-center gap-2">
+            {draft ? (
+              <>
+                <Button size="sm" onClick={done}>
+                  <CheckIcon />
+                  {t('dashboard.layoutDone')}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setDraft([...DASHBOARD_BLOCKS])}>
+                  <RotateCcwIcon />
+                  {t('dashboard.layoutReset')}
+                </Button>
+                <p className="text-xs text-muted-foreground">{t('dashboard.layoutHint')}</p>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setDraft(order)}>
+                <LayoutGridIcon />
+                {t('dashboard.customize')}
+              </Button>
+            )}
+          </div>
+        </div>
+        <WireCubes className="hidden w-64 md:block" />
+      </header>
+      <p className="sr-only" aria-live="polite">
+        {announce}
+      </p>
+      <Achievements files={totals.files} size={totals.size} checklist={false} />
+      {me?.role === 'root' && <Checklist />}
+      {shown.map((id, i) =>
+        draft ? (
+          <div key={id} data-block={id} className={cn('group relative outline-1 -outline-offset-1 outline-border outline-dashed transition-[opacity,transform] duration-200 ease-out', dragging === id && 'z-10 scale-[0.99] opacity-60')}>
+            <div className="absolute top-2 right-2 z-10 flex gap-1 bg-background">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                data-move="up"
+                aria-label={t('dashboard.moveUp', { name: t(BLOCK_LABELS[id]) })}
+                disabled={i === 0}
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                onClick={() => step(id, 'up')}
+              >
+                <ArrowUpIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                data-move="down"
+                aria-label={t('dashboard.moveDown', { name: t(BLOCK_LABELS[id]) })}
+                disabled={i === shown.length - 1}
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                onClick={() => step(id, 'down')}
+              >
+                <ArrowDownIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                tabIndex={-1}
+                aria-hidden
+                title={t('dashboard.drag')}
+                className="cursor-grab touch-none active:cursor-grabbing"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  dragOrder.current = order
+                  setDragging(id)
+                }}
+              >
+                <GripVerticalIcon />
+              </Button>
+            </div>
+            {blocks[id]}
+          </div>
+        ) : (
+          <Fragment key={id}>{blocks[id]}</Fragment>
+        ),
       )}
-      <ChannelsSection />
-      <StoragesSection />
-      <ActivitySection />
-      {showMap && (
-        <Section label={t('dashboard.map')}>
-          <ActivityMap />
-        </Section>
-      )}
-      <SystemSection />
-      {isAdmin(me) && <UsersSection />}
     </div>
   )
 }
