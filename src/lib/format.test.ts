@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crumbs, filesCount, formatBytes, formatDuration, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
+import { crumbs, filesCount, formatBytes, formatDuration, formatShortDate, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
 import { setLang } from './i18n'
 
 const root = 'tcloud/0190a2b4-0000-7000-8000-000000000000'
@@ -45,6 +45,11 @@ describe('format', () => {
     expect(formatBytes(null)).toBe('—')
     expect(formatDuration(65)).toBe('1:05')
     expect(formatDuration(3725)).toBe('1:02:05')
+  })
+
+  it('formats short dates without seconds', () => {
+    expect(formatShortDate(null)).toBe('—')
+    expect(formatShortDate('2026-11-18T02:49:50Z')).toMatch(/^\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/)
   })
 })
 

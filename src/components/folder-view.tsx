@@ -61,7 +61,7 @@ import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
 import { nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
-import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
+import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
@@ -396,8 +396,8 @@ export function FolderView({ path }: { path: string }) {
                     {formatBytes(folder.size)}
                     <span className="block text-xs">{filesCount(folder.files)}</span>
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">{formatDate(folder.created_at)}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(folder.updated_at)}>{formatShortDate(folder.updated_at)}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(folder.created_at)}>{formatShortDate(folder.created_at)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
                 </TableRow>
   )
@@ -417,8 +417,8 @@ export function FolderView({ path }: { path: string }) {
                     </TableCell>
                     <TableCell className="hidden text-xs text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
                     <TableCell className="hidden text-right text-xs text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground md:table-cell">{formatDate(file.updated_at)}</TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">{formatDate(file.created_at)}</TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(file.created_at)}>{formatShortDate(file.created_at)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
                   </TableRow>
                 )
@@ -667,11 +667,11 @@ export function FolderView({ path }: { path: string }) {
                     aria-label={t('folder.selectAll')}
                   />
                 </TableHead>
-                {head('name')}
-                {head('type', 'hidden w-24 xl:table-cell')}
-                {head('size', 'hidden w-28 sm:table-cell')}
-                {head('modified', 'hidden w-44 md:table-cell')}
-                {head('uploaded', 'hidden w-44 lg:table-cell')}
+                {head('name', 'w-full min-w-40')}
+                {head('type', 'hidden xl:table-cell')}
+                {head('size', 'hidden sm:table-cell')}
+                {head('modified', 'hidden md:table-cell')}
+                {head('uploaded', 'hidden min-[1100px]:table-cell')}
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>

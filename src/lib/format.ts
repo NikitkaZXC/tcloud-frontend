@@ -19,6 +19,16 @@ export function formatDate(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleString(getLang()) : '—'
 }
 
+const shortDates = new Map<string, Intl.DateTimeFormat>()
+
+export function formatShortDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const lang = getLang()
+  let format = shortDates.get(lang)
+  if (!format) shortDates.set(lang, (format = new Intl.DateTimeFormat(lang, { dateStyle: 'short', timeStyle: 'short' })))
+  return format.format(new Date(iso))
+}
+
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds == null) return '—'
   const s = Math.round(seconds)
