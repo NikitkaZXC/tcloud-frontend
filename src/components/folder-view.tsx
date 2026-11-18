@@ -66,7 +66,7 @@ import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
 import { nextSort, parseSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
-import { crumbs, downloadUrl, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
+import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
@@ -411,7 +411,10 @@ export function FolderView({ path }: { path: string }) {
                     </Link>
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground xl:table-cell">папка</TableCell>
-                  <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{folder.size != null ? formatBytes(folder.size) : '—'}</TableCell>
+                  <TableCell className="hidden text-right text-muted-foreground tabular-nums sm:table-cell">
+                    {formatBytes(folder.size)}
+                    <span className="block text-xs">{filesCount(folder.files)}</span>
+                  </TableCell>
                   <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
                   <TableCell className="hidden text-muted-foreground lg:table-cell">{formatDate(folder.created_at)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
@@ -451,7 +454,9 @@ export function FolderView({ path }: { path: string }) {
                 <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
                   {folder.name}
                 </Link>
-                <span className="text-xs text-muted-foreground">папка · {formatDate(folder.updated_at)}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {formatBytes(folder.size)} · {filesCount(folder.files)}
+                </span>
                 <div className="flex items-center justify-between gap-2">
                   <Link to={link(folder.path)} className="fx-more" tabIndex={-1} aria-hidden>
                     Открыть
@@ -517,7 +522,14 @@ export function FolderView({ path }: { path: string }) {
           Отпустите, чтобы загрузить файлы или папки
         </div>
       )}
-      <Crumbs path={path} name={storageName(storage)} />
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <Crumbs path={path} name={storageName(storage)} />
+        {listing.data && (
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {formatBytes(listing.data.size)} · {filesCount(listing.data.total_files)}
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => input.current?.click()}>

@@ -81,7 +81,7 @@ describe('dashboard', () => {
 
   it('uses account channel counters when the API has them', () => {
     expect(channelUsage({ premium: false, file_limit: 1, channels_used: 42, channels_limit: 500 }, 3)).toEqual({ used: 42, limit: 500, accountWide: true })
-    expect(channelUsage({ premium: true, file_limit: 1 }, 3)).toEqual({ used: 3, limit: 1000, accountWide: false })
+    expect(channelUsage({ premium: true, file_limit: 1, channels_used: null, channels_limit: 1000 }, 3)).toEqual({ used: 3, limit: 1000, accountWide: false })
     expect(channelUsage(undefined, 2)).toEqual({ used: 2, limit: 500, accountWide: false })
   })
 

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTasks } from '@/hooks/use-tasks'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
@@ -71,7 +71,11 @@ function ChannelsSection() {
 
   return (
     <Section label="Каналы">
-      {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
+      {account.error instanceof ApiError && account.error.code === 'telegram_unauthorized' ? (
+        <p className="text-sm text-muted-foreground">Telegram не подключён: лимиты аккаунта появятся после входа.</p>
+      ) : (
+        account.error && <p className="text-sm text-destructive">{account.error.message}</p>
+      )}
       <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
         <ChannelsRing usage={usage} />
         <div className={rings}>

@@ -86,7 +86,7 @@ export function StorageList() {
             <p className="fx-dotted border-l-4 pl-3 text-foreground">
               Нужно больше хранилищ — удалите ненужные каналы и группы в Telegram (они тоже занимают лимит) или ненужные хранилища здесь.
             </p>
-            {!usage.accountWide && <p className="text-xs">API пока не отдаёт число всех каналов аккаунта — показано число хранилищ.</p>}
+            {!usage.accountWide && <p className="text-xs">Telegram не ответил или не подключён — показано число хранилищ.</p>}
           </div>
         </div>
       </Section>

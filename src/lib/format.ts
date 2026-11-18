@@ -11,6 +11,15 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${unit === 0 ? value : value.toFixed(1)} ${UNITS[unit]}`
 }
 
+export function plural(n: number, forms: [string, string, string]): string {
+  const tens = n % 100
+  const ones = n % 10
+  const form = tens > 10 && tens < 20 ? 2 : ones === 1 ? 0 : ones >= 2 && ones <= 4 ? 1 : 2
+  return `${n} ${forms[form]}`
+}
+
+export const filesCount = (n: number) => plural(n, ['файл', 'файла', 'файлов'])
+
 export function formatDate(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleString() : '—'
 }

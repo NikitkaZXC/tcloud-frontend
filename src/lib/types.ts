@@ -95,14 +95,14 @@ export interface Folder {
   name: string
   created_at: string
   updated_at: string
-  size?: number
-  files?: number
+  size: number
+  files: number
 }
 
 export interface FolderListing {
   path: string
-  size?: number
-  total_files?: number
+  size: number
+  total_files: number
   folders: Folder[]
   files: TFile[]
 }
@@ -151,8 +151,8 @@ export interface Health {
 export interface Account {
   premium: boolean
   file_limit: number
-  channels_used?: number | null
-  channels_limit?: number | null
+  channels_used: number | null
+  channels_limit: number
 }
 
 export interface TelegramLogin {

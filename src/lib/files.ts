@@ -28,7 +28,7 @@ function matches(name: string, query: string): boolean {
 
 const time = (iso: string) => Date.parse(iso) || 0
 
-const size = (entry: Entry) => (entry.type === 'file' ? entry.item.size : (entry.item.size ?? -1))
+const size = (entry: Entry) => entry.item.size
 
 const COMPARE: Record<SortKey, (a: Entry, b: Entry) => number> = {
   name: () => 0,
