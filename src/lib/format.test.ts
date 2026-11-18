@@ -49,7 +49,10 @@ describe('format', () => {
 
   it('formats short dates without seconds', () => {
     expect(formatShortDate(null)).toBe('—')
-    expect(formatShortDate('2026-11-18T02:49:50Z')).toMatch(/^\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/)
+    const iso = '2026-11-18T02:49:50Z'
+    const expected = new Intl.DateTimeFormat('ru', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso))
+    expect(formatShortDate(iso)).toBe(expected)
+    expect(formatShortDate(iso)).not.toContain('50')
   })
 })
 
