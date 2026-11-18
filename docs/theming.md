@@ -103,6 +103,15 @@ QR входа в Telegram (`pages/telegram.tsx`, `QR_LOGO`) несёт знак 
 Класс `still` на `<html>` ставит `main.tsx`, когда `interface.animations = false`; правила `:root.still …` в
 `index.css` повторяют правила `@media (prefers-reduced-motion: reduce)`. В JS — `prefersReducedMotion()` (`src/lib/fx.ts`).
 
+## Выделение плиток
+
+Плитка папки/файла (`fx-tile` в `folder-view.tsx`) с `data-selected` получает рамку `--primary` внутри панели
+(`::after`, `inset: 3px`, без сдвига вёрстки) с пиксельными уголками-скобками и ступенчатым `clip-path`, а миниатюра —
+рамку и полупрозрачный тинт `--primary` 16% (картинка остаётся видна). Флажок лежит в углу миниатюры на своей
+подложке `--card` (`fx-tile-check`), при фокусе с клавиатуры — пунктир `--foreground`. На устройствах с hover флажок
+невыбранной плитки виден только при наведении/фокусе или когда что-то уже выбрано (`data-selecting` на `<ul>`);
+на тач-экранах виден всегда. Появление — только `opacity`, под `prefers-reduced-motion` и `still` мгновенно.
+
 ## Как добавить тему
 
 1. `src/lib/settings.ts`: id в `THEMES`.

@@ -68,7 +68,6 @@ import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
 import { archiveError, archiveName, selectionPayload } from '@/lib/archive'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
-import { cn } from '@/lib/utils'
 import { t } from '@/lib/i18n'
 
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
@@ -425,12 +424,12 @@ export function FolderView({ path }: { path: string }) {
   }
 
   const folderTile = (folder: Folder) => (
-            <li key={folder.id} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(folderKey(folder.path)) && 'border-ink')}>
+            <li key={folder.id} data-selected={selected.has(folderKey(folder.path)) || undefined} className="fx-panel fx-tile flex gap-3 p-3 transition-colors hover:border-foreground/30">
               <div className="relative">
                 <span className="fx-thumb">
                   <FolderIcon className="size-6 text-primary" />
                 </span>
-                <div className="absolute top-1 left-1">{check(folderKey(folder.path), folder.name)}</div>
+                <div className="fx-tile-check">{check(folderKey(folder.path), folder.name)}</div>
               </div>
               <div className="grid min-w-0 flex-1 content-between gap-1">
                 <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
@@ -451,12 +450,12 @@ export function FolderView({ path }: { path: string }) {
 
   const fileTile = (file: TFile) => {
             return (
-              <li key={file.uuid} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(fileKey(file.uuid)) && 'border-ink')}>
+              <li key={file.uuid} data-selected={selected.has(fileKey(file.uuid)) || undefined} className="fx-panel fx-tile flex gap-3 p-3 transition-colors hover:border-foreground/30">
                 <div className="relative">
                   <span className="fx-thumb">
                     <Thumb file={file} iconClassName="size-6" />
                   </span>
-                  <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
+                  <div className="fx-tile-check">{check(fileKey(file.uuid), file.name)}</div>
                 </div>
                 <div className="grid min-w-0 flex-1 content-between gap-1">
                   <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2.5" title={file.name}>
@@ -682,7 +681,7 @@ export function FolderView({ path }: { path: string }) {
         </div>
       )}
       {!empty && order.length > 0 && view === 'grid' && (
-        <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul data-selecting={picked.length > 0 || undefined} className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {entries.map((entry) => (entry.type === 'folder' ? folderTile(entry.item) : fileTile(entry.item)))}
         </ul>
       )}

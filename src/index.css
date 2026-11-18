@@ -468,6 +468,69 @@ body::before {
   image-rendering: pixelated;
 }
 
+.fx-tile .fx-thumb {
+  position: relative;
+}
+
+.fx-tile[data-selected] .fx-thumb {
+  border-color: var(--primary);
+}
+
+.fx-tile[data-selected] .fx-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  pointer-events: none;
+}
+
+.fx-tile[data-selected]::after {
+  --fx-px: linear-gradient(var(--primary), var(--primary));
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--primary);
+  background:
+    var(--fx-px) 0 0 / 12px 3px, var(--fx-px) 0 0 / 3px 12px,
+    var(--fx-px) 100% 0 / 12px 3px, var(--fx-px) 100% 0 / 3px 12px,
+    var(--fx-px) 0 100% / 12px 3px, var(--fx-px) 0 100% / 3px 12px,
+    var(--fx-px) 100% 100% / 12px 3px, var(--fx-px) 100% 100% / 3px 12px;
+  background-origin: border-box;
+  background-repeat: no-repeat;
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+  pointer-events: none;
+}
+
+.fx-tile-check {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  padding: 3px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.15s ease;
+}
+
+.fx-tile[data-selected] .fx-tile-check {
+  border-color: var(--primary);
+}
+
+.fx-tile-check:has(:focus-visible) {
+  outline: 2px dashed var(--foreground);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .fx-tile:not([data-selected], :hover, :focus-within) .fx-tile-check {
+    opacity: 0;
+  }
+  [data-selecting] > .fx-tile .fx-tile-check {
+    opacity: 1;
+  }
+}
+
 .fx-mini {
   display: inline-flex;
   flex-shrink: 0;
