@@ -94,7 +94,7 @@ export function StorageList() {
         {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}
         {storages.error && <p className="text-destructive">{storages.error.message}</p>}
         {storages.data?.length === 0 && <p className="text-muted-foreground">Хранилищ пока нет.</p>}
-        <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
           {storages.data?.map((storage) => (
             <li key={storage.id}>
               <StorageCard

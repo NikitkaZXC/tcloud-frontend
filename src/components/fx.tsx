@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export function PageTitle({ text, eyebrow, children, className }: { text: string; eyebrow?: ReactNode; children?: ReactNode; className?: string }) {
   return (
     <div className="fx-page grid gap-2">
-      <h1 className={cn('fx-pixel flex flex-wrap items-center gap-3 text-[40px] uppercase md:text-[50px]', className)}>
+      <h1 className={cn('fx-pixel flex flex-wrap items-center gap-3 text-[25px] uppercase [overflow-wrap:anywhere] min-[400px]:text-[30px] sm:text-[40px] md:text-[50px]', className)}>
         {text}
         {children}
       </h1>
@@ -204,9 +204,9 @@ function activityLabel({ count, percent }: Activity): string {
 export function UploadPulse({ activity, compact }: { activity: Activity; compact?: boolean }) {
   if (compact) return <span className="fx-flow" role="status" aria-label={activityLabel(activity)} title={activityLabel(activity)} />
   return (
-    <span className="flex items-center gap-2" role="status">
-      <span className="fx-flow flex-1" aria-hidden />
-      <span className="fx-label shrink-0 text-foreground tabular-nums">{activityLabel(activity)}</span>
+    <span className="flex min-w-0 items-center gap-2" role="status">
+      <span className="fx-flow min-w-6 flex-1" aria-hidden />
+      <span className="fx-label min-w-0 truncate text-foreground tabular-nums">{activityLabel(activity)}</span>
     </span>
   )
 }

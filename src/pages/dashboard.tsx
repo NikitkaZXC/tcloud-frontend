@@ -163,7 +163,7 @@ function StoragesSection() {
       {storages.isPending && <StatusChip status="wait" label="загрузка" />}
       {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
       {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">Хранилищ пока нет</p>}
-      <ul className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
         {storages.data?.map((storage) => (
           <li key={storage.id}>
             <StorageCard storage={storage} activity={activity[storage.id]} io={io[storage.id]} />
@@ -252,7 +252,7 @@ export function DashboardPage() {
     <div className="grid">
       <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
         <div className="grid gap-4">
-          <PageTitle text="Дашборд" eyebrow="Хранилища, задачи и состояние системы — то, что уже знает API." className="text-[50px] md:text-[80px]" />
+          <PageTitle text="Дашборд" eyebrow="Хранилища, задачи и состояние системы — то, что уже знает API." className="text-[40px] sm:text-[50px] md:text-[80px]" />
         </div>
         <WireCubes className="hidden w-64 md:block" />
       </header>
