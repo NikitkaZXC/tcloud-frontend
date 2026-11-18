@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SORT, nextSort, parseSort, selectRange, type Sort, viewEntries } from './files'
+import { setLang } from './i18n'
+import { compareNames, DEFAULT_SORT, nextSort, parseSort, selectRange, type Sort, viewEntries } from './files'
 import type { Folder, TFile } from './types'
 
 const file = (name: string, size: number, updated_at: string, kind: TFile['kind'] = 'document', created_at = '2026-01-01T00:00:00Z') =>
@@ -48,6 +49,17 @@ describe('folder listing order', () => {
     expect(parseSort('{"key":"created","desc":true,"foldersFirst":false}')).toEqual({ key: 'uploaded', desc: true, foldersFirst: false })
     expect(parseSort('garbage')).toEqual(DEFAULT_SORT)
     expect(parseSort(null)).toEqual(DEFAULT_SORT)
+  })
+})
+
+describe('name collation', () => {
+  it('puts the interface language script first', () => {
+    const names = ['zebra', 'Яблоко', 'apple', 'банан']
+    setLang('ru')
+    expect([...names].sort(compareNames)).toEqual(['банан', 'Яблоко', 'apple', 'zebra'])
+    setLang('en')
+    expect([...names].sort(compareNames)).toEqual(['apple', 'zebra', 'банан', 'Яблоко'])
+    setLang('ru')
   })
 })
 

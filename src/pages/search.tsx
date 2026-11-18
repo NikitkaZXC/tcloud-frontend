@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useMimes, useSearch } from '@/hooks/use-search'
 import { useStorages } from '@/hooks/use-storages'
 import { ApiError } from '@/lib/api'
+import { compareNames } from '@/lib/files'
 import { filesCount, formatBytes, formatDate, parentPath } from '@/lib/format'
 import { foundLocation } from '@/lib/names'
 import { hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
@@ -179,8 +180,10 @@ export function SearchPage() {
 
   const update = (patch: Partial<SearchState>, replace = false) => navigate(searchUrl({ ...state, ...patch }), { replace })
   const pages = search.data?.pages ?? []
-  const files = pages.flatMap((page) => page.items)
-  const folders = pages[0]?.folders ?? []
+  const sign = isDesc(state) ? -1 : 1
+  const byName = <T extends { name: string }>(items: T[]) => (state.sort === 'name' && !search.hasNextPage ? [...items].sort((a, b) => sign * compareNames(a.name, b.name)) : items)
+  const files = byName(pages.flatMap((page) => page.items))
+  const folders = byName(pages[0]?.folders ?? [])
   const total = pages[0]?.total ?? 0
 
   return (

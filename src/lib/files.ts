@@ -23,6 +23,8 @@ function collator(): Intl.Collator {
   return found
 }
 
+export const compareNames = (a: string, b: string) => collator().compare(a, b)
+
 const extension = (name: string) => (name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '')
 
 export function typeLabel(entry: Entry): string {
@@ -56,7 +58,7 @@ export function viewEntries(folders: Folder[], files: TFile[], query: string, so
     .map((entry, index) => ({ entry, index }))
     .sort((a, b) => {
       if (sort.foldersFirst && a.entry.type !== b.entry.type) return a.entry.type === 'folder' ? -1 : 1
-      return sign * (COMPARE[sort.key](a.entry, b.entry) || collator().compare(a.entry.item.name, b.entry.item.name)) || a.index - b.index
+      return sign * (COMPARE[sort.key](a.entry, b.entry) || compareNames(a.entry.item.name, b.entry.item.name)) || a.index - b.index
     })
     .map(({ entry }) => entry)
 }
