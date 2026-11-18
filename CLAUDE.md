@@ -40,7 +40,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins; the first-run checklist (`telegram` query) only for root.
 - Thumbnails: only via `Thumb` / `thumbUrl` (`lib/thumbs.ts`): `/api/files/{id}/thumb?v=<updated_at>`, only for non-encrypted photo/video/animation, lazy, a failed URL falls back to the kind icon and is not retried. Never load full images from `/download` in listings.
 - Uploads are encrypted by default: send `encrypt: true` explicitly; `withSendAs` turns it off for `media` and back on for `file`.
-- Uploads keep relative paths (folder upload); the backend creates parent folders. Bulk download = sequential links + zip per folder (no archive of an arbitrary file set in the API).
+- Uploads keep relative paths (folder upload); the backend creates parent folders. Bulk download = one archive of the selection (`POST /api/folders/archive/selection`, `selectionPayload`/`archiveError` in `lib/archive.ts`), tracked like any archive task.
 
 ## Rules
 

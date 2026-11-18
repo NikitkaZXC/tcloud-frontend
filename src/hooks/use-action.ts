@@ -4,7 +4,7 @@ import { errorMessage } from '@/lib/api'
 
 export function useAction<TArgs = void, TResult = unknown>(
   fn: (args: TArgs) => Promise<TResult>,
-  options: { invalidate?: QueryKey[]; success?: string; onSuccess?: (result: TResult) => void } = {},
+  options: { invalidate?: QueryKey[]; success?: string; onSuccess?: (result: TResult) => void; describe?: (error: unknown) => string } = {},
 ) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -14,6 +14,6 @@ export function useAction<TArgs = void, TResult = unknown>(
       if (options.success) toast.success(options.success)
       options.onSuccess?.(result)
     },
-    onError: (error) => toast.error(errorMessage(error)),
+    onError: (error) => toast.error((options.describe ?? errorMessage)(error)),
   })
 }

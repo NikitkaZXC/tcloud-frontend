@@ -67,22 +67,24 @@ import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
+import { archiveError, selectionPayload } from '@/lib/archive'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
+const ARCHIVE_STARTED = 'Архив собирается — когда будет готов, появится кнопка «Скачать»'
 
 const link = (path: string) => `/files?path=${encodeURIComponent(path)}`
 const folderKey = (path: string) => `d:${path}`
 const fileKey = (uuid: string) => `f:${uuid}`
 const directory = { webkitdirectory: '' } as Record<string, string>
 
-function ArchiveMenu({ onArchive, children }: { onArchive: (format: ArchiveFormat) => void; children: ReactNode }) {
+function ArchiveMenu({ onArchive, label = 'Скачать папку архивом', children }: { onArchive: (format: ArchiveFormat) => void; label?: string; children: ReactNode }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Скачать папку архивом</DropdownMenuLabel>
+        <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => onArchive('zip')}>
           <ArchiveIcon /> zip
         </DropdownMenuItem>
@@ -201,16 +203,22 @@ export function FolderView({ path }: { path: string }) {
   const storage = storages.data?.find((s) => s.id === storageId)
   const isRoot = path.split('/').length <= 2
   const entries = viewEntries(listing.data?.folders ?? [], listing.data?.files ?? [], query, sort)
-  const folders = entries.flatMap((e) => (e.type === 'folder' ? [e.item] : []))
-  const shownFiles = entries.flatMap((e) => (e.type === 'file' ? [e.item] : []))
   const order = entries.map((e) => (e.type === 'folder' ? folderKey(e.item.path) : fileKey(e.item.uuid)))
   const picked = order.filter((key) => selected.has(key))
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
 
   const archive = useAction(
     ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format }),
-    { success: 'Архив собирается — когда будет готов, появится кнопка «Скачать»', onSuccess: (task) => trackTask(task.id) },
+    { success: ARCHIVE_STARTED, onSuccess: (task) => trackTask(task.id), describe: archiveError },
   )
+  const archiveSelection = useAction((format: ArchiveFormat) => api.post<Task>('/folders/archive/selection', selectionPayload(picked, format)), {
+    success: ARCHIVE_STARTED,
+    onSuccess: (task) => {
+      trackTask(task.id)
+      setSelected(new Set())
+    },
+    describe: archiveError,
+  })
   const removeFolder = useAction((target: string) => api.del<FolderDeleteResponse>('/folders', { path: target }), {
     invalidate: [['folder']],
     onSuccess: (result) => {
@@ -249,21 +257,6 @@ export function FolderView({ path }: { path: string }) {
     queryClient.invalidateQueries({ queryKey: ['folder'] })
     queryClient.invalidateQueries({ queryKey: ['storages'] })
     toast.success(`Удалено: ${picked.length - failed}`)
-  }
-
-  async function bulkDownload() {
-    const chosen = shownFiles.filter((f) => selected.has(fileKey(f.uuid)))
-    const dirs = folders.filter((f) => selected.has(folderKey(f.path)))
-    dirs.forEach((folder) => archive.mutate({ target: folder.path, format: 'zip' }))
-    if (chosen.length > 1) toast.info(`Скачивание файлов: ${chosen.length}. Браузер может спросить разрешение на несколько загрузок`)
-    for (const file of chosen) {
-      markRead(file.path)
-      const a = document.createElement('a')
-      a.href = downloadUrl(file)
-      a.download = file.name
-      a.click()
-      await new Promise((resolve) => setTimeout(resolve, 400))
-    }
   }
 
   const handler = useRef<(action: FolderAction) => void>(() => undefined)
@@ -637,9 +630,11 @@ export function FolderView({ path }: { path: string }) {
       {picked.length > 0 && (
         <div role="toolbar" aria-label="Выбранные" className="fx-glass sticky top-20 z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
           <span className="px-1 font-semibold text-primary tabular-nums">Выбрано: {picked.length}</span>
-          <Button size="sm" variant="outline" onClick={bulkDownload}>
-            <DownloadIcon /> Скачать
-          </Button>
+          <ArchiveMenu label="Скачать выбранное одним архивом" onArchive={(format) => archiveSelection.mutate(format)}>
+            <Button size="sm" variant="outline" disabled={archiveSelection.isPending}>
+              <ArchiveIcon /> Скачать архивом
+            </Button>
+          </ArchiveMenu>
           <Confirm
             title={`Удалить выбранное (${picked.length})?`}
             description="Файлы и папки со всем содержимым будут удалены из Telegram и базы."
