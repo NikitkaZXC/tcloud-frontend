@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError, errorText } from '@/lib/api'
@@ -7,7 +7,7 @@ import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { TASK_EVENT } from '@/lib/features'
 import { taskTitle } from '@/lib/names'
-import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
+import { forgetTasks, isPending, reportTask, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
 import { t } from '@/lib/i18n'
 
@@ -15,7 +15,6 @@ export function TaskWatcher() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
   const queryClient = useQueryClient()
-  const seen = useRef(new Map<string, string>())
   const uploading = useSending().length > 0
   const storages = useStorages()
 
@@ -30,10 +29,8 @@ export function TaskWatcher() {
     const gone = ids.filter((_, i) => results[i].error instanceof ApiError && results[i].error.status === 404)
     if (gone.length) forgetTasks(gone)
     for (const { data: task } of results) {
-      if (!task) continue
-      const before = seen.current.get(task.id)
-      seen.current.set(task.id, task.status)
-      if (before === undefined || before === task.status || !isFinished(task)) continue
+      if (!task || !isFinished(task) || !isPending(task.id)) continue
+      reportTask(task.id)
       queryClient.invalidateQueries({ queryKey: ['folder'] })
       queryClient.invalidateQueries({ queryKey: ['storages'] })
       queryClient.invalidateQueries({ queryKey: ['account'] })

@@ -98,7 +98,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph ls["localStorage"]
-        tasksLs["tcloud.tasks"]
+        tasksLs["tcloud.tasks<br/>tcloud.tasks.pending"]
         mirror["tcloud.mirror"]
     end
     settings["lib/settings.ts<br/>useSettings"] -- "theme, language" --> mirror

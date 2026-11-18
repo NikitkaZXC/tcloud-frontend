@@ -77,7 +77,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant T as lib/tasks.ts (tcloud.tasks)
+    participant T as lib/tasks.ts (tcloud.tasks, tcloud.tasks.pending)
     participant Q as useTasks (hooks/use-tasks.ts)
     participant B as Backend
     participant W as TaskWatcher
@@ -90,7 +90,8 @@ sequenceDiagram
     Q-->>W: results
     alt 404 (задачи больше нет)
         W->>T: forgetTasks(gone)
-    else статус сменился на завершённый (прошлый статус известен)
+    else статус завершённый и id в pending (isPending)
+        W->>T: reportTask(id) — убрать из pending
         W->>C: invalidate folder, storages, account, activity
         W->>W: dispatch tcloud:task-finished (detail = status)
         alt done + archive
@@ -103,9 +104,10 @@ sequenceDiagram
     end
 ```
 
-`TaskWatcher` смонтирован в `Layout` один раз на всё приложение. Он запоминает последний статус каждой задачи
-(`seen`); первый увиденный статус не вызывает уведомлений, поэтому после перезагрузки страницы старые завершённые
-задачи молчат.
+`TaskWatcher` смонтирован в `Layout` один раз на всё приложение. `trackTask` кладёт id и в `tcloud.tasks`, и в
+`tcloud.tasks.pending` (задачи, о завершении которых ещё не сообщили); повтор задачи кладёт её в pending снова.
+Завершённая задача из pending вызывает уведомление ровно один раз, даже если уже завершена при первом опросе или
+завершилась, пока вкладка была закрыта; после `reportTask` перезагрузка страницы её не повторяет. Другие вкладки подхватывают оба ключа по событию `storage`.
 
 ### Жизнь элемента в браузере
 

@@ -23,22 +23,33 @@ export const statusLabel = (status: string) => (TASK_STATUS[status] ? t(TASK_STA
 export const stageLabel = (stage: string) => (TASK_STAGE[stage] ? t(TASK_STAGE[stage]) : stage)
 
 const KEY = 'tcloud.tasks'
+const PENDING_KEY = 'tcloud.tasks.pending'
 const listeners = new Set<() => void>()
 
-function read(): string[] {
+function read(key: string): string[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]')
+    return JSON.parse(localStorage.getItem(key) ?? '[]')
   } catch {
     return []
   }
 }
 
-let ids = read()
+let ids = read(KEY)
+let pending = read(PENDING_KEY)
 
-function write(next: string[]) {
+globalThis.addEventListener?.('storage', (event) => {
+  if (event.key !== KEY && event.key !== PENDING_KEY) return
+  ids = read(KEY)
+  pending = read(PENDING_KEY)
+  listeners.forEach((listener) => listener())
+})
+
+function write(next: string[], nextPending = pending) {
   ids = next
+  pending = nextPending.filter((id) => next.includes(id))
   try {
-    localStorage.setItem(KEY, JSON.stringify(next))
+    localStorage.setItem(KEY, JSON.stringify(ids))
+    localStorage.setItem(PENDING_KEY, JSON.stringify(pending))
   } catch {
     return
   } finally {
@@ -47,7 +58,15 @@ function write(next: string[]) {
 }
 
 export function trackTask(id: string) {
-  if (!ids.includes(id)) write([id, ...ids])
+  write(ids.includes(id) ? ids : [id, ...ids], pending.includes(id) ? pending : [...pending, id])
+}
+
+export function isPending(id: string): boolean {
+  return pending.includes(id)
+}
+
+export function reportTask(id: string) {
+  write(ids, pending.filter((x) => x !== id))
 }
 
 export function forgetTask(id: string) {

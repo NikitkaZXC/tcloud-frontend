@@ -73,8 +73,8 @@ function TaskCard({ task }: { task: Task }) {
   })
   const retry = useAction(() => api.post<Task>(`/tasks/${task.id}/retry`), {
     onSuccess: (next) => {
-      trackTask(next.id)
       update(next)
+      trackTask(next.id)
     },
   })
 
