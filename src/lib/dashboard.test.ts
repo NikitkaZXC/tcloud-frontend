@@ -42,7 +42,7 @@ describe('dashboard', () => {
   it('keeps activity visible for a minimum time after it ends', () => {
     let state = lingerIo({ a: 'write' }, {}, 1000)
     expect(state.io).toEqual({ a: 'write' })
-    expect(state.wake).toBeNull()
+    expect(state.wake).toBe(1000 + IO_HOLD_MS)
     state = lingerIo({ b: 'read' }, state.seen, 1500)
     expect(state.io).toEqual({ a: 'write', b: 'read' })
     expect(state.wake).toBe(1000 + IO_HOLD_MS)
@@ -51,6 +51,14 @@ describe('dashboard', () => {
     state = lingerIo({}, state.seen, 1000 + IO_HOLD_MS)
     expect(state.io).toEqual({ a: 'read', b: 'read' })
     expect(lingerIo({}, state.seen, 2000 + IO_HOLD_MS).io).toEqual({})
+  })
+
+  it('wakes to clear an io that ended right after the previous one was stamped', () => {
+    const active = lingerIo({ s: 'read' }, {}, 1000)
+    const state = lingerIo({}, lingerIo({ s: 'read' }, active.seen, 3000).seen, 3000)
+    expect(state.io).toEqual({ s: 'read' })
+    expect(state.wake).toBe(3000 + IO_HOLD_MS)
+    expect(lingerIo({}, state.seen, state.wake!).io).toEqual({})
   })
 
   it('matches storage paths at the root, nested and by id', () => {

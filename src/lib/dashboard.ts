@@ -112,7 +112,7 @@ export function lingerIo(current: Record<string, Io>, seen: IoSeen, now: number,
   let wake: number | null = null
   for (const [id, { write, read }] of Object.entries(next)) {
     io[id] = write != null && read != null ? 'both' : write != null ? 'write' : 'read'
-    for (const at of [write, read]) if (at != null && at < now) wake = Math.min(wake ?? Infinity, at + hold)
+    for (const at of [write, read]) if (at != null && at <= now) wake = Math.min(wake ?? Infinity, at + hold)
   }
   return { io, seen: next, wake }
 }
