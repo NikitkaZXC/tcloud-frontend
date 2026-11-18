@@ -28,3 +28,8 @@ export function taskTitle(task: Pick<Task, 'path' | 'archive'>, storages: Pick<S
   if (task.archive) return { name: task.archive.name, where: humanPath(task.path, storages) }
   return { name: fileName(task.path), where: humanPath(parts(task.path).slice(0, -1).join('/'), storages) }
 }
+
+export function foundLocation(dir: string, item: { storage_id: string; storage_name: string | null }, storages: Pick<Storage, 'id' | 'name'>[] = []): string {
+  const name = item.storage_name ?? storages.find((s) => s.id === item.storage_id)?.name ?? null
+  return humanPath(dir, [{ id: item.storage_id, name }])
+}

@@ -190,3 +190,32 @@ export interface FolderDeleteResponse {
   path: string
   deleted_files: number
 }
+
+export interface FoundFile extends TFile {
+  folder: string
+  storage_name: string | null
+}
+
+export interface FoundFolder {
+  id: string
+  path: string
+  name: string
+  storage_id: string
+  storage_name: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SearchResult {
+  items: FoundFile[]
+  total: number
+  limit: number
+  offset: number
+  has_more: boolean
+  folders: FoundFolder[]
+}
+
+export interface MimeCount {
+  mime: string
+  files: number
+}

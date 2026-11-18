@@ -19,6 +19,7 @@ import {
 import { type ComponentType, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Extras, Pet, Tip } from '@/components/extras'
@@ -333,7 +334,10 @@ export function Layout() {
         <Extras />
         <CommandPalette />
         <CornerHint />
-        <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-12 md:py-10">
+        <div className="mx-auto max-w-6xl px-4 pt-4 md:px-12 md:pt-8">
+          <SearchBar />
+        </div>
+        <main key={location.pathname} className="fx-page mx-auto max-w-6xl px-4 pt-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-12">
           <Outlet />
           <Tip />
         </main>

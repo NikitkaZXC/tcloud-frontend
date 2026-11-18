@@ -6,6 +6,7 @@ import { AccountPage } from '@/pages/account'
 import { DashboardPage } from '@/pages/dashboard'
 import { FilesPage } from '@/pages/files'
 import { LoginPage } from '@/pages/login'
+import { SearchPage } from '@/pages/search'
 import { TasksPage } from '@/pages/tasks'
 import { TelegramPage } from '@/pages/telegram'
 import { UserPage } from '@/pages/user'
@@ -20,6 +21,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/files" element={<FilesPage />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/users" element={<UsersPage />} />

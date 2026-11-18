@@ -19,7 +19,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ## Architecture
 
 - `src/lib/api.ts`: every call goes through `request`/`api.*` (prefix `/api`, `credentials: same-origin`, one refresh on 401, errors as `ApiError` with backend `code`). `src/lib/types.ts` mirrors backend response schemas (`src/application/schemas` there) — update it when the API changes.
-- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`, `account`, `activity/<path>`.
+- Mutations use `hooks/use-action.ts` (toast on error, invalidate query keys). Query keys: `me`, `storages`, `folder/<path>`, `task/<id>`, `users`, `user/<id>`, `grants/<id>`, `api-keys/<id>`, `sessions`, `telegram`, `health`, `account`, `activity/<path>`, `search/<api query>`, `mimes/<path>`.
 - Tasks are tracked by id in localStorage (`lib/tasks.ts`); the backend has no "my tasks" list on purpose.
 - Other localStorage keys (`tcloud.view`, `tcloud.sort`, `tcloud.onboarding.dismissed`, `tcloud.theme`, `tcloud.sidebar`, `tcloud.achievements`, `tcloud.feature.*`) go through `lib/prefs.ts` or try/catch; they are conveniences only.
 - Layout is a left sidebar (`components/layout.tsx`, drawer on mobile). The command palette (`components/command-palette.tsx`) drives `FolderView` through the `tcloud:folder-action` window event (`lib/commands.ts`).
@@ -35,6 +35,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Storage read/write lamps: `useStorageIo` (sending + tracked upload tasks = write; archive tasks `archiving` + `markRead` from `lib/reads.ts` on downloads/previews = read), held ≥ `IO_HOLD_MS` by `lingerIo`. Only this browser's activity is known.
 - `task.progress` from the API is a percent (0–100): always go through `taskFraction`.
 - Never show storage/file uuids: use `lib/names.ts` (`humanPath`, `taskTitle`, `storageName`); "unavailable" only for `available === false` (`isUnavailable`).
+- Search state lives in the URL of `/search` (`lib/search.ts`: `parseSearch`/`searchUrl` for the page, `searchQuery` for the API); the global bar is `components/search-bar.tsx` (outside the keyed `<main>` so it keeps focus across navigation). Never send an empty search (`hasCriteria`).
 - Folder listing order lives in `lib/files.ts` (`viewEntries`: natural `Intl.Collator`, folders-first toggle, header sort with `aria-sort`).
 - Optional extras (pet, sounds, confetti, cursor, eggs) are behind `lib/features.ts` flags, default off; must-have effects (pixel bursts, speedometer, activity map) are always on but skip animation under reduced motion. No new dependencies for effects.
 - Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins; the first-run checklist (`telegram` query) only for root.

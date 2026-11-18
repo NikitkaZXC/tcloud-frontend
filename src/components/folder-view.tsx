@@ -13,7 +13,6 @@ import {
   ListIcon,
   LockIcon,
   MoreHorizontalIcon,
-  SearchIcon,
   Trash2Icon,
   UploadIcon,
   XIcon,
@@ -188,7 +187,6 @@ export function FolderView({ path }: { path: string }) {
   const [urlOpen, setUrlOpen] = useState(false)
   const [folderOpen, setFolderOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>(() => parseSort(load('sort')))
   const [view, setView] = useState<'list' | 'grid'>(() => (load('view') === 'grid' ? 'grid' : 'list'))
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -196,13 +194,12 @@ export function FolderView({ path }: { path: string }) {
   const anchor = useRef<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const dirInput = useRef<HTMLInputElement>(null)
-  const search = useRef<HTMLInputElement>(null)
 
   const eggs = useFeature('eggs')
   const storageId = storageIdOf(path)
   const storage = storages.data?.find((s) => s.id === storageId)
   const isRoot = path.split('/').length <= 2
-  const entries = viewEntries(listing.data?.folders ?? [], listing.data?.files ?? [], query, sort)
+  const entries = viewEntries(listing.data?.folders ?? [], listing.data?.files ?? [], '', sort)
   const order = entries.map((e) => (e.type === 'folder' ? folderKey(e.item.path) : fileKey(e.item.uuid)))
   const picked = order.filter((key) => selected.has(key))
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
@@ -268,20 +265,11 @@ export function FolderView({ path }: { path: string }) {
       if (action === 'url') setUrlOpen(true)
       if (action === 'new-folder') setFolderOpen(true)
       if (action === 'archive') archive.mutate({ target: path, format: 'zip' })
-      if (action === 'search') search.current?.focus()
     }
     keys.current = (event) => {
       if (document.querySelector('[role=dialog],[role=alertdialog],[role=menu]')) return
-      if (event.key === 'Escape' && document.activeElement === search.current) {
-        setQuery('')
-        search.current?.blur()
-        return
-      }
       if (isTyping(event.target)) return
-      if (event.key === '/') {
-        event.preventDefault()
-        search.current?.focus()
-      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
         event.preventDefault()
         setSelected(new Set(order))
       } else if (event.key === 'Escape' && selected.size) {
@@ -394,7 +382,9 @@ export function FolderView({ path }: { path: string }) {
                   <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
                   <TableCell className="max-w-0">
                     <Link to={link(folder.path)} className="flex items-center gap-2 text-base font-medium hover:underline" title={folder.name}>
-                      <FolderIcon className="size-4 shrink-0 text-primary" />
+                      <span className="fx-mini">
+                        <FolderIcon className="size-4 text-primary" />
+                      </span>
                       <span className="truncate">{folder.name}</span>
                     </Link>
                   </TableCell>
@@ -575,18 +565,7 @@ export function FolderView({ path }: { path: string }) {
       <FolderUploads path={path} />
 
       {!empty && listing.data && (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-48 flex-1">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Фильтр по имени — нажмите /"
-              aria-label="Фильтр по имени"
-              className="pl-8"
-            />
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" aria-label={`Сортировка: ${SORT_LABELS[sort.key]}, ${sort.desc ? 'по убыванию' : 'по возрастанию'}`}>
@@ -670,9 +649,6 @@ export function FolderView({ path }: { path: string }) {
             </Button>
           </div>
         </div>
-      )}
-      {!empty && listing.data && order.length === 0 && (
-        <p className="py-6 text-center text-sm text-muted-foreground">Ничего не найдено по «{query}»</p>
       )}
       {!empty && order.length > 0 && view === 'list' && (
         <div className="fx-panel overflow-hidden">

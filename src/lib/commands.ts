@@ -1,7 +1,12 @@
-export type FolderAction = 'upload' | 'upload-folder' | 'url' | 'new-folder' | 'archive' | 'search'
+export type FolderAction = 'upload' | 'upload-folder' | 'url' | 'new-folder' | 'archive'
 
 export const FOLDER_ACTION = 'tcloud:folder-action'
 export const OPEN_PALETTE = 'tcloud:palette'
+export const SEARCH_INPUT = 'tcloud-search'
+
+export function focusSearch() {
+  setTimeout(() => document.getElementById(SEARCH_INPUT)?.focus(), 0)
+}
 
 export function runFolderAction(action: FolderAction) {
   window.dispatchEvent(new CustomEvent(FOLDER_ACTION, { detail: action }))
