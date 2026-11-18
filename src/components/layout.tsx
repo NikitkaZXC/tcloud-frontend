@@ -25,7 +25,6 @@ import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Extras, Pet, Tip } from '@/components/extras'
-import { PixelBursts } from '@/components/pixel-fx'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
@@ -359,7 +358,6 @@ export function Layout() {
       </DialogPrimitive.Root>
       <div className="min-w-0 flex-1">
         <TaskWatcher />
-        <PixelBursts />
         <Extras />
         <CommandPalette />
         <CornerHint />

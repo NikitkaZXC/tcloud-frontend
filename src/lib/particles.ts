@@ -17,15 +17,6 @@ function random(seed: number): () => number {
   }
 }
 
-export function pour(from: Point, to: Point, count: number, seed = 7): Particle[] {
-  const next = random(seed)
-  return Array.from({ length: count }, () => ({
-    from: { x: Math.round(from.x + (next() - 0.5) * 48), y: Math.round(from.y + (next() - 0.5) * 48) },
-    to: { x: Math.round(to.x + (next() - 0.5) * 10), y: Math.round(to.y + (next() - 0.5) * 6) },
-    delay: Math.round(next() * 300),
-  }))
-}
-
 export function scatter(from: Point, count: number, spread = 80, seed = 11): Particle[] {
   const next = random(seed)
   return Array.from({ length: count }, () => ({
