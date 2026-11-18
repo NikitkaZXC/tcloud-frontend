@@ -2,13 +2,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
-import { ApiError } from '@/lib/api'
+import { ApiError, errorText } from '@/lib/api'
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { TASK_EVENT } from '@/lib/features'
 import { taskTitle } from '@/lib/names'
 import { forgetTasks, useTrackedTasks } from '@/lib/tasks'
 import { useSending } from '@/lib/upload'
+import { t } from '@/lib/i18n'
 
 export function TaskWatcher() {
   const ids = useTrackedTasks()
@@ -41,18 +42,18 @@ export function TaskWatcher() {
       const name = taskTitle(task, storages.data ?? []).name
       if (task.status === 'done' && task.archive) {
         const { id, path } = task
-        toast.success(`Архив готов: ${name}`, {
+        toast.success(t('watcher.archiveReady', { name }), {
           duration: 30000,
           action: {
-            label: 'Скачать',
+            label: t('common.download'),
             onClick: () => {
               markRead(path)
               location.assign(`/api/tasks/${id}/archive`)
             },
           },
         })
-      } else if (task.status === 'done') toast.success(`Готово: ${name}`)
-      if (task.status === 'failed') toast.error(`Ошибка: ${name} — ${task.error?.message ?? ''}`)
+      } else if (task.status === 'done') toast.success(t('watcher.done', { name }))
+      if (task.status === 'failed') toast.error(t('watcher.failed', { name, error: errorText(task.error) }))
     }
   }, [ids, results, queryClient, storages.data])
 

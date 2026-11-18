@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button'
 import { useStorages } from '@/hooks/use-storages'
 import { storageName } from '@/lib/names'
 import type { Grant } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function GrantList({ grants, onRevoke }: { grants: Grant[]; onRevoke?: (grant: Grant) => void }) {
   const storages = useStorages()
   const nameOf = (id: string) => storageName(storages.data?.find((s) => s.id === id))
 
-  if (grants.length === 0) return <p className="text-sm text-muted-foreground">Доступов нет.</p>
+  if (grants.length === 0) return <p className="text-sm text-muted-foreground">{t('grants.none')}</p>
   return (
     <ul className="grid divide-y">
       {grants.map((grant) => (
@@ -19,13 +20,13 @@ export function GrantList({ grants, onRevoke }: { grants: Grant[]; onRevoke?: (g
             {[nameOf(grant.storage_id), ...grant.folder.split('/').filter(Boolean)].join(' › ')}
           </Link>
           <div className="flex gap-1">
-            {grant.recursive && <Badge variant="outline">с подпапками</Badge>}
-            {grant.can_read && <Badge variant="secondary">чтение</Badge>}
-            {grant.can_upload && <Badge variant="secondary">загрузка</Badge>}
-            {grant.can_delete && <Badge variant="secondary">удаление</Badge>}
+            {grant.recursive && <Badge variant="outline">{t('grants.recursive')}</Badge>}
+            {grant.can_read && <Badge variant="secondary">{t('grants.read')}</Badge>}
+            {grant.can_upload && <Badge variant="secondary">{t('grants.upload')}</Badge>}
+            {grant.can_delete && <Badge variant="secondary">{t('grants.delete')}</Badge>}
           </div>
           {onRevoke && (
-            <Button variant="ghost" size="icon-sm" aria-label="Забрать доступ" onClick={() => onRevoke(grant)}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('grants.revoke')} onClick={() => onRevoke(grant)}>
               <Trash2Icon />
             </Button>
           )}

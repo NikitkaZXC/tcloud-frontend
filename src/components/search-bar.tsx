@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { isTyping, SEARCH_INPUT } from '@/lib/commands'
 import { defaultScope, EMPTY_SEARCH, parseSearch, type Scope, SCOPES, scopesFor, searchUrl, type SearchState } from '@/lib/search'
+import { t } from '@/lib/i18n'
 
 export function SearchBar() {
   const { pathname } = useLocation()
@@ -80,21 +81,21 @@ export function SearchBar() {
             type('')
             input.current?.blur()
           }}
-          placeholder="Поиск файлов и папок — нажмите /"
-          aria-label="Поиск файлов и папок"
+          placeholder={t('search.placeholder')}
+          aria-label={t('search.label')}
           className="pr-8 pl-8"
         />
         {text && (
-          <button type="button" onClick={() => type('')} aria-label="Очистить" className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground pointer-coarse:size-11">
+          <button type="button" onClick={() => type('')} aria-label={t('common.clear')} className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground pointer-coarse:size-11">
             <XIcon className="size-4" />
           </button>
         )}
       </div>
       {scopes.length > 1 && (
-        <div role="group" aria-label="Где искать" className="flex">
+        <div role="group" aria-label={t('search.where')} className="flex">
           {SCOPES.filter(([value]) => scopes.includes(value)).map(([value, label]) => (
             <Button key={value} type="button" size="sm" variant={current.scope === value ? 'default' : 'outline'} aria-pressed={current.scope === value} onClick={() => changeScope(value)}>
-              {label}
+              {t(label)}
             </Button>
           ))}
         </div>

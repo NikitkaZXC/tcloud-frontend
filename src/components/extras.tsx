@@ -10,16 +10,10 @@ import { prefersReducedMotion } from '@/lib/fx'
 import { scatter } from '@/lib/particles'
 import { load, save } from '@/lib/prefs'
 import { beep } from '@/lib/sounds'
+import { t, type Key } from '@/lib/i18n'
 import { useSending } from '@/lib/upload'
 
-const TIPS = [
-  'Ctrl+K — переход к любой странице и хранилищу.',
-  '/ в папке — фильтр по имени.',
-  'Ctrl+V в папке загружает файлы из буфера обмена.',
-  'Shift+клик по флажку выделяет диапазон.',
-  'Папку можно скачать архивом: zip, 7z или tar.',
-  'Перетащите целую папку — структура сохранится.',
-]
+const TIPS: Key[] = ['tip.palette', 'tip.search', 'tip.paste', 'tip.shift', 'tip.archive', 'tip.dropFolder']
 
 export function Extras() {
   const sounds = useFeature('sounds')
@@ -56,7 +50,7 @@ export function Extras() {
       keys.current = [...keys.current.slice(-12), event.key]
       if (!konami(keys.current)) return
       const on = document.documentElement.classList.toggle('fx-secret')
-      toast(on ? 'Секретная тема включена' : 'Секретная тема выключена')
+      toast(t(on ? 'eggs.secretOn' : 'eggs.secretOff'))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -69,7 +63,7 @@ export function Tip() {
   const eggs = useFeature('eggs')
   const [tip] = useState(() => TIPS[Math.floor(Math.random() * TIPS.length)])
   if (!eggs) return null
-  return <p className="fx-dotted mt-10 border-t pt-4 text-xs text-muted-foreground">Совет: {tip}</p>
+  return <p className="fx-dotted mt-10 border-t pt-4 text-xs text-muted-foreground">{t('tip.prefix', { tip: t(tip) })}</p>
 }
 
 type Mood = 'sleep' | 'eat' | 'happy' | 'scared'
@@ -96,7 +90,7 @@ export function Pet() {
 
   if (!on) return null
   const current: Mood = mood ?? (eating ? 'eat' : 'sleep')
-  const label = { sleep: 'питомец спит', eat: 'питомец ест файлы', happy: 'питомец доволен', scared: 'питомец испугался' }[current]
+  const label = t(`pet.${current}`)
   return (
     <div className="fx-pet" data-mood={current} role="img" aria-label={label} title={label}>
       <svg viewBox="0 0 16 14" width="48" height="42" aria-hidden>
@@ -135,7 +129,7 @@ export function Achievements({ files, size, checklist }: { files: number; size: 
     if (!fresh.length) return
     save('achievements', JSON.stringify([...fired, ...fresh]))
     if (!on) return
-    for (const key of fresh) toast.success(`Достижение: ${ACHIEVEMENTS[key]}`)
+    for (const key of fresh) toast.success(t('achievement.toast', { name: t(ACHIEVEMENTS[key]) }))
     if (prefersReducedMotion()) return
     const colors = ['var(--warning)', 'var(--read)', 'var(--success)', 'var(--foreground)']
     colors.forEach((color, i) => burst(scatter({ x: innerWidth / 2, y: innerHeight / 3 }, 16, 220, i + 3), color, 6))
@@ -148,9 +142,9 @@ export function NotFound() {
     <div className="fx-page grid justify-items-start gap-5 py-10">
       <p className="fx-pixel text-[80px]">404</p>
       <StorageIcon scale={3} off />
-      <p className="text-sm text-muted-foreground">Здесь ничего нет — даже пиксели разбежались.</p>
+      <p className="text-sm text-muted-foreground">{t('notFound.text')}</p>
       <Button asChild variant="outline">
-        <Link to="/dashboard">На дашборд</Link>
+        <Link to="/dashboard">{t('notFound.back')}</Link>
       </Button>
     </div>
   )

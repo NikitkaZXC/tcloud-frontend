@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project
 
-Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian. Details in `README.md`.
+Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian and English (`lib/i18n.ts`). Details in `README.md`.
 
 ## Commands
 
@@ -24,6 +24,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - User preferences live on the server (`GET/PATCH/DELETE /api/account/settings`, also `settings` in `/users/me`): `lib/settings.ts` store (`useSettings`, `updateSettings` optimistic + revert, `hydrateSettings` from `useMe`), page `/settings`. Never add new localStorage prefs; `tcloud.mirror` (theme/language before `/users/me`) is a mirror only. Old `tcloud.view`/`sort`/`theme`/`feature.*` are migrated once (`migrateLegacy`) and removed.
 - Other localStorage keys (`tcloud.onboarding.dismissed`, `tcloud.sidebar`, `tcloud.achievements`) go through `lib/prefs.ts` or try/catch; they are conveniences only.
 - Layout is a left sidebar (`components/layout.tsx`, drawer on mobile). The command palette (`components/command-palette.tsx`) drives `FolderView` through the `tcloud:folder-action` window event (`lib/commands.ts`).
+- i18n (own, no deps): every user-visible string goes through `t(key, params)` from `lib/i18n.ts`; keys live in `lib/locales/ru.ts` (source of the `Key` type) and `en.ts` (`Record<Key, Entry>`, same keys enforced by tsc and `i18n.test.ts`). Plurals are `{one, few, many, other}` objects picked by `Intl.PluralRules` with `{n}`. Language = `interface.language` or the browser (`resolveLang`); `App` remounts on change (`key={useLang()}`), so module-level constants must hold keys, not text. Dates/sizes/collation use `getLang()`. Ctrl+K commands carry `keywords` in both languages (`tAll`). Backend codes map to `error.<code>` keys in `errorMessage`/`errorText`.
 - Sign-in and Telegram errors are mapped from backend `code` in `lib/auth.ts` (`describeError`, `retryAfterOf`); the Telegram wizard step logic is there too.
 
 ## Gotchas

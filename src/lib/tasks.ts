@@ -1,21 +1,26 @@
 import { useSyncExternalStore } from 'react'
+import { type Key, t } from './i18n'
 import type { Task } from './types'
 
-export const TASK_STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  queued: { label: 'в очереди', variant: 'outline' },
-  running: { label: 'выполняется', variant: 'secondary' },
-  done: { label: 'готово', variant: 'default' },
-  failed: { label: 'ошибка', variant: 'destructive' },
-  cancelled: { label: 'отменено', variant: 'outline' },
+export const TASK_STATUS: Record<string, { label: Key; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  queued: { label: 'status.queued', variant: 'outline' },
+  running: { label: 'status.running', variant: 'secondary' },
+  done: { label: 'status.done', variant: 'default' },
+  failed: { label: 'status.failed', variant: 'destructive' },
+  cancelled: { label: 'status.cancelled', variant: 'outline' },
 }
 
-export const TASK_STAGE: Record<string, string> = {
-  downloading: 'скачивание',
-  scanning: 'проверка',
-  uploading_tg: 'отправка в Telegram',
-  archiving: 'сборка архива',
-  done: 'готово',
+export const TASK_STAGE: Record<string, Key> = {
+  downloading: 'stage.downloading',
+  scanning: 'stage.scanning',
+  uploading_tg: 'stage.uploadingTg',
+  archiving: 'stage.archiving',
+  done: 'stage.done',
 }
+
+export const statusLabel = (status: string) => (TASK_STATUS[status] ? t(TASK_STATUS[status].label) : status)
+
+export const stageLabel = (stage: string) => (TASK_STAGE[stage] ? t(TASK_STAGE[stage]) : stage)
 
 const KEY = 'tcloud.tasks'
 const listeners = new Set<() => void>()

@@ -1,4 +1,5 @@
 import type { Storage, Task } from './types'
+import { t } from './i18n'
 
 const SEP = ' › '
 
@@ -7,7 +8,7 @@ export function isUnavailable(storage: Pick<Storage, 'available'>): boolean {
 }
 
 export function storageName(storage: Pick<Storage, 'name'> | undefined): string {
-  return storage?.name || 'хранилище'
+  return storage?.name || t('names.storage')
 }
 
 function parts(path: string): string[] {

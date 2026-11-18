@@ -16,13 +16,14 @@ import { api } from '@/lib/api'
 import { activeSession, describeError, qrExpired, retryAfterOf, SESSION_ORDER } from '@/lib/auth'
 import { healthChecks } from '@/lib/dashboard'
 import { formatBytes, formatDate, formatDuration } from '@/lib/format'
+import { t, type Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { Account, Health, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
 
-const ROLES: Record<TelegramSessionName, string> = {
-  api: 'каналы, удаление, события',
-  upload: 'отправка файлов воркером',
-  download: 'скачивание файлов',
+const ROLES: Record<TelegramSessionName, Key> = {
+  api: 'telegram.roleApi',
+  upload: 'telegram.roleUpload',
+  download: 'telegram.roleDownload',
 }
 
 export function TelegramPage() {
@@ -46,13 +47,13 @@ export function TelegramPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center justify-between gap-2">
-              Вход в Telegram
+              {t('telegram.title')}
               <span className="fx-chip text-muted-foreground tabular-nums">
-                {done} / {sessions.length} сессий
+                {t('telegram.sessionsDone', { done, n: sessions.length })}
               </span>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              tcloud держит три отдельных устройства Telegram, в каждое входят отдельно. Готовые шаги пропускаются, следующий начинается сам.
+              {t('telegram.hint')}
             </p>
           </CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
@@ -72,11 +73,11 @@ export function TelegramPage() {
               <LoginStep key={current.session} state={current} updatedAt={status.dataUpdatedAt} index={sessions.indexOf(current)} total={sessions.length} />
             ) : (
               <div className="grid content-center justify-items-start gap-3 text-sm">
-                <StatusChip status="ok" label="все сессии готовы" />
-                <p>Все сессии авторизованы — можно создавать хранилища и загружать файлы.</p>
+                <StatusChip status="ok" label={t('telegram.allReady')} />
+                <p>{t('telegram.allReadyHint')}</p>
                 <Button asChild variant="outline" size="sm">
                   <Link to="/files">
-                    К хранилищам <ArrowUpRightIcon />
+                    {t('telegram.toStorages')} <ArrowUpRightIcon />
                   </Link>
                 </Button>
               </div>
@@ -102,7 +103,7 @@ function useRefreshTelegram() {
 
 function StepRow({ state, index, total, active, onPick }: { state: TelegramSessionState; index: number; total: number; active: boolean; onPick: () => void }) {
   const refresh = useRefreshTelegram()
-  const logout = useAction(() => api.post(`/telegram/${state.session}/logout`), { success: 'Сессия завершена', onSuccess: refresh })
+  const logout = useAction(() => api.post(`/telegram/${state.session}/logout`), { success: t('telegram.sessionEnded'), onSuccess: refresh })
   return (
     <li
       aria-current={active ? 'step' : undefined}
@@ -113,22 +114,22 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{state.session}</p>
-        <p className="truncate text-xs text-muted-foreground">{ROLES[state.session]}</p>
+        <p className="truncate text-xs text-muted-foreground">{t(ROLES[state.session])}</p>
       </div>
       {state.authorized ? (
         <>
-          <StatusChip status="ok" label="вошли" />
-          <Confirm title={`Выйти из сессии ${state.session}?`} action="Выйти" onConfirm={() => logout.mutate()}>
-            <Button variant="ghost" size="icon-sm" aria-label={`Выйти из сессии ${state.session}`}>
+          <StatusChip status="ok" label={t('telegram.signedIn')} />
+          <Confirm title={t('telegram.logoutQ', { session: state.session })} action={t('nav.logout')} onConfirm={() => logout.mutate()}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('telegram.logout', { session: state.session })}>
               <LogOutIcon />
             </Button>
           </Confirm>
         </>
       ) : active ? (
-        <StatusChip status="wait" label="сейчас" />
+        <StatusChip status="wait" label={t('telegram.now')} />
       ) : (
         <Button variant="ghost" size="sm" onClick={onPick}>
-          Войти
+          {t('onboarding.signIn')}
         </Button>
       )}
     </li>
@@ -200,27 +201,27 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
   const loginError = state.login?.error && state.login.error.code !== 'login_expired' ? describeError(state.login.error) : ''
 
   return (
-    <section aria-label={`Шаг ${index + 1} из ${total}: ${name}`} className="grid content-start gap-3">
+    <section aria-label={t('telegram.stepAria', { step: index + 1, total, name })} className="grid content-start gap-3">
       <p className="text-xs text-muted-foreground">
-        Шаг {index + 1} / {total} · сессия <span className="font-semibold text-primary">{name}</span>
+        {t('telegram.step', { step: index + 1, total })} <span className="font-semibold text-primary">{name}</span>
       </p>
       {loginError && <p className="text-sm text-destructive" role="alert">{loginError}</p>}
       {wait > 0 && (
         <p className="text-xs font-semibold text-warning" role="status">
-          flood_wait: Telegram просит подождать {formatDuration(wait)}
+          {t('telegram.flood', { time: formatDuration(wait) })}
         </p>
       )}
       {step === 'password' ? (
         <form onSubmit={submit(() => sendPassword.mutate())} className="grid gap-2">
-          <Label htmlFor="tg-password">Пароль двухэтапной проверки</Label>
+          <Label htmlFor="tg-password">{t('telegram.password')}</Label>
           <div className="flex gap-2">
             <Input id="tg-password" type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <Button type="submit" disabled={sendPassword.isPending}>Отправить</Button>
+            <Button type="submit" disabled={sendPassword.isPending}>{t('telegram.send')}</Button>
           </div>
         </form>
       ) : (
         <>
-          <div role="tablist" aria-label="Способ входа" className="flex gap-1">
+          <div role="tablist" aria-label={t('telegram.method')} className="flex gap-1">
             {(['qr', 'phone'] as const).map((value) => (
               <Button
                 key={value}
@@ -233,7 +234,7 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
                   setStopped(false)
                 }}
               >
-                {value === 'qr' ? 'QR-код' : 'Код по номеру'}
+                {t(value === 'qr' ? 'telegram.qr' : 'telegram.code')}
               </Button>
             ))}
           </div>
@@ -242,35 +243,35 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
               {qr && qrLeft > 0 && !needQr ? (
                 <div className="grid justify-items-center gap-2 bg-white p-4">
                   <QRCodeSVG value={qr.url} size={192} />
-                  <p className="text-center text-xs text-neutral-600">Telegram → Настройки → Устройства → Подключить устройство</p>
-                  <p className="text-xs text-neutral-600 tabular-nums">обновится через {qrLeft} с</p>
+                  <p className="text-center text-xs text-neutral-600">{t('telegram.qrPath')}</p>
+                  <p className="text-xs text-neutral-600 tabular-nums">{t('telegram.qrRefresh', { n: qrLeft })}</p>
                 </div>
               ) : (
-                <StatusChip status={stopped ? 'fail' : 'wait'} label={stopped ? 'QR не получен' : 'запрашиваю QR…'} />
+                <StatusChip status={stopped ? 'fail' : 'wait'} label={t(stopped ? 'telegram.qrFailed' : 'telegram.qrLoading')} />
               )}
               {stopped && (
                 <Button onClick={() => startQr.mutate()} disabled={startQr.isPending || wait > 0}>
-                  Новый QR
+                  {t('telegram.newQr')}
                 </Button>
               )}
             </div>
           ) : step === 'code' ? (
             <form onSubmit={submit(() => signIn.mutate())} className="grid gap-2">
-              <Label htmlFor="tg-code">Код из приложения Telegram (чат «Telegram»)</Label>
+              <Label htmlFor="tg-code">{t('telegram.codeLabel')}</Label>
               <div className="flex gap-2">
                 <Input id="tg-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" autoFocus required />
-                <Button type="submit" disabled={signIn.isPending}>Войти</Button>
+                <Button type="submit" disabled={signIn.isPending}>{t('onboarding.signIn')}</Button>
               </div>
               <Button type="button" variant="link" className="justify-self-start px-0" onClick={() => sendCode.mutate()} disabled={!phone || sendCode.isPending || wait > 0}>
-                Прислать код ещё раз
+                {t('telegram.resend')}
               </Button>
             </form>
           ) : (
             <form onSubmit={submit(() => sendCode.mutate())} className="grid gap-2">
-              <Label htmlFor="tg-phone">Номер телефона</Label>
+              <Label htmlFor="tg-phone">{t('telegram.phone')}</Label>
               <div className="flex gap-2">
                 <Input id="tg-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+79991234567" type="tel" autoComplete="tel" required />
-                <Button type="submit" disabled={sendCode.isPending || wait > 0}>Получить код</Button>
+                <Button type="submit" disabled={sendCode.isPending || wait > 0}>{t('telegram.getCode')}</Button>
               </div>
             </form>
           )}
@@ -289,7 +290,7 @@ function SystemCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Система {health.data && <Badge variant={health.data.ok ? 'default' : 'destructive'}>{health.data.ok ? 'ok' : 'есть проблемы'}</Badge>}
+          {t('dashboard.system')} {health.data && <Badge variant={health.data.ok ? 'default' : 'destructive'}>{health.data.ok ? 'ok' : t('telegram.problems')}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 text-sm">
@@ -302,7 +303,7 @@ function SystemCard() {
         </div>
         {account.data && (
           <p className="text-muted-foreground">
-            Premium: {account.data.premium ? 'да' : 'нет'} · лимит файла {formatBytes(account.data.file_limit)}
+            Premium: {t(account.data.premium ? 'common.yes' : 'common.no')} · {t('dashboard.fileLimit')} {formatBytes(account.data.file_limit)}
           </p>
         )}
       </CardContent>
@@ -314,13 +315,13 @@ function DevicesCard() {
   const devices = useQuery({ queryKey: ['telegram-devices'], queryFn: () => api.get<TelegramAuthorization[]>('/telegram/sessions'), retry: false })
   const revoke = useAction((id: string) => api.del(`/telegram/sessions/${id}`), {
     invalidate: [['telegram-devices']],
-    success: 'Устройство отключено',
+    success: t('telegram.deviceRevoked'),
   })
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Устройства tcloud в Telegram</CardTitle>
+        <CardTitle>{t('telegram.devices')}</CardTitle>
       </CardHeader>
       <CardContent>
         {devices.error && <p className="text-sm text-muted-foreground">{devices.error.message}</p>}
@@ -329,15 +330,15 @@ function DevicesCard() {
             <li key={device.id} className="flex items-center gap-2 py-2 text-sm">
               <div className="min-w-0 flex-1">
                 <p>
-                  {device.session} {device.current && <Badge>текущее</Badge>}
+                  {device.session} {device.current && <Badge>{t('telegram.currentDevice')}</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {device.ip} {device.country} · активность {formatDate(device.active_at)}
+                  {device.ip} {device.country} · {t('account.active', { date: formatDate(device.active_at) })}
                 </p>
               </div>
               {!device.current && (
-                <Confirm title="Отключить устройство?" action="Отключить" onConfirm={() => revoke.mutate(device.id)}>
-                  <Button variant="ghost" size="sm">Отключить</Button>
+                <Confirm title={t('telegram.revokeQ')} action={t('telegram.revoke')} onConfirm={() => revoke.mutate(device.id)}>
+                  <Button variant="ghost" size="sm">{t('telegram.revoke')}</Button>
                 </Confirm>
               )}
             </li>

@@ -1,4 +1,5 @@
 import type { Storage, Task, TelegramSessionState } from './types'
+import { t } from './i18n'
 
 export interface Step {
   key: 'telegram' | 'storage' | 'file'
@@ -16,18 +17,18 @@ export function checklist(sessions: TelegramSessionState[], storages: Storage[],
   return [
     {
       key: 'telegram',
-      label: `Войти в Telegram (${authorized} / ${sessions.length || 3} сессий)`,
+      label: t('onboarding.telegram', { done: authorized, n: sessions.length || 3 }),
       done: sessions.length > 0 && authorized === sessions.length,
       to: '/telegram',
-      action: 'Войти',
+      action: t('onboarding.signIn'),
     },
-    { key: 'storage', label: 'Создать хранилище', done: storages.length > 0, to: '/files', action: 'Создать' },
+    { key: 'storage', label: t('onboarding.storage'), done: storages.length > 0, to: '/files', action: t('onboarding.create') },
     {
       key: 'file',
-      label: 'Загрузить первый файл',
+      label: t('onboarding.file'),
       done: storages.some((s) => (s.files ?? 0) > 0) || tasks.some((t) => !t.archive && t.status === 'done'),
       to: target ? folderLink(target.path) : '/files',
-      action: 'Загрузить',
+      action: t('onboarding.upload'),
     },
   ]
 }

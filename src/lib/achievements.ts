@@ -1,9 +1,11 @@
+import type { Key } from './i18n'
+
 export const ACHIEVEMENTS = {
-  'first-file': 'Первый файл в хранилище',
-  'files-100': 'Сотый файл',
-  'first-gb': 'Первый гигабайт',
-  checklist: 'Первый запуск пройден',
-} as const
+  'first-file': 'achievement.firstFile',
+  'files-100': 'achievement.files100',
+  'first-gb': 'achievement.firstGb',
+  checklist: 'achievement.checklist',
+} as const satisfies Record<string, Key>
 
 export type Achievement = keyof typeof ACHIEVEMENTS
 

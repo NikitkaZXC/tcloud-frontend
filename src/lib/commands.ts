@@ -21,13 +21,14 @@ export interface Command {
   group: string
   label: string
   hint?: string
+  keywords?: string
   run: () => void
 }
 
 export function filterCommands(commands: Command[], query: string): Command[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   return commands.filter((command) => {
-    const text = `${command.group} ${command.label} ${command.hint ?? ''}`.toLowerCase()
+    const text = `${command.group} ${command.label} ${command.hint ?? ''} ${command.keywords ?? ''}`.toLowerCase()
     return words.every((word) => text.includes(word))
   })
 }

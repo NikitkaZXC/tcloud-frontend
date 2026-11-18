@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { Toaster } from '@/components/ui/sonner'
 import { ApiError } from '@/lib/api'
+import { resolveLang, setLang } from '@/lib/i18n'
 import { getSettings, subscribeSettings } from '@/lib/settings'
 import { applyTheme } from '@/lib/theme'
 import App from './App'
@@ -13,6 +14,9 @@ function applySettings() {
   const ui = getSettings().interface
   applyTheme(ui.theme)
   document.documentElement.classList.toggle('still', !ui.animations)
+  const lang = resolveLang(ui.language, navigator.language)
+  document.documentElement.lang = lang
+  setLang(lang)
 }
 
 applySettings()

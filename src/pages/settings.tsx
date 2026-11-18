@@ -6,7 +6,9 @@ import { PageTitle, PixelToggle, Section } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SORT_LABELS } from '@/lib/files'
 import { resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
+import { t } from '@/lib/i18n'
 
 type Ui = Settings['interface']
 
@@ -63,10 +65,10 @@ function Choice<T extends string>({ label, hint, value, options, onChange }: { l
   )
 }
 
-const PRIORITIES: [Settings['uploads']['priority'], string][] = [
-  ['low', 'низкий'],
-  ['normal', 'обычный'],
-  ['high', 'высокий'],
+const priorities = (): [Settings['uploads']['priority'], string][] => [
+  ['low', t('priority.low')],
+  ['normal', t('priority.normal')],
+  ['high', t('priority.high')],
 ]
 
 function Webhook({ value }: { value: string | null }) {
@@ -83,7 +85,7 @@ function Webhook({ value }: { value: string | null }) {
     try {
       await updateSettings({ uploads: { webhook_url: text.trim() || null } })
       setDraft(null)
-      toast.success(text.trim() ? 'Вебхук сохранён' : 'Вебхук выключен')
+      toast.success(t(text.trim() ? 'settings.webhookSaved' : 'settings.webhookOff'))
     } catch (e) {
       setError(settingsError(e))
     } finally {
@@ -94,10 +96,10 @@ function Webhook({ value }: { value: string | null }) {
   return (
     <form onSubmit={submit} className="grid gap-2">
       <label htmlFor={id} className="text-base">
-        Адрес вебхука задач
+        {t('settings.webhook')}
       </label>
       <p id={`${id}h`} className="max-w-xl text-xs text-muted-foreground">
-        Сервер отправит POST, когда задача загрузки завершится. Действует для загрузок без своего callback_url, в том числе через API-ключ. Пусто — без вебхука.
+        {t('settings.webhookHint')}
       </p>
       <div className="flex flex-wrap gap-2">
         <Input
@@ -116,11 +118,11 @@ function Webhook({ value }: { value: string | null }) {
           className="min-w-0 flex-1 basis-64"
         />
         <Button type="submit" disabled={busy || text === (value ?? '')}>
-          Сохранить
+          {t('common.save')}
         </Button>
         {value && (
           <Button type="button" variant="outline" disabled={busy} onClick={() => setDraft('')}>
-            Очистить
+            {t('common.clear')}
           </Button>
         )}
       </div>
@@ -144,7 +146,7 @@ export function SettingsPage() {
     setResetting(true)
     try {
       await resetSettings()
-      toast.success('Настройки сброшены')
+      toast.success(t('settings.resetDone'))
     } catch (error) {
       toast.error(settingsError(error))
     } finally {
@@ -155,155 +157,160 @@ export function SettingsPage() {
   return (
     <div className="grid">
       <header className="grid gap-4 pb-6">
-        <PageTitle text="Настройки" eyebrow="Хранятся в аккаунте и действуют на любом устройстве. Изменения сохраняются сразу." />
+        <PageTitle text={t('nav.settings')} eyebrow={t('settings.eyebrow')} />
       </header>
 
-      <Section label="Загрузки">
+      <Section label={t('settings.uploads')}>
         <div className="grid">
           <Choice
-            label="Отправлять как"
-            hint="Медиа Telegram сжимает и не шифрует"
+            label={t('settings.sendAs')}
+            hint={t('settings.sendAsHint')}
             value={uploads.send_as}
             options={[
-              ['file', 'файл (оригинал)'],
-              ['media', 'медиа (сжатие)'],
+              ['file', t('sendAs.file')],
+              ['media', t('sendAs.media')],
             ]}
             onChange={(send_as) => save({ uploads: { send_as } })}
           />
           <Toggle
-            label="Шифровать файлы"
-            hint={uploads.send_as === 'media' ? 'Только при отправке файлом' : 'Без ключа сервера файл в Telegram не прочитать'}
+            label={t('settings.encrypt')}
+            hint={t(uploads.send_as === 'media' ? 'settings.encryptMedia' : 'settings.encryptHint')}
             checked={uploads.encrypt && uploads.send_as === 'file'}
             disabled={uploads.send_as === 'media'}
             onChange={(encrypt) => save({ uploads: { encrypt } })}
           />
           <Choice
-            label="Если файл уже есть"
+            label={t('settings.onConflict')}
             value={uploads.on_conflict}
             options={[
-              ['error', 'ошибка'],
-              ['replace', 'заменить'],
-              ['keep_both', 'оставить оба'],
-              ['skip', 'пропустить'],
+              ['error', t('conflict.error')],
+              ['replace', t('conflict.replace')],
+              ['keep_both', t('conflict.keepBoth')],
+              ['skip', t('conflict.skip')],
             ]}
             onChange={(on_conflict) => save({ uploads: { on_conflict } })}
           />
-          <Choice label="Приоритет загрузок" value={uploads.priority} options={PRIORITIES} onChange={(priority) => save({ uploads: { priority } })} />
+          <Choice label={t('settings.uploadPriority')} value={uploads.priority} options={priorities()} onChange={(priority) => save({ uploads: { priority } })} />
           <Toggle
-            label="Принимать непроверяемые файлы"
-            hint="Файлы, которые антивирус не может проверить полностью (например, архивы с паролем)"
+            label={t('settings.unscannable')}
+            hint={t('settings.unscannableHint')}
             checked={uploads.allow_unscannable}
             onChange={(allow_unscannable) => save({ uploads: { allow_unscannable } })}
           />
         </div>
       </Section>
 
-      <Section label="Архивы">
+      <Section label={t('settings.archives')}>
         <div className="grid">
           <Choice
-            label="Формат по умолчанию"
-            hint="Первым пунктом в меню «Скачать папку» и «Скачать архивом»"
+            label={t('settings.archiveFormat')}
+            hint={t('settings.archiveFormatHint')}
             value={archives.format}
             options={(['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz'] as const).map((format) => [format, format])}
             onChange={(format) => save({ archives: { format } })}
           />
-          <Choice label="Приоритет архивов" value={archives.priority} options={PRIORITIES} onChange={(priority) => save({ archives: { priority } })} />
+          <Choice label={t('settings.archivePriority')} value={archives.priority} options={priorities()} onChange={(priority) => save({ archives: { priority } })} />
         </div>
       </Section>
 
-      <Section label="Интерфейс">
+      <Section label={t('settings.interface')}>
         <div className="grid">
           <Choice
-            label="Тема"
+            label={t('settings.language')}
+            hint={t('settings.languageHint')}
+            value={ui.language ?? 'auto'}
+            options={[
+              ['auto', t('settings.languageAuto')],
+              ['ru', 'Русский'],
+              ['en', 'English'],
+            ]}
+            onChange={(language) => setUi({ language: language === 'auto' ? null : language })}
+          />
+          <Choice
+            label={t('settings.theme')}
             value={ui.theme}
             options={[
-              ['dark', 'тёмная'],
-              ['light', 'светлая'],
+              ['dark', t('settings.themeDark')],
+              ['light', t('settings.themeLight')],
             ]}
             onChange={(theme) => setUi({ theme })}
           />
           <Choice
-            label="Стартовая страница"
-            hint="Открывается после входа"
+            label={t('settings.startPage')}
+            hint={t('settings.startPageHint')}
             value={ui.start_page}
             options={[
-              ['dashboard', 'дашборд'],
-              ['storages', 'хранилища'],
-              ['tasks', 'задачи'],
+              ['dashboard', t('nav.dashboard')],
+              ['storages', t('nav.storages')],
+              ['tasks', t('nav.tasks')],
             ]}
             onChange={(start_page) => setUi({ start_page })}
           />
           <Choice
-            label="Вид папки"
+            label={t('settings.folderView')}
             value={ui.folder_view}
             options={[
-              ['list', 'список'],
-              ['grid', 'плитка'],
+              ['list', t('folder.list')],
+              ['grid', t('folder.grid')],
             ]}
             onChange={(folder_view) => setUi({ folder_view })}
           />
           <Choice
-            label="Сортировка в папке"
+            label={t('settings.sortBy')}
             value={ui.sort_by}
-            options={[
-              ['name', 'имя'],
-              ['modified', 'изменён'],
-              ['uploaded', 'загружен'],
-              ['type', 'тип'],
-              ['size', 'размер'],
-            ]}
+            options={(['name', 'modified', 'uploaded', 'type', 'size'] as const).map((key) => [key, t(SORT_LABELS[key])])}
             onChange={(sort_by) => setUi({ sort_by })}
           />
           <Choice
-            label="Порядок"
+            label={t('settings.sortOrder')}
             value={ui.sort_order}
             options={[
-              ['asc', 'по возрастанию ▲'],
-              ['desc', 'по убыванию ▼'],
+              ['asc', t('folder.ascArrow')],
+              ['desc', t('folder.descArrow')],
             ]}
             onChange={(sort_order) => setUi({ sort_order })}
           />
-          <Toggle label="Папки сверху" checked={ui.folders_first} onChange={(folders_first) => setUi({ folders_first })} />
+          <Toggle label={t('folder.foldersFirst')} checked={ui.folders_first} onChange={(folders_first) => setUi({ folders_first })} />
           <Choice
-            label="Список задач"
-            hint="На странице «Задачи» и в «Активности» дашборда"
+            label={t('settings.tasksFilter')}
+            hint={t('settings.tasksFilterHint')}
             value={ui.tasks_filter}
             options={[
-              ['all', 'все'],
-              ['active_and_failed', 'активные и ошибки'],
+              ['all', t('tasks.filterAll')],
+              ['active_and_failed', t('tasks.filterActive')],
             ]}
             onChange={(tasks_filter) => setUi({ tasks_filter })}
           />
-          <Toggle label="Анимации" hint="Выключено — как при «уменьшении движения» в системе" checked={ui.animations} onChange={(animations) => setUi({ animations })} />
+          <Toggle label={t('settings.animations')} hint={t('settings.animationsHint')} checked={ui.animations} onChange={(animations) => setUi({ animations })} />
           <Toggle
-            label="Спрашивать перед удалением"
-            hint="Удаление нескольких выбранных элементов подтверждается всегда"
+            label={t('settings.confirmDelete')}
+            hint={t('settings.confirmDeleteHint')}
             checked={ui.confirm_delete}
             onChange={(confirm_delete) => setUi({ confirm_delete })}
           />
         </div>
       </Section>
 
-      <Section label="Фишки">
+      <Section label={t('settings.extras')}>
         <div className="grid">
-          <Toggle label="Пиксельный питомец" hint="Живёт над профилем, ест загружаемые файлы" checked={ui.fx_pet} onChange={(fx_pet) => setUi({ fx_pet })} />
-          <Toggle label="8-битные звуки" hint="Клик, готово, ошибка" checked={ui.fx_sounds} onChange={(fx_sounds) => setUi({ fx_sounds })} />
-          <Toggle label="Конфетти за достижения" checked={ui.fx_confetti} onChange={(fx_confetti) => setUi({ fx_confetti })} />
-          <Toggle label="Пиксельный курсор" hint="Искры по клику" checked={ui.fx_cursor} onChange={(fx_cursor) => setUi({ fx_cursor })} />
-          <Toggle label="Пасхалки и подсказки" hint="Советы внизу страниц, секреты" checked={ui.fx_easter_eggs} onChange={(fx_easter_eggs) => setUi({ fx_easter_eggs })} />
+          <Toggle label={t('settings.pet')} hint={t('settings.petHint')} checked={ui.fx_pet} onChange={(fx_pet) => setUi({ fx_pet })} />
+          <Toggle label={t('settings.sounds')} hint={t('settings.soundsHint')} checked={ui.fx_sounds} onChange={(fx_sounds) => setUi({ fx_sounds })} />
+          <Toggle label={t('settings.confetti')} checked={ui.fx_confetti} onChange={(fx_confetti) => setUi({ fx_confetti })} />
+          <Toggle label={t('settings.cursor')} hint={t('settings.cursorHint')} checked={ui.fx_cursor} onChange={(fx_cursor) => setUi({ fx_cursor })} />
+          <Toggle label={t('settings.eggs')} hint={t('settings.eggsHint')} checked={ui.fx_easter_eggs} onChange={(fx_easter_eggs) => setUi({ fx_easter_eggs })} />
         </div>
       </Section>
 
-      <Section label="Вебхуки">
+      <Section label={t('settings.webhooks')}>
         <Webhook value={uploads.webhook_url} />
       </Section>
 
-      <Section label="Сброс">
+      <Section label={t('settings.reset')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-xl text-sm text-muted-foreground">Вернуть все настройки к значениям по умолчанию, включая вебхук.</p>
-          <Confirm title="Сбросить настройки?" description="Все группы вернутся к значениям по умолчанию." action="Сбросить" onConfirm={reset}>
+          <p className="max-w-xl text-sm text-muted-foreground">{t('settings.resetHint')}</p>
+          <Confirm title={t('settings.resetQ')} description={t('settings.resetConfirm')} action={t('user.reset')} onConfirm={reset}>
             <Button variant="destructive" disabled={resetting}>
-              <RotateCcwIcon /> Сбросить по умолчанию
+              <RotateCcwIcon /> {t('settings.resetButton')}
             </Button>
           </Confirm>
         </div>

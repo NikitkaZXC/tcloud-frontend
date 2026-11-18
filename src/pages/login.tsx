@@ -11,6 +11,7 @@ import { useCountdown } from '@/hooks/use-countdown'
 import { api } from '@/lib/api'
 import { describeError, retryAfterOf } from '@/lib/auth'
 import { formatDuration } from '@/lib/format'
+import { t } from '@/lib/i18n'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -57,17 +58,17 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <Card className="fx-page w-full gap-6 [--card-spacing:--spacing(7)]">
           <CardHeader className="gap-2">
-            <CardTitle className="text-base">Вход</CardTitle>
-            <p className="text-sm text-muted-foreground">Файловое хранилище в Telegram</p>
+            <CardTitle className="text-base">{t('login.title')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('login.subtitle')}</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="grid gap-4" aria-busy={busy}>
               <div className="grid gap-2">
-                <Label htmlFor="login">Логин</Label>
+                <Label htmlFor="login">{t('login.login')}</Label>
                 <Input id="login" autoComplete="username" autoFocus value={login} onChange={(e) => setLogin(e.target.value)} required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Пароль</Label>
+                <Label htmlFor="password">{t('login.password')}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -88,7 +89,7 @@ export function LoginPage() {
                     size="icon-sm"
                     className="absolute top-1/2 right-1 -translate-y-1/2"
                     onClick={() => setShown(!shown)}
-                    aria-label={shown ? 'Скрыть пароль' : 'Показать пароль'}
+                    aria-label={t(shown ? 'login.hidePassword' : 'login.showPassword')}
                     aria-pressed={shown}
                   >
                     {shown ? <EyeOffIcon /> : <EyeIcon />}
@@ -96,7 +97,7 @@ export function LoginPage() {
                 </div>
                 {caps && (
                   <p id="caps" className="flex items-center gap-1.5 text-xs font-semibold text-warning">
-                    <TriangleAlertIcon className="size-3.5" /> включён Caps Lock
+                    <TriangleAlertIcon className="size-3.5" /> {t('login.caps')}
                   </p>
                 )}
               </div>
@@ -105,11 +106,11 @@ export function LoginPage() {
                   <p className="flex items-center gap-2 font-semibold text-destructive">
                     <StatusLight ok={false} /> {error}
                   </p>
-                  {wait > 0 && <p className="text-xs text-muted-foreground tabular-nums">повторите через {formatDuration(wait)}</p>}
+                  {wait > 0 && <p className="text-xs text-muted-foreground tabular-nums">{t('login.retryIn', { time: formatDuration(wait) })}</p>}
                 </div>
               )}
               <Button type="submit" size="lg" className="mt-1 h-11" disabled={busy || wait > 0}>
-                {busy ? 'Вход…' : wait > 0 ? `Подождите ${formatDuration(wait)}` : 'Войти'}
+                {busy ? t('login.signingIn') : wait > 0 ? t('login.wait', { time: formatDuration(wait) }) : t('onboarding.signIn')}
               </Button>
             </form>
           </CardContent>

@@ -16,6 +16,7 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import type { UserSession } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function AccountPage() {
   const { data: me } = useMe()
@@ -33,7 +34,7 @@ export function AccountPage() {
         {!isAdmin(me) && (
           <Card>
             <CardHeader>
-              <CardTitle>Мои доступы</CardTitle>
+              <CardTitle>{t('account.grants')}</CardTitle>
             </CardHeader>
             <CardContent>
               <GrantList grants={me.grants} />
@@ -49,7 +50,7 @@ function PasswordCard() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const change = useAction(() => api.post('/auth/password', { current_password: current, new_password: next }), {
-    success: 'Пароль изменён, другие сессии завершены',
+    success: t('account.passwordChanged'),
     invalidate: [['sessions']],
     onSuccess: () => {
       setCurrent('')
@@ -65,20 +66,20 @@ function PasswordCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Пароль</CardTitle>
+        <CardTitle>{t('login.password')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="current-password">Текущий</Label>
+            <Label htmlFor="current-password">{t('account.current')}</Label>
             <Input id="current-password" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="new-password">Новый</Label>
+            <Label htmlFor="new-password">{t('account.new')}</Label>
             <Input id="new-password" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
           </div>
           <Button type="submit" className="justify-self-start" disabled={change.isPending}>
-            Сменить
+            {t('account.change')}
           </Button>
         </form>
       </CardContent>
@@ -97,10 +98,10 @@ function Sessions() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Сессии</CardTitle>
-        <Confirm title="Выйти на всех устройствах?" action="Выйти" onConfirm={() => logoutAll.mutate()}>
+        <CardTitle>{t('account.sessions')}</CardTitle>
+        <Confirm title={t('account.logoutAllQ')} action={t('nav.logout')} onConfirm={() => logoutAll.mutate()}>
           <Button variant="outline" size="sm">
-            <LogOutIcon /> Везде
+            <LogOutIcon /> {t('account.everywhere')}
           </Button>
         </Confirm>
       </CardHeader>
@@ -111,10 +112,10 @@ function Sessions() {
             <li key={session.id} className="flex items-center gap-2 py-2 text-sm">
               <div className="min-w-0 flex-1">
                 <p className="truncate">
-                  {session.user_agent ?? 'неизвестно'} {session.is_current && <Badge>текущая</Badge>}
+                  {session.user_agent ?? t('account.unknown')} {session.is_current && <Badge>{t('account.currentSession')}</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {session.ip_address ?? '—'} · вход {formatDate(session.signed_in_at)} · активность {formatDate(session.last_active_at)}
+                  {session.ip_address ?? '—'} · {t('account.signedIn', { date: formatDate(session.signed_in_at) })} · {t('account.active', { date: formatDate(session.last_active_at) })}
                 </p>
               </div>
               <Button
@@ -124,7 +125,7 @@ function Sessions() {
                   revoke.mutate(session, { onSuccess: () => session.is_current && navigate('/login') })
                 }
               >
-                Завершить
+                {t('account.end')}
               </Button>
             </li>
           ))}

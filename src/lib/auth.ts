@@ -1,22 +1,25 @@
-import { ApiError } from './api'
+import { ApiError, errorMessage } from './api'
+import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody, TelegramLogin, TelegramSessionName, TelegramSessionState } from './types'
 
-const MESSAGES: Record<string, string> = {
-  invalid_credentials: 'Неверный логин или пароль',
-  account_locked: 'Слишком много неверных паролей — вход для этого логина временно заблокирован',
-  rate_limited: 'Слишком много попыток входа с этого адреса',
-  user_blocked: 'Пользователь заблокирован — обратитесь к администратору',
-  validation_error: 'Заполните логин и пароль',
-  invalid_phone: 'Telegram не принял номер телефона',
-  invalid_code: 'Неверный код',
-  invalid_password: 'Неверный пароль двухэтапной проверки',
-  login_not_found: 'Вход не начат или истёк — начните заново',
-  login_expired: 'Время входа истекло — начните заново',
-  wrong_login_step: 'Шаг не по порядку — начните заново',
-  already_authorized: 'Сессия уже авторизована',
-  flood_wait: 'Telegram просит подождать перед новой попыткой',
-  telegram_unauthorized: 'Нужная сессия Telegram не авторизована',
+const MESSAGES: Record<string, Key> = {
+  invalid_credentials: 'auth.invalidCredentials',
+  account_locked: 'auth.accountLocked',
+  rate_limited: 'auth.rateLimited',
+  user_blocked: 'auth.userBlocked',
+  validation_error: 'auth.validation',
+  invalid_phone: 'auth.invalidPhone',
+  invalid_code: 'auth.invalidCode',
+  invalid_password: 'auth.invalidPassword',
+  login_not_found: 'auth.loginNotFound',
+  login_expired: 'auth.loginExpired',
+  wrong_login_step: 'auth.wrongStep',
+  already_authorized: 'auth.alreadyAuthorized',
+  flood_wait: 'auth.floodWait',
+  telegram_unauthorized: 'auth.telegramUnauthorized',
 }
+
+const message = (code: string) => (MESSAGES[code] ? t(MESSAGES[code]) : undefined)
 
 export function retryAfterOf(error: unknown): number | null {
   if (!(error instanceof ApiError)) return null
@@ -27,13 +30,13 @@ export function retryAfterOf(error: unknown): number | null {
 export function describeError(error: unknown | ApiErrorBody | null): string {
   if (!error) return ''
   if (error instanceof ApiError) {
-    if (error.status >= 500 && !MESSAGES[error.code]) return 'Сервер не отвечает, попробуйте позже'
-    return MESSAGES[error.code] ?? error.message
+    if (error.status >= 500 && !MESSAGES[error.code]) return t('error.server')
+    return message(error.code) ?? (`error.${error.code}` in DICTIONARIES.ru ? errorMessage(error) : error.message)
   }
-  if (error instanceof TypeError) return 'Нет связи с сервером'
+  if (error instanceof TypeError) return t('error.network')
   if (error instanceof Error) return error.message
   const body = error as ApiErrorBody
-  return MESSAGES[body.code] ?? String(body.message ?? '')
+  return message(body.code) ?? String(body.message ?? '')
 }
 
 export const SESSION_ORDER: TelegramSessionName[] = ['api', 'upload', 'download']

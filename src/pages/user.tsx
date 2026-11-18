@@ -21,6 +21,7 @@ import { api } from '@/lib/api'
 import { storageName } from '@/lib/names'
 import { formatDate } from '@/lib/format'
 import type { Grant, Role, User } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function UserPage() {
   const { id = '' } = useParams()
@@ -31,11 +32,11 @@ export function UserPage() {
 
   const update = useAction((data: Partial<{ role: Role; blocked: boolean; password: string }>) => api.patch<User>(`/users/${id}`, data), {
     invalidate,
-    success: 'Сохранено, сессии пользователя завершены',
+    success: t('user.saved'),
   })
   const remove = useAction(() => api.del(`/users/${id}`), {
     invalidate: [['users']],
-    success: 'Пользователь удалён',
+    success: t('user.deleted'),
     onSuccess: () => navigate('/users'),
   })
   const [password, setPassword] = useState('')
@@ -54,18 +55,18 @@ export function UserPage() {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/users" aria-label="Назад">
+          <Link to="/users" aria-label={t('common.back')}>
             <ArrowLeftIcon />
           </Link>
         </Button>
         <PageTitle text={u.login} className="normal-case" />
         <Badge variant="outline">{u.role}</Badge>
-        {u.blocked && <Badge variant="destructive">заблокирован</Badge>}
-        <span className="text-sm text-muted-foreground">последний вход: {formatDate(u.last_login_at)}</span>
+        {u.blocked && <Badge variant="destructive">{t('users.blocked')}</Badge>}
+        <span className="text-sm text-muted-foreground">{t('user.lastLogin', { date: formatDate(u.last_login_at) })}</span>
         {managed && (
-          <Confirm title={`Удалить ${u.login}?`} description="Доступы, ключи и сессии тоже будут удалены." onConfirm={() => remove.mutate()}>
+          <Confirm title={t('user.deleteQ', { login: u.login })} description={t('user.deleteHint')} onConfirm={() => remove.mutate()}>
             <Button variant="destructive" className="ml-auto">
-              <Trash2Icon /> Удалить
+              <Trash2Icon /> {t('common.delete')}
             </Button>
           </Confirm>
         )}
@@ -75,16 +76,16 @@ export function UserPage() {
         {managed && (
           <Card>
             <CardHeader>
-              <CardTitle>Управление</CardTitle>
+              <CardTitle>{t('user.manage')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={u.blocked} onCheckedChange={(blocked) => update.mutate({ blocked })} />
-                Заблокирован
+                {t('user.blockedToggle')}
               </label>
               {me?.role === 'root' && (
                 <div className="grid gap-1.5">
-                  <Label>Роль</Label>
+                  <Label>{t('users.role')}</Label>
                   <Select value={u.role} onValueChange={(role) => update.mutate({ role: role as Role })}>
                     <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -95,11 +96,11 @@ export function UserPage() {
                 </div>
               )}
               <form onSubmit={resetPassword} className="grid gap-1.5">
-                <Label htmlFor="reset-password">Новый пароль</Label>
+                <Label htmlFor="reset-password">{t('user.newPassword')}</Label>
                 <div className="flex gap-2">
                   <Input id="reset-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <Button type="submit" variant="outline" disabled={update.isPending}>
-                    Сбросить
+                    {t('user.reset')}
                   </Button>
                 </div>
               </form>
@@ -123,11 +124,11 @@ function Grants({ userId }: { userId: string }) {
 
   const put = useAction(
     () => api.put<Grant>(`/users/${userId}/grants`, { path: ['tcloud', storageId, folder.replace(/^\/+|\/+$/g, '')].filter(Boolean).join('/'), ...flags }),
-    { invalidate: [key], success: 'Доступ выдан', onSuccess: () => setFolder('') },
+    { invalidate: [key], success: t('user.granted'), onSuccess: () => setFolder('') },
   )
   const revoke = useAction((grant: Grant) => api.del(`/users/${userId}/grants/${grant.id}`), {
     invalidate: [key],
-    success: 'Доступ забран',
+    success: t('user.revoked'),
   })
 
   function submit(event: FormEvent) {
@@ -136,16 +137,16 @@ function Grants({ userId }: { userId: string }) {
   }
 
   const labels: [keyof typeof flags, string][] = [
-    ['recursive', 'с подпапками'],
-    ['can_read', 'чтение'],
-    ['can_upload', 'загрузка'],
-    ['can_delete', 'удаление'],
+    ['recursive', t('grants.recursive')],
+    ['can_read', t('grants.read')],
+    ['can_upload', t('grants.upload')],
+    ['can_delete', t('grants.delete')],
   ]
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Доступ к папкам</CardTitle>
+        <CardTitle>{t('user.folderAccess')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
         {grants.error && <p className="text-sm text-destructive">{grants.error.message}</p>}
@@ -153,7 +154,7 @@ function Grants({ userId }: { userId: string }) {
         <form onSubmit={submit} className="grid gap-3 border-t pt-4">
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={storageId} onValueChange={setStorageId} required>
-              <SelectTrigger className="w-full"><SelectValue placeholder="Хранилище" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder={t('scope.storage')} /></SelectTrigger>
               <SelectContent>
                 {storages.data?.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
@@ -162,7 +163,7 @@ function Grants({ userId }: { userId: string }) {
                 ))}
               </SelectContent>
             </Select>
-            <Input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="Папка (пусто — всё хранилище)" />
+            <Input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder={t('user.folderPlaceholder')} />
           </div>
           <div className="flex flex-wrap gap-4">
             {labels.map(([flag, label]) => (
@@ -173,7 +174,7 @@ function Grants({ userId }: { userId: string }) {
             ))}
           </div>
           <Button type="submit" className="justify-self-start" disabled={!storageId || put.isPending}>
-            Выдать доступ
+            {t('user.grant')}
           </Button>
         </form>
       </CardContent>

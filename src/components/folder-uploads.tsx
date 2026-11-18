@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes } from '@/lib/format'
+import { errorText } from '@/lib/api'
 import { IoTag } from '@/components/fx'
 import { Speedometer } from '@/components/meters'
 import { transferStats } from '@/lib/dashboard'
@@ -10,9 +11,10 @@ import { useStorageIo, useStorages } from '@/hooks/use-storages'
 import { storageIdOf } from '@/lib/format'
 import { fileName, taskTitle } from '@/lib/names'
 import { useReads } from '@/lib/reads'
-import { forgetTask, taskFraction, TASK_STAGE, TASK_STATUS, useTrackedTasks } from '@/lib/tasks'
+import { forgetTask, stageLabel, statusLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
+import { t } from '@/lib/i18n'
 
 function Row({ name, status, percent, error, onForget }: { name: string; status: string; percent: number | null; error?: string; onForget?: () => void }) {
   return (
@@ -24,7 +26,7 @@ function Row({ name, status, percent, error, onForget }: { name: string; status:
           {percent != null && ` · ${percent.toFixed(0)}%`}
         </span>
         {onForget && (
-          <Button size="icon-sm" variant="ghost" onClick={onForget} aria-label="Убрать из списка">
+          <Button size="icon-sm" variant="ghost" onClick={onForget} aria-label={t('tasks.forget')}>
             <XIcon />
           </Button>
         )}
@@ -35,9 +37,9 @@ function Row({ name, status, percent, error, onForget }: { name: string; status:
 }
 
 function taskStatus(task: Task): string {
-  if (task.status === 'queued') return task.queue_position != null ? `в очереди, место ${task.queue_position}` : TASK_STATUS.queued.label
-  if (task.status === 'running') return TASK_STAGE[task.stage] ?? task.stage
-  return TASK_STATUS[task.status]?.label ?? task.status
+  if (task.status === 'queued') return task.queue_position != null ? t('uploads.queuedAt', { n: task.queue_position }) : statusLabel('queued')
+  if (task.status === 'running') return stageLabel(task.stage)
+  return statusLabel(task.status)
 }
 
 export function FolderUploads({ path }: { path: string }) {
@@ -58,7 +60,7 @@ export function FolderUploads({ path }: { path: string }) {
         <Row
           key={item.id}
           name={name(item.path)}
-          status={item.loaded ? `отправка на сервер, ${formatBytes(item.loaded)} / ${formatBytes(item.total)}` : 'ожидает отправки'}
+          status={item.loaded ? t('uploads.sending', { done: formatBytes(item.loaded), total: formatBytes(item.total) }) : t('uploads.waiting')}
           percent={item.loaded ? (item.loaded / Math.max(item.total, 1)) * 100 : null}
         />
       ))}
@@ -68,7 +70,7 @@ export function FolderUploads({ path }: { path: string }) {
           name={name(task.path)}
           status={taskStatus(task)}
           percent={task.status !== 'failed' && task.progress != null ? taskFraction(task)! * 100 : null}
-          error={task.status === 'failed' ? (task.error?.message ?? TASK_STATUS.failed.label) : undefined}
+          error={task.status === 'failed' ? (task.error ? errorText(task.error) : statusLabel('failed')) : undefined}
           onForget={task.status === 'failed' ? () => forgetTask(task.id) : undefined}
         />
       ))}
@@ -106,12 +108,12 @@ export function IoBanner({ path }: { path: string }) {
           <IoTag io="write" />
           {writing ? (
             <span className="min-w-0 truncate">
-              идёт запись: <span className="text-foreground">{writing.name}</span>
+              {t('uploads.writing')}: <span className="text-foreground">{writing.name}</span>
               {writing.percent != null && ` · ${writing.percent}%`}
-              {more > 0 && ` · ещё ${more}`}
+              {more > 0 && ` · ${t('uploads.more', { n: more })}`}
             </span>
           ) : (
-            <span>запись завершена</span>
+            <span>{t('uploads.writeDone')}</span>
           )}
         </p>
       )}
@@ -119,7 +121,7 @@ export function IoBanner({ path }: { path: string }) {
         <p className="fx-io-line" data-io="read">
           <IoTag io="read" />
           <span className="min-w-0 truncate">
-            идёт чтение{reading && <>: <span className="text-foreground">{reading}</span></>}
+            {t('io.reading')}{reading && <>: <span className="text-foreground">{reading}</span></>}
           </span>
         </p>
       )}

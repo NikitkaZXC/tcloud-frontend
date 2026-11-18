@@ -10,18 +10,19 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAction } from '@/hooks/use-action'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
-import { api } from '@/lib/api'
-import { formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
+import { api, errorText } from '@/lib/api'
+import { t, type Key } from '@/lib/i18n'
+import { filesCount, formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
-import { forgetTask, taskFraction, forgetTasks, TASK_STAGE, TASK_STATUS, trackTask, useTrackedTasks } from '@/lib/tasks'
+import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks } from '@/lib/tasks'
 import { type TasksFilter, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
 
-const FILTERS: [TasksFilter, string][] = [
-  ['all', 'Все'],
-  ['active_and_failed', 'Активные и ошибки'],
+const FILTERS: [TasksFilter, Key][] = [
+  ['all', 'tasks.filterAll'],
+  ['active_and_failed', 'tasks.filterActive'],
 ]
 
 export function TasksPage() {
@@ -37,25 +38,25 @@ export function TasksPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-2">
-        <PageTitle text="Задачи" />
+        <PageTitle text={t('nav.tasks')} />
         {finished.length > 0 && (
           <Button variant="outline" onClick={() => forgetTasks(finished)}>
-            Убрать завершённые
+            {t('tasks.clearFinished')}
           </Button>
         )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">Здесь показаны задачи, запущенные из этого браузера.</p>
-        <div role="group" aria-label="Фильтр задач" className="flex">
+        <p className="text-sm text-muted-foreground">{t('tasks.hint')}</p>
+        <div role="group" aria-label={t('tasks.filter')} className="flex">
           {FILTERS.map(([value, label]) => (
             <Button key={value} size="sm" variant={filter === value ? 'default' : 'outline'} aria-pressed={filter === value} onClick={() => setFilter(value)}>
-              {label}
+              {t(label)}
             </Button>
           ))}
         </div>
       </div>
-      {ids.length === 0 && <p className="text-muted-foreground">Задач нет.</p>}
-      {ids.length > 0 && all.length > 0 && tasks.length === 0 && <p className="text-muted-foreground">Активных задач и ошибок нет.</p>}
+      {ids.length === 0 && <p className="text-muted-foreground">{t('tasks.none')}</p>}
+      {ids.length > 0 && all.length > 0 && tasks.length === 0 && <p className="text-muted-foreground">{t('tasks.noneActive')}</p>}
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
       ))}
@@ -77,7 +78,7 @@ function TaskCard({ task }: { task: Task }) {
     },
   })
 
-  const status = TASK_STATUS[task.status] ?? { label: task.status, variant: 'outline' as const }
+  const status = { label: statusLabel(task.status), variant: TASK_STATUS[task.status]?.variant ?? ('outline' as const) }
   const finished = isFinished(task)
   const { name, where } = taskTitle(task, useStorages().data ?? [])
   const fraction = taskFraction(task)
@@ -88,40 +89,40 @@ function TaskCard({ task }: { task: Task }) {
       <CardContent className="grid gap-2 px-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
-          {!finished && <span className="text-xs text-muted-foreground">{TASK_STAGE[task.stage] ?? task.stage}</span>}
+          {!finished && <span className="text-xs text-muted-foreground">{stageLabel(task.stage)}</span>}
           <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
           <div className="flex items-center gap-1">
             {task.status === 'queued' && (
               <Select value={task.priority} onValueChange={(v) => priority.mutate(v as Priority)}>
-                <SelectTrigger size="sm" className="w-32" aria-label="Приоритет">
+                <SelectTrigger size="sm" className="w-32" aria-label={t('upload.priority')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">низкий</SelectItem>
-                  <SelectItem value="normal">обычный</SelectItem>
-                  <SelectItem value="high">высокий</SelectItem>
+                  <SelectItem value="low">{t('priority.low')}</SelectItem>
+                  <SelectItem value="normal">{t('priority.normal')}</SelectItem>
+                  <SelectItem value="high">{t('priority.high')}</SelectItem>
                 </SelectContent>
               </Select>
             )}
             {task.status === 'done' && task.archive && (
               <Button size="sm" asChild>
                 <a href={`/api/tasks/${task.id}/archive`} download={task.archive.name} onClick={() => markRead(task.path)}>
-                  <DownloadIcon /> Скачать
+                  <DownloadIcon /> {t('common.download')}
                 </a>
               </Button>
             )}
             {(task.status === 'failed' || task.status === 'cancelled') && task.archive == null && (
               <Button size="sm" variant="outline" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                <RotateCcwIcon /> Повторить
+                <RotateCcwIcon /> {t('tasks.retry')}
               </Button>
             )}
             {!finished && (
               <Button size="sm" variant="outline" onClick={() => cancel.mutate()} disabled={task.cancel_requested}>
-                <XIcon /> Отменить
+                <XIcon /> {t('tasks.cancel')}
               </Button>
             )}
             {finished && (
-              <Button size="icon-sm" variant="ghost" onClick={() => forgetTask(task.id)} aria-label="Убрать из списка">
+              <Button size="icon-sm" variant="ghost" onClick={() => forgetTask(task.id)} aria-label={t('tasks.forget')}>
                 <XIcon />
               </Button>
             )}
@@ -136,26 +137,26 @@ function TaskCard({ task }: { task: Task }) {
             {formatBytes(task.bytes_done)} / {formatBytes(task.bytes_total)}
             {percent != null && ` · ${percent.toFixed(0)}%`}
           </span>
-          {task.speed != null && !finished && <span>{formatBytes(task.speed)}/с</span>}
-          {task.eta != null && !finished && <span>осталось {formatDuration(task.eta)}</span>}
-          {task.queue_position != null && <span>место в очереди: {task.queue_position}</span>}
+          {task.speed != null && !finished && <span>{t('tasks.speed', { speed: formatBytes(task.speed) })}</span>}
+          {task.eta != null && !finished && <span>{t('tasks.eta', { time: formatDuration(task.eta) })}</span>}
+          {task.queue_position != null && <span>{t('tasks.queuePosition', { n: task.queue_position })}</span>}
           {task.waiting && (
             <span>
-              ждёт: {task.waiting.reason}
-              {task.waiting.seconds != null && ` (${task.waiting.seconds} с)`}
+              {t('tasks.waiting', { reason: task.waiting.reason })}
+              {task.waiting.seconds != null && ` (${t('tasks.seconds', { n: task.waiting.seconds })})`}
             </span>
           )}
           {task.archive && (
             <span>
-              {task.archive.files} файлов{task.archive.size != null && ` · ${formatBytes(task.archive.size)}`}
-              {task.archive.expires_at && ` · хранится до ${formatDate(task.archive.expires_at)}`}
+              {filesCount(task.archive.files)}{task.archive.size != null && ` · ${formatBytes(task.archive.size)}`}
+              {task.archive.expires_at && ` · ${t('tasks.keptUntil', { date: formatDate(task.archive.expires_at) })}`}
             </span>
           )}
           <span>{formatDate(task.created_at)}</span>
         </div>
         {task.error && (
           <p className="text-sm text-destructive">
-            {task.error.message} ({task.error.code})
+            {errorText(task.error)} ({task.error.code})
           </p>
         )}
         {task.warnings.map((warning) => (

@@ -34,10 +34,11 @@ import { ApiError, api, errorMessage } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
 import { isUnavailable, storageName } from '@/lib/names'
-import { migrateLegacy } from '@/lib/settings'
+import { migrateLegacy, updateSettings } from '@/lib/settings'
 import { setTheme, useTheme } from '@/lib/theme'
 import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { t, useLang } from '@/lib/i18n'
 
 const showError = (error: unknown) => toast.error(errorMessage(error))
 
@@ -123,8 +124,8 @@ function ThemeSwitch({ collapsed }: { collapsed: boolean }) {
       type="button"
       role="switch"
       aria-checked={dark}
-      aria-label="Тёмная тема"
-      title={dark ? 'Тёмная тема' : 'Светлая тема'}
+      aria-label={t('theme.dark')}
+      title={t(dark ? 'theme.dark' : 'theme.light')}
       onClick={() => setTheme(dark ? 'light' : 'dark').catch(showError)}
       className={cn(
         "relative inline-flex h-7 w-13 shrink-0 items-center border p-0.5 after:absolute after:-inset-2 after:content-['']",
@@ -139,6 +140,22 @@ function ThemeSwitch({ collapsed }: { collapsed: boolean }) {
       >
         {dark ? <MoonIcon className="size-3.5" /> : <SunIcon className="size-3.5" />}
       </span>
+    </button>
+  )
+}
+
+function LangSwitch({ collapsed }: { collapsed: boolean }) {
+  const lang = useLang()
+  const next = lang === 'ru' ? 'en' : 'ru'
+  return (
+    <button
+      type="button"
+      onClick={() => updateSettings({ interface: { language: next } }).catch(showError)}
+      aria-label={t('nav.language', { lang: next.toUpperCase() })}
+      title={t('nav.language', { lang: next.toUpperCase() })}
+      className={cn("fx-label relative inline-flex h-7 w-9 shrink-0 items-center justify-center border text-[10px] after:absolute after:-inset-2 after:content-['']", collapsed && 'w-7')}
+    >
+      {lang.toUpperCase()}
     </button>
   )
 }
@@ -161,7 +178,7 @@ function Sidebar({
   const pill = useRef<HTMLDivElement>(null)
   const storages = useStorages()
   const admin = [
-    { to: '/users', label: 'Пользователи', icon: UsersIcon, show: isAdmin(me) },
+    { to: '/users', label: t('nav.users'), icon: UsersIcon, show: isAdmin(me) },
     { to: '/telegram', label: 'Telegram', icon: SendIcon, show: me.role === 'root' },
   ].filter((link) => link.show)
   const filesActive = location.pathname === '/files'
@@ -178,14 +195,14 @@ function Sidebar({
   }, [location.pathname, location.search, collapsed, storages.data?.length])
 
   return (
-    <nav aria-label="Основная навигация" className="flex h-full flex-col gap-3">
+    <nav aria-label={t('nav.main')} className="flex h-full flex-col gap-3">
       <div className="fx-panel flex min-h-0 flex-1 flex-col gap-4 p-3">
         <div className={cn('flex items-center gap-2', collapsed ? 'flex-col' : 'justify-between pl-1')}>
-          <Link to="/dashboard" onClick={onNavigate} className="flex h-9 items-center rounded-md px-1" aria-label="tcloud — дашборд">
+          <Link to="/dashboard" onClick={onNavigate} className="flex h-9 items-center rounded-md px-1" aria-label={t('nav.home')}>
             <Brand short={collapsed} />
           </Link>
           {onCollapse && (
-            <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label={collapsed ? 'Развернуть панель' : 'Свернуть панель'} aria-expanded={!collapsed}>
+            <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label={t(collapsed ? 'nav.expand' : 'nav.collapse')} aria-expanded={!collapsed}>
               {collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
             </Button>
           )}
@@ -194,7 +211,7 @@ function Sidebar({
           variant="outline"
           size={collapsed ? 'icon' : 'default'}
           className={cn('text-muted-foreground', collapsed ? 'self-center' : 'h-10 justify-between px-3')}
-          aria-label="Команды и поиск (Ctrl+K)"
+          aria-label={t('nav.paletteKey')}
           onClick={() => {
             onNavigate()
             openPalette()
@@ -205,7 +222,7 @@ function Sidebar({
           ) : (
             <>
               <span className="flex items-center gap-2">
-                <SearchIcon /> Поиск
+                <SearchIcon /> {t('nav.search')}
               </span>
               <kbd className="fx-label text-[10px]">Ctrl K</kbd>
             </>
@@ -213,21 +230,21 @@ function Sidebar({
         </Button>
         <div ref={list} className="relative -mx-1 grid min-h-0 flex-1 content-start gap-1 overflow-y-auto px-1">
           <div ref={pill} className="fx-pill opacity-0" data-collapsed={collapsed} aria-hidden />
-          <Item to="/dashboard" label="Дашборд" icon={GaugeIcon} collapsed={collapsed} onNavigate={onNavigate} />
+          <Item to="/dashboard" label={t('nav.dashboard')} icon={GaugeIcon} collapsed={collapsed} onNavigate={onNavigate} />
           <Link
             to="/files"
             onClick={onNavigate}
-            title={collapsed ? 'Хранилища' : undefined}
+            title={collapsed ? t('nav.storages') : undefined}
             aria-current={filesActive && !location.search ? 'page' : undefined}
             data-active={filesActive && (collapsed || !storages.data?.length)}
             className={cn(item, collapsed && 'justify-center px-0', filesActive && 'text-foreground')}
           >
             <HardDriveIcon className="size-[1.125rem] shrink-0" />
-            <span className={cn('truncate', collapsed && 'sr-only')}>Хранилища</span>
+            <span className={cn('truncate', collapsed && 'sr-only')}>{t('nav.storages')}</span>
           </Link>
           {!collapsed && <StorageLinks onNavigate={onNavigate} />}
-          <Item to="/tasks" label="Задачи" icon={ListChecksIcon} collapsed={collapsed} onNavigate={onNavigate} />
-          <Item to="/settings" label="Настройки" icon={SettingsIcon} collapsed={collapsed} onNavigate={onNavigate} />
+          <Item to="/tasks" label={t('nav.tasks')} icon={ListChecksIcon} collapsed={collapsed} onNavigate={onNavigate} />
+          <Item to="/settings" label={t('nav.settings')} icon={SettingsIcon} collapsed={collapsed} onNavigate={onNavigate} />
           {admin.length > 0 && (
             <div
               role="group"
@@ -235,7 +252,7 @@ function Sidebar({
               className={cn('fx-dotted mt-5 grid gap-1 border-2 px-1 pb-1', collapsed && 'mt-2 border-x-0 border-b-0 px-0 pt-2 pb-0')}
             >
               <h2 id="nav-admin" className={cn('fx-group-label -mt-[0.75em] ml-2 justify-self-start bg-card px-1.5', collapsed && 'sr-only')}>
-                <ShieldIcon className="size-3.5" aria-hidden /> Администрирование
+                <ShieldIcon className="size-3.5" aria-hidden /> {t('nav.admin')}
               </h2>
               {admin.map((link) => (
                 <Item key={link.to} {...link} collapsed={collapsed} onNavigate={onNavigate} />
@@ -249,7 +266,7 @@ function Sidebar({
         <NavLink
           to="/account"
           onClick={onNavigate}
-          title="Аккаунт"
+          title={t('nav.account')}
           className={({ isActive }) =>
             cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 pr-2 transition-colors hover:bg-secondary', collapsed && 'flex-none pr-1', isActive && 'outline outline-1 outline-foreground')
           }
@@ -264,8 +281,9 @@ function Sidebar({
             </span>
           </span>
         </NavLink>
+        <LangSwitch collapsed={collapsed} />
         <ThemeSwitch collapsed={collapsed} />
-        <Button variant="ghost" size="icon-sm" onClick={onLogout} aria-label="Выйти" title="Выйти">
+        <Button variant="ghost" size="icon-sm" onClick={onLogout} aria-label={t('nav.logout')} title={t('nav.logout')}>
           <LogOutIcon />
         </Button>
       </div>
@@ -289,7 +307,7 @@ export function Layout() {
   if (me.error instanceof ApiError && me.error.status === 401) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
-  if (me.isPending) return <div className="p-8 text-sm text-muted-foreground">Загрузка…</div>
+  if (me.isPending) return <div className="p-8 text-sm text-muted-foreground">{t('common.loading')}</div>
   if (me.error) return <div className="p-8 text-destructive">{me.error.message}</div>
 
   async function logout() {
@@ -312,14 +330,14 @@ export function Layout() {
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <header className="fx-panel sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 mx-[max(0.5rem,env(safe-area-inset-left))] mt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 px-2 py-1.5 md:hidden">
           <DialogPrimitive.Trigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Меню">
+            <Button variant="ghost" size="icon" aria-label={t('nav.menu')}>
               <MenuIcon />
             </Button>
           </DialogPrimitive.Trigger>
-          <Link to="/dashboard" className="flex items-center rounded-md px-1 py-2 pointer-coarse:py-3" aria-label="tcloud — дашборд">
+          <Link to="/dashboard" className="flex items-center rounded-md px-1 py-2 pointer-coarse:py-3" aria-label={t('nav.home')}>
             <Brand />
           </Link>
-          <Button variant="ghost" size="icon" className="ml-auto" aria-label="Команды и поиск" onClick={openPalette}>
+          <Button variant="ghost" size="icon" className="ml-auto" aria-label={t('nav.palette')} onClick={openPalette}>
             <SearchIcon />
           </Button>
         </header>
@@ -329,9 +347,9 @@ export function Layout() {
             aria-describedby={undefined}
             className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] outline-none md:hidden data-open:animate-in data-open:slide-in-from-left"
           >
-            <DialogPrimitive.Title className="sr-only">Меню</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="sr-only">{t('nav.menu')}</DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
-              <Button variant="ghost" size="icon-sm" className="absolute top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] right-5 z-20" aria-label="Закрыть меню">
+              <Button variant="ghost" size="icon-sm" className="absolute top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] right-5 z-20" aria-label={t('nav.closeMenu')}>
                 <XIcon />
               </Button>
             </DialogPrimitive.Close>

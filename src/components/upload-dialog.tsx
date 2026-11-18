@@ -7,13 +7,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { api, errorMessage } from '@/lib/api'
+import { api, errorMessage, errorText } from '@/lib/api'
 import type { Picked } from '@/lib/dir-upload'
-import { formatBytes, joinPath, parseUrlLines } from '@/lib/format'
+import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
 import { uploadOptions, useSettings } from '@/lib/settings'
 import { finishSending, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
+import { t } from '@/lib/i18n'
 
 type Options = Omit<UploadOptions, 'path'>
 
@@ -27,38 +28,38 @@ function OptionsFields({ options, setOptions }: { options: Options; setOptions: 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       <div className="grid gap-1.5">
-        <Label>Отправить как</Label>
+        <Label>{t('upload.sendAs')}</Label>
         <Select
           value={options.send_as}
           onValueChange={(v) => setOptions(withSendAs(options, v as SendAs))}
         >
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="file">файл (оригинал)</SelectItem>
-            <SelectItem value="media">медиа (сжатие)</SelectItem>
+            <SelectItem value="file">{t('sendAs.file')}</SelectItem>
+            <SelectItem value="media">{t('sendAs.media')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="grid gap-1.5">
-        <Label>Если файл есть</Label>
+        <Label>{t('upload.onConflict')}</Label>
         <Select value={options.on_conflict} onValueChange={(v) => setOptions({ ...options, on_conflict: v as OnConflict })}>
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="error">ошибка</SelectItem>
-            <SelectItem value="replace">заменить</SelectItem>
-            <SelectItem value="keep_both">оставить оба</SelectItem>
-            <SelectItem value="skip">пропустить</SelectItem>
+            <SelectItem value="error">{t('conflict.error')}</SelectItem>
+            <SelectItem value="replace">{t('conflict.replace')}</SelectItem>
+            <SelectItem value="keep_both">{t('conflict.keepBoth')}</SelectItem>
+            <SelectItem value="skip">{t('conflict.skip')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="grid gap-1.5">
-        <Label>Приоритет</Label>
+        <Label>{t('upload.priority')}</Label>
         <Select value={options.priority} onValueChange={(v) => setOptions({ ...options, priority: v as Priority })}>
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">низкий</SelectItem>
-            <SelectItem value="normal">обычный</SelectItem>
-            <SelectItem value="high">высокий</SelectItem>
+            <SelectItem value="low">{t('priority.low')}</SelectItem>
+            <SelectItem value="normal">{t('priority.normal')}</SelectItem>
+            <SelectItem value="high">{t('priority.high')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -68,14 +69,14 @@ function OptionsFields({ options, setOptions }: { options: Options; setOptions: 
           disabled={options.send_as === 'media'}
           onCheckedChange={(v) => setOptions({ ...options, encrypt: v === true })}
         />
-        Зашифровать (только «файл»)
+        {t('upload.encrypt')}
       </label>
       <label className="flex items-center gap-2 text-sm sm:col-span-3">
         <Checkbox
           checked={options.allow_unscannable}
           onCheckedChange={(v) => setOptions({ ...options, allow_unscannable: v === true })}
         />
-        Принимать файлы, которые антивирус не может проверить
+        {t('upload.unscannable')}
       </label>
     </div>
   )
@@ -97,7 +98,7 @@ export function UploadDialog({
     const queue = files.map(({ file, path }) => ({ file, path: joinPath(folder, path), id: startSending(joinPath(folder, path), file.size) }))
     onClose()
     setOptions(null)
-    toast.success(`В очереди на отправку: ${queue.length}`)
+    toast.success(t('upload.queuedSend', { n: queue.length }))
     for (const { file, path, id } of queue) {
       try {
         const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded))
@@ -121,9 +122,9 @@ export function UploadDialog({
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Загрузка в {folder.split('/').slice(2).join('/') || 'корень'}</DialogTitle>
+          <DialogTitle>{t('upload.title', { folder: folder.split('/').slice(2).join('/') || t('upload.root') })}</DialogTitle>
           <p className="text-xs text-muted-foreground">
-            файлов: {files.length} · {formatBytes(total)}
+            {filesCount(files.length)} · {formatBytes(total)}
           </p>
         </DialogHeader>
         <ul className="grid max-h-48 gap-2 overflow-y-auto text-sm">
@@ -139,7 +140,7 @@ export function UploadDialog({
         <OptionsFields options={options} setOptions={setOptions} />
         <DialogFooter>
           <Button onClick={start}>
-            <UploadIcon /> Загрузить
+            <UploadIcon /> {t('folder.upload')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -158,7 +159,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
     try {
       items = parseUrlLines(text, folder).map((item) => ({ ...item, ...options }))
     } catch {
-      toast.error('Неверная ссылка')
+      toast.error(t('upload.badLink'))
       return
     }
     setBusy(true)
@@ -166,10 +167,10 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
       const result = await api.post<BatchResponse>('/uploads/batch', { items })
       result.items.forEach((item) => {
         if (item.task) trackTask(item.task.id)
-        if (item.error) toast.error(`${item.path.split('/').pop()}: ${item.error.message}`)
+        if (item.error) toast.error(`${item.path.split('/').pop()}: ${errorText(item.error)}`)
       })
       const queued = result.items.filter((item) => item.task).length
-      if (queued) toast.success(`В очереди: ${queued}`)
+      if (queued) toast.success(t('upload.queued', { n: queued }))
       setText('')
       setOptions(null)
       onOpenChange(false)
@@ -190,11 +191,11 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Загрузка по ссылкам</DialogTitle>
+          <DialogTitle>{t('upload.urlTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="urls">Ссылки, по одной в строке (до 100). Имя: «ссылка | имя»</Label>
+            <Label htmlFor="urls">{t('upload.urlLabel')}</Label>
             <Textarea
               id="urls"
               rows={5}
@@ -207,7 +208,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
           <OptionsFields options={options} setOptions={setOptions} />
           <DialogFooter>
             <Button type="submit" disabled={busy}>
-              <LinkIcon /> Поставить в очередь
+              <LinkIcon /> {t('upload.enqueue')}
             </Button>
           </DialogFooter>
         </form>

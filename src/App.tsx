@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { NotFound } from '@/components/extras'
 import { Layout } from '@/components/layout'
 import { useFeature } from '@/lib/features'
+import { useLang } from '@/lib/i18n'
 import { startPath, useSettings } from '@/lib/settings'
 import { AccountPage } from '@/pages/account'
 import { DashboardPage } from '@/pages/dashboard'
@@ -14,7 +15,7 @@ import { TelegramPage } from '@/pages/telegram'
 import { UserPage } from '@/pages/user'
 import { UsersPage } from '@/pages/users'
 
-export default function App() {
+function AppRoutes() {
   const eggs = useFeature('eggs')
   const start = startPath(useSettings())
   return (
@@ -35,4 +36,8 @@ export default function App() {
       </Route>
     </Routes>
   )
+}
+
+export default function App() {
+  return <AppRoutes key={useLang()} />
 }

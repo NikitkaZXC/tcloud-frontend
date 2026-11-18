@@ -15,10 +15,11 @@ import { channelUsage, HEALTH_LABELS, healthChecks, storageTotals, taskCounts, t
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
-import { TASK_STAGE, taskFraction, useTrackedTasks } from '@/lib/tasks'
+import { stageLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
 import { useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
+import { t } from '@/lib/i18n'
 
 const MAX_FILE = 4 * 1024 ** 3
 
@@ -40,22 +41,22 @@ function SystemSection() {
   const ok = checks.filter(([, value]) => value).length
 
   return (
-    <Section label="Система">
-      {health.isPending && <StatusChip status="wait" label="проверка" />}
+    <Section label={t('dashboard.system')}>
+      {health.isPending && <StatusChip status="wait" label={t('dashboard.checking')} />}
       {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
       {checks.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
           <Ring
             size="lg"
             value={ok / checks.length}
-            label={health.data?.ok ? 'в норме' : 'есть сбой'}
-            caption={`${ok} из ${checks.length} компонентов`}
+            label={t(health.data?.ok ? 'dashboard.healthy' : 'dashboard.unhealthy')}
+            caption={t('dashboard.components', { ok, n: checks.length })}
             tone={health.data?.ok ? 'ok' : 'fail'}
           />
           <ul className={`fx-stagger ${rings} flex-1`}>
             {checks.map(([key, value]) => (
               <li key={key}>
-                <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ?? key} tone={value ? 'ok' : 'fail'} />
+                <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ? t(HEALTH_LABELS[key]) : key} tone={value ? 'ok' : 'fail'} />
               </li>
             ))}
           </ul>
@@ -71,28 +72,28 @@ function ChannelsSection() {
   const usage = channelUsage(account.data, storages.length)
 
   return (
-    <Section label="Каналы">
+    <Section label={t('dashboard.channels')}>
       {account.error instanceof ApiError && account.error.code === 'telegram_unauthorized' ? (
-        <p className="text-sm text-muted-foreground">Telegram не подключён: лимиты аккаунта появятся после входа.</p>
+        <p className="text-sm text-muted-foreground">{t('dashboard.telegramOff')}</p>
       ) : (
         account.error && <p className="text-sm text-destructive">{account.error.message}</p>
       )}
       <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
         <ChannelsRing usage={usage} />
         <div className={rings}>
-          {usage.accountWide && <Ring value={storages.length / Math.max(usage.used, 1)} center={storages.length} label="хранилищ" caption="из каналов аккаунта" />}
+          {usage.accountWide && <Ring value={storages.length / Math.max(usage.used, 1)} center={storages.length} label={t('dashboard.storagesShort')} caption={t('dashboard.ofAccountChannels')} />}
           {account.data && (
-            <Ring value={account.data.premium ? 1 : 0} center={account.data.premium ? 'да' : 'нет'} label="premium" caption={`лимит каналов ${usage.limit}`} tone={account.data.premium ? 'ok' : 'idle'} />
+            <Ring value={account.data.premium ? 1 : 0} center={t(account.data.premium ? 'common.yes' : 'common.no')} label="premium" caption={t('dashboard.channelLimit', { n: usage.limit })} tone={account.data.premium ? 'ok' : 'idle'} />
           )}
           {account.data && (
-            <Ring value={account.data.file_limit / MAX_FILE} center={formatBytes(account.data.file_limit)} label="лимит файла" caption="из 4 GB с Premium" />
+            <Ring value={account.data.file_limit / MAX_FILE} center={formatBytes(account.data.file_limit)} label={t('dashboard.fileLimit')} caption={t('dashboard.fileLimitCaption')} />
           )}
         </div>
       </div>
       <p className="max-w-xl text-xs text-muted-foreground">
-        Лимит считает все каналы и группы аккаунта Telegram, не только хранилища.{' '}
+        {t('dashboard.limitHint')}{' '}
         <Link to="/files" className="fx-more">
-          Хранилища
+          {t('nav.storages')}
         </Link>
       </p>
     </Section>
@@ -108,14 +109,14 @@ function ActivitySection() {
   const total = Math.max(tasks.length + sending.length, 1)
   const running = tasks.filter((task) => task.status === 'running' || task.status === 'queued')
   const statuses: [string, number, 'busy' | 'idle' | 'ok' | 'fail'][] = [
-    ['в работе', counts.running + sending.length, 'busy'],
-    ['в очереди', counts.queued, 'idle'],
-    ['готово', counts.done, 'ok'],
-    ['ошибки', counts.failed + counts.cancelled, 'fail'],
+    [t('dashboard.running'), counts.running + sending.length, 'busy'],
+    [t('status.queued'), counts.queued, 'idle'],
+    [t('status.done'), counts.done, 'ok'],
+    [t('dashboard.errors'), counts.failed + counts.cancelled, 'fail'],
   ].filter(([, , tone]) => filter === 'all' || tone !== 'ok') as [string, number, 'busy' | 'idle' | 'ok' | 'fail'][]
 
   return (
-    <Section label="Активность">
+    <Section label={t('dashboard.activity')}>
       <ul className={rings}>
         {statuses.map(([label, count, tone]) => (
           <li key={label}>
@@ -126,13 +127,13 @@ function ActivitySection() {
       {sending.length + running.length > 0 && (
         <div className="fx-dotted flex flex-wrap items-center justify-center gap-8 border-t pt-5 sm:justify-start">
           <Speedometer transfer={transferStats(sending, tasks)} />
-            <ul className={`fx-stagger ${rings} flex-1`} aria-label="Загрузки в процессе">
+            <ul className={`fx-stagger ${rings} flex-1`} aria-label={t('dashboard.inProgress')}>
           {sending.slice(0, 8).map((item) => (
             <li key={`s${item.id}`} className="w-28">
               <Ring
                 size="sm"
                 value={item.loaded / Math.max(item.total, 1)}
-                label="отправка"
+                label={t('dashboard.sending')}
                 caption={<span className="block max-w-28 truncate" title={humanPath(item.path, storages)}>{fileName(item.path)}</span>}
                 tone="busy"
               />
@@ -143,7 +144,7 @@ function ActivitySection() {
               <Ring
                 size="sm"
                 value={task.status === 'queued' ? 0 : taskFraction(task)}
-                label={task.status === 'queued' ? (task.queue_position != null ? `очередь #${task.queue_position}` : 'в очереди') : (TASK_STAGE[task.stage] ?? task.stage)}
+                label={task.status === 'queued' ? (task.queue_position != null ? t('dashboard.queueN', { n: task.queue_position }) : t('status.queued')) : stageLabel(task.stage)}
                 caption={<span className="block max-w-28 truncate" title={taskTitle(task, storages).where}>{taskTitle(task, storages).name}</span>}
                 tone={task.archive ? 'read' : 'busy'}
               />
@@ -153,7 +154,7 @@ function ActivitySection() {
         </div>
       )}
       <Button asChild variant="outline" size="sm" className="justify-self-start">
-        <Link to="/tasks">Все задачи</Link>
+        <Link to="/tasks">{t('dashboard.allTasks')}</Link>
       </Button>
     </Section>
   )
@@ -165,10 +166,10 @@ function StoragesSection() {
   const io = useStorageIo(storages.data ?? [])
 
   return (
-    <Section label="Хранилища">
-      {storages.isPending && <StatusChip status="wait" label="загрузка" />}
+    <Section label={t('nav.storages')}>
+      {storages.isPending && <StatusChip status="wait" label={t('dashboard.loading')} />}
       {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
-      {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">Хранилищ пока нет</p>}
+      {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('dashboard.noStorages')}</p>}
       <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
         {storages.data?.map((storage) => (
           <li key={storage.id}>
@@ -192,12 +193,12 @@ function UsersSection() {
   ]
 
   return (
-    <Section label="Пользователи">
+    <Section label={t('nav.users')}>
       {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
       <ul className={`fx-stagger ${rings}`}>
         {rows.map(([label, count]) => (
           <li key={label}>
-            <Ring size="sm" value={count / total} center={count} label={label} tone={label === 'blocked' && count ? 'fail' : undefined} />
+            <Ring size="sm" value={count / total} center={count} label={label === 'blocked' ? t('dashboard.blocked') : label} tone={label === 'blocked' && count ? 'fail' : undefined} />
           </li>
         ))}
       </ul>
@@ -215,12 +216,12 @@ function Checklist() {
   if (steps.every((step) => step.done)) return <Achievements files={0} size={0} checklist />
 
   return (
-    <Section label="Первый запуск">
+    <Section label={t('dashboard.firstRun')}>
       <div className="-mb-3 flex justify-end">
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Скрыть чек-лист"
+          aria-label={t('dashboard.hideChecklist')}
           onClick={() => {
             dismiss()
             setHidden(true)
@@ -232,7 +233,7 @@ function Checklist() {
       <ol className="fx-stagger grid gap-2 text-sm">
         {steps.map((step, i) => (
           <li key={step.key} className="flex flex-wrap items-center gap-2">
-            <StatusChip status={step.done ? 'ok' : 'wait'} label={step.done ? 'готово' : 'нужно'} />
+            <StatusChip status={step.done ? 'ok' : 'wait'} label={t(step.done ? 'status.done' : 'dashboard.todo')} />
             <span className={step.done ? 'text-muted-foreground line-through' : ''}>
               {i + 1}. {step.label}
             </span>
@@ -258,22 +259,22 @@ export function DashboardPage() {
     <div className="grid">
       <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
         <div className="grid gap-4">
-          <PageTitle text="Дашборд" eyebrow="Хранилища, задачи и состояние системы — то, что уже знает API." className="text-[40px] sm:text-[50px] md:text-[80px]" />
+          <PageTitle text={t('nav.dashboard')} eyebrow={t('dashboard.eyebrow')} className="text-[40px] sm:text-[50px] md:text-[80px]" />
         </div>
         <WireCubes className="hidden w-64 md:block" />
       </header>
       <Achievements files={totals.files} size={totals.size} checklist={false} />
       {me?.role === 'root' && <Checklist />}
-      <section aria-label="Сводка" className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l lg:[&>*:not(:first-child)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0">
-        <Stat label="файлов загружено" value={totals.files} />
-        <Stat label="объём во всех хранилищах" value={totals.size} format={formatBytes} />
-        <Stat label="хранилищ" value={totals.storages} />
-        <Stat label="задач в работе" value={active} />
+      <section aria-label={t('dashboard.summary')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l lg:[&>*:not(:first-child)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0">
+        <Stat label={t('dashboard.filesUploaded')} value={totals.files} />
+        <Stat label={t('dashboard.totalSize')} value={totals.size} format={formatBytes} />
+        <Stat label={t('dashboard.storagesShort')} value={totals.storages} />
+        <Stat label={t('dashboard.activeTasks')} value={active} />
       </section>
       <ChannelsSection />
       <StoragesSection />
       <ActivitySection />
-      <Section label="Карта загрузок">
+      <Section label={t('dashboard.map')}>
         <ActivityMap />
       </Section>
       <SystemSection />

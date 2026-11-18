@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useFileActivity } from '@/hooks/use-activity'
 import { activityGrid, type Transfer } from '@/lib/dashboard'
-import { formatBytes, formatDuration } from '@/lib/format'
+import { filesCount, formatBytes, formatDuration } from '@/lib/format'
+import { t } from '@/lib/i18n'
 
 const SCALES = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
 const MB = 1024 * 1024
@@ -45,11 +46,11 @@ export function Speedometer({ transfer }: { transfer: Transfer }) {
       </svg>
       <figcaption className="grid justify-items-center gap-1">
         <span className="flex items-baseline gap-1.5">
-          <Flap text={value} label={`${value} мегабайт в секунду`} />
+          <Flap text={value} label={t('meter.mbps', { value })} />
           <span className="fx-label">MB/s</span>
         </span>
         <span className="text-xs text-muted-foreground tabular-nums">
-          шкала до {max} MB/s{transfer.eta != null && ` · осталось ${formatDuration(Math.ceil(transfer.eta))}`}
+          {t('meter.scale', { max })}{transfer.eta != null && ` · ${t('tasks.eta', { time: formatDuration(Math.ceil(transfer.eta)) })}`}
         </span>
       </figcaption>
     </figure>
@@ -61,31 +62,31 @@ export function ActivityMap() {
   const [today] = useState(() => new Date().toISOString().slice(0, 10))
   const data = activity.data
   const weeks = activityGrid(data?.items ?? [], data?.until ?? today, data?.days ?? 365)
-  const summary = data ? `за ${data.days} дн. загружено ${data.files} файлов, ${formatBytes(data.size)}` : 'нет данных'
+  const summary = data ? t('map.summary', { days: data.days, files: filesCount(data.files), size: formatBytes(data.size) }) : t('common.noData')
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {data && <span className="fx-pixel text-[30px]">{data.files}</span>}
-        <span className="text-sm text-muted-foreground">{activity.isPending ? 'загрузка…' : summary}</span>
+        <span className="text-sm text-muted-foreground">{activity.isPending ? t('common.loading') : summary}</span>
       </div>
       <div className="overflow-x-auto pb-1">
-        <div className="fx-heat" role="img" aria-label={`Карта загрузок: ${summary}`}>
+        <div className="fx-heat" role="img" aria-label={`${t('dashboard.map')}: ${summary}`}>
           {weeks.map((week) => (
             <div key={week[0].date} className="grid gap-[2px]">
               {week.map((cell) => (
-                <span key={cell.date} className="fx-heat-cell" data-level={cell.level} title={`${cell.date}: ${cell.files} файлов, ${formatBytes(cell.size)}`} />
+                <span key={cell.date} className="fx-heat-cell" data-level={cell.level} title={`${cell.date}: ${filesCount(cell.files)}, ${formatBytes(cell.size)}`} />
               ))}
             </div>
           ))}
         </div>
       </div>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden>
-        меньше
+        {t('map.less')}
         {[0, 1, 2, 3, 4].map((level) => (
           <span key={level} className="fx-heat-cell" data-level={level} />
         ))}
-        больше
+        {t('map.more')}
       </div>
     </div>
   )

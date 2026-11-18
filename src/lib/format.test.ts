@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { crumbs, filesCount, formatBytes, formatDuration, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
+import { setLang } from './i18n'
 
 const root = 'tcloud/0190a2b4-0000-7000-8000-000000000000'
 
@@ -36,7 +37,11 @@ describe('parseUrlLines', () => {
 describe('format', () => {
   it('formats bytes and durations', () => {
     expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(1536)).toBe('1,5 KB')
+    setLang('en')
     expect(formatBytes(1536)).toBe('1.5 KB')
+    expect(filesCount(1)).toBe('1 file')
+    setLang('ru')
     expect(formatBytes(null)).toBe('—')
     expect(formatDuration(65)).toBe('1:05')
     expect(formatDuration(3725)).toBe('1:02:05')

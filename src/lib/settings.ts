@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { api, ApiError, errorMessage } from './api'
 import { parseSort, type Sort } from './files'
 import type { ArchiveFormat, OnConflict, Priority, SendAs, UploadOptions } from './types'
+import { t } from './i18n'
 
 export type Language = 'ru' | 'en'
 export type Theme = 'dark' | 'light'
@@ -232,10 +233,10 @@ export function uploadOptions(uploads: Settings['uploads']): Omit<UploadOptions,
 
 export function settingsError(error: unknown): string {
   if (!(error instanceof ApiError)) return errorMessage(error)
-  if (error.code === 'unsafe_url') return 'Нужна ссылка http(s) на публичный адрес: локальные и внутренние адреса запрещены'
+  if (error.code === 'unsafe_url') return t('settings.webhookUnsafe')
   if (error.code !== 'validation_error') return errorMessage(error)
   const detail = (Array.isArray(error.body.details) ? error.body.details : [])[0] as { loc?: unknown[]; type?: string } | undefined
   const field = String(detail?.loc?.at(-1) ?? '')
-  if (field === 'webhook_url') return detail?.type === 'string_too_long' ? 'Ссылка длиннее 2048 символов' : 'Ссылка не подходит'
-  return field ? `Недопустимое значение: ${field}` : 'Недопустимое значение'
+  if (field === 'webhook_url') return t(detail?.type === 'string_too_long' ? 'settings.webhookTooLong' : 'settings.webhookInvalid')
+  return field ? t('settings.invalidField', { field }) : t('settings.invalidValue')
 }

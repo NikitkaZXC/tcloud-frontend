@@ -4,6 +4,7 @@ import { openPalette } from '@/lib/commands'
 import type { Activity, ChannelUsage, Io } from '@/lib/dashboard'
 import { easeOut } from '@/lib/fx'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 export function PageTitle({ text, eyebrow, children, className }: { text: string; eyebrow?: ReactNode; children?: ReactNode; className?: string }) {
   return (
@@ -29,9 +30,9 @@ export function StatusLight({ ok }: { ok: boolean | 'wait' }) {
 }
 
 const STATUS = {
-  ok: ['готово', true, 'text-success'],
-  fail: ['ошибка', false, 'text-destructive'],
-  wait: ['ожидание', 'wait', 'text-warning'],
+  ok: ['status.done', true, 'text-success'],
+  fail: ['status.failed', false, 'text-destructive'],
+  wait: ['chip.wait', 'wait', 'text-warning'],
 } as const
 
 export function StatusChip({ status, label }: { status: keyof typeof STATUS; label?: string }) {
@@ -39,7 +40,7 @@ export function StatusChip({ status, label }: { status: keyof typeof STATUS; lab
   return (
     <span className={cn('fx-chip', tone)}>
       <StatusLight ok={light} />
-      {label ?? text}
+      {label ?? t(text)}
     </span>
   )
 }
@@ -71,7 +72,7 @@ export function Ring({
   return (
     <figure className="fx-ring" data-size={size} data-tone={tone} data-busy={value == null || undefined}>
       <div className="relative">
-        <svg viewBox="0 0 100 100" className="-rotate-90" role="img" aria-label={`${label}: ${value == null ? 'выполняется' : `${Math.round(value * 100)}%`}`}>
+        <svg viewBox="0 0 100 100" className="-rotate-90" role="img" aria-label={`${label}: ${value == null ? t('status.running') : `${Math.round(value * 100)}%`}`}>
           <defs>
             <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" style={{ stopColor: 'var(--ring-from)' }} />
@@ -113,8 +114,8 @@ export function ChannelsRing({ usage, size = 'lg' }: { usage: ChannelUsage; size
           <span className="text-[0.45em] text-muted-foreground">/ {usage.limit}</span>
         </span>
       }
-      label={usage.accountWide ? 'каналов использовано' : 'хранилищ из лимита'}
-      caption={usage.accountWide ? `${usage.used} из ${usage.limit}` : `хранилищ ${usage.used}, всего каналов — нет данных`}
+      label={t(usage.accountWide ? 'channels.used' : 'channels.storagesOfLimit')}
+      caption={t(usage.accountWide ? 'channels.usedOf' : 'channels.noData', { used: usage.used, limit: usage.limit })}
       tone={usage.used / usage.limit > 0.9 ? 'fail' : usage.used / usage.limit > 0.75 ? 'busy' : 'ok'}
     />
   )
@@ -165,7 +166,7 @@ export function StorageIcon({ id, io, off, scale = 2, className }: { id?: string
       data-write={write || undefined}
       data-off={off || undefined}
       role="img"
-      aria-label={off ? 'канал недоступен' : write && read ? 'запись и чтение' : write ? 'идёт запись' : read ? 'идёт чтение' : 'хранилище'}
+      aria-label={t(off ? 'io.off' : write && read ? 'io.both' : write ? 'io.writing' : read ? 'io.reading' : 'names.storage')}
     >
       {pixels(DRIVE)}
       {pixels(DRIVE_FAINT, 'fx-drive-faint')}
@@ -182,12 +183,12 @@ export function IoTag({ io, short }: { io?: Io; short?: boolean }) {
     <span className="flex shrink-0 gap-1" role="status">
       {(io === 'write' || io === 'both') && (
         <span className="fx-io" data-io="write">
-          ↓{short ? '' : ' запись'}
+          ↓{short ? '' : ` ${t('io.write')}`}
         </span>
       )}
       {(io === 'read' || io === 'both') && (
         <span className="fx-io" data-io="read">
-          ↑{short ? '' : ' чтение'}
+          ↑{short ? '' : ` ${t('io.read')}`}
         </span>
       )}
     </span>
@@ -197,8 +198,8 @@ export function IoTag({ io, short }: { io?: Io; short?: boolean }) {
 export const WRITTEN: Activity = { count: 0, percent: 100 }
 
 function activityLabel({ count, percent }: Activity): string {
-  if (!count) return 'записано'
-  return `загружается ${count}${percent != null ? ` · ${percent}%` : ''}`
+  if (!count) return t('io.written')
+  return `${t('io.uploading', { n: count })}${percent != null ? ` · ${percent}%` : ''}`
 }
 
 export function UploadPulse({ activity, compact }: { activity: Activity; compact?: boolean }) {
@@ -230,7 +231,7 @@ export function WireCubes({ className }: { className?: string }) {
 
 export function CornerHint() {
   return (
-    <button type="button" onClick={openPalette} className="fx-corner fx-label hidden md:block" aria-label="Команды и поиск (Ctrl+K)">
+    <button type="button" onClick={openPalette} className="fx-corner fx-label hidden md:block" aria-label={t('nav.paletteKey')}>
       Ctrl K
     </button>
   )

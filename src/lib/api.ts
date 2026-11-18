@@ -1,3 +1,4 @@
+import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody } from './types'
 
 export class ApiError extends Error {
@@ -76,7 +77,17 @@ export const api = {
 }
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return `${error.message} (${error.code})`
+  if (error instanceof ApiError) {
+    const key = `error.${error.code}`
+    return key in DICTIONARIES.ru ? t(key as Key) : `${error.message} (${error.code})`
+  }
+  if (error instanceof TypeError) return t('error.network')
   if (error instanceof Error) return error.message
   return String(error)
+}
+
+export function errorText(body: ApiErrorBody | null | undefined): string {
+  if (!body) return ''
+  const key = `error.${body.code}`
+  return key in DICTIONARIES.ru ? t(key as Key) : body.message
 }

@@ -14,9 +14,10 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
 import { type Activity, channelUsage, type Io, storageTotals } from '@/lib/dashboard'
-import { formatBytes } from '@/lib/format'
+import { filesCount, formatBytes } from '@/lib/format'
 import { isUnavailable, storageName } from '@/lib/names'
 import type { Account, Storage } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function StorageCard({ storage, activity, io, actions }: { storage: Storage; activity?: Activity; io?: Io; actions?: ReactNode }) {
   const to = `/files?path=${encodeURIComponent(storage.path)}`
@@ -37,16 +38,16 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
             <span>
               <span className="fx-pixel text-[20px] text-foreground">{storage.total_size != null ? formatBytes(storage.total_size) : '—'}</span>
             </span>
-            <span>{storage.files != null ? `${storage.files} файлов` : 'файлов — нет данных'}</span>
+            <span>{storage.files != null ? filesCount(storage.files) : t('storages.filesNoData')}</span>
           </p>
         ) : (
-          <p className="text-xs font-medium tracking-[0.08em] text-destructive uppercase">канал недоступен</p>
+          <p className="text-xs font-medium tracking-[0.08em] text-destructive uppercase">{t('io.off')}</p>
         )}
         {activity || io === 'write' || io === 'both' ? (
           <UploadPulse activity={activity ?? WRITTEN} />
         ) : (
           <Link to={to} className="fx-more justify-self-start" tabIndex={-1} aria-hidden>
-            Открыть
+            {t('folder.open')}
           </Link>
         )}
       </div>
@@ -67,33 +68,32 @@ export function StorageList() {
   return (
     <div className="grid">
       <div className="flex flex-wrap items-end justify-between gap-4 pb-6">
-        <PageTitle text="Хранилища" eyebrow="Каналы Telegram, где лежат файлы. Объём и число файлов — по данным API." />
+        <PageTitle text={t('nav.storages')} eyebrow={t('storages.eyebrow')} />
         {admin && <StorageForm />}
       </div>
-      <section aria-label="Итоги" className="fx-dotted mt-4 grid grid-cols-2 border-t sm:grid-cols-3 [&>*:not(:first-child)]:fx-dotted [&>*:not(:first-child)]:border-l max-sm:[&>*:nth-child(3)]:col-span-2 max-sm:[&>*:nth-child(3)]:border-t max-sm:[&>*:nth-child(3)]:border-l-0">
-        <Stat label="файлов во всех хранилищах" value={totals.files} />
-        <Stat label="объём" value={totals.size} format={formatBytes} />
-        <Stat label="хранилищ" value={totals.storages} />
+      <section aria-label={t('storages.totals')} className="fx-dotted mt-4 grid grid-cols-2 border-t sm:grid-cols-3 [&>*:not(:first-child)]:fx-dotted [&>*:not(:first-child)]:border-l max-sm:[&>*:nth-child(3)]:col-span-2 max-sm:[&>*:nth-child(3)]:border-t max-sm:[&>*:nth-child(3)]:border-l-0">
+        <Stat label={t('storages.files')} value={totals.files} />
+        <Stat label={t('storages.size')} value={totals.size} format={formatBytes} />
+        <Stat label={t('dashboard.storagesShort')} value={totals.storages} />
       </section>
-      <Section label="Лимит каналов">
+      <Section label={t('storages.limit')}>
         <div className="flex flex-wrap items-center gap-8 max-sm:justify-center">
           <ChannelsRing usage={usage} />
           <div className="grid max-w-md gap-3 text-sm text-muted-foreground">
             <p>
-              Telegram ограничивает число каналов и групп у аккаунта: {usage.limit}
-              {account.data?.premium ? ' (Premium)' : ', с Premium — 1000'}. Каждое хранилище — отдельный канал.
+              {t(account.data?.premium ? 'storages.limitPremium' : 'storages.limitFree', { n: usage.limit })}
             </p>
             <p className="fx-dotted border-l-4 pl-3 text-foreground">
-              Нужно больше хранилищ — удалите ненужные каналы и группы в Telegram (они тоже занимают лимит) или ненужные хранилища здесь.
+              {t('storages.needMore')}
             </p>
-            {!usage.accountWide && <p className="text-xs">Telegram не ответил или не подключён — показано число хранилищ.</p>}
+            {!usage.accountWide && <p className="text-xs">{t('storages.noTelegram')}</p>}
           </div>
         </div>
       </Section>
-      <Section label="Список">
-        {storages.isPending && <p className="text-muted-foreground">Загрузка…</p>}
+      <Section label={t('storages.list')}>
+        {storages.isPending && <p className="text-muted-foreground">{t('common.loading')}</p>}
         {storages.error && <p className="text-destructive">{storages.error.message}</p>}
-        {storages.data?.length === 0 && <p className="text-muted-foreground">Хранилищ пока нет.</p>}
+        {storages.data?.length === 0 && <p className="text-muted-foreground">{t('storages.none')}</p>}
         <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
           {storages.data?.map((storage) => (
             <li key={storage.id}>
@@ -132,11 +132,11 @@ function StorageForm({ storage }: { storage?: Storage }) {
         : await api.post<Storage>('/storages', body)
       if (photo) await request('PUT', `/storages/${saved.id}/photo`, { body: photo })
     },
-    { invalidate: [['storages']], success: storage ? 'Сохранено' : 'Хранилище создано', onSuccess: () => setOpen(false) },
+    { invalidate: [['storages']], success: t(storage ? 'common.saved' : 'storages.created'), onSuccess: () => setOpen(false) },
   )
   const removePhoto = useAction(() => api.del(`/storages/${storage!.id}/photo`), {
     invalidate: [['storages']],
-    success: 'Фото удалено',
+    success: t('storages.photoDeleted'),
   })
 
   function submit(event: FormEvent) {
@@ -148,40 +148,40 @@ function StorageForm({ storage }: { storage?: Storage }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {storage ? (
-          <Button variant="ghost" size="icon-sm" aria-label="Изменить">
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.edit')}>
             <PencilIcon />
           </Button>
         ) : (
           <Button>
-            <PlusIcon /> Создать
+            <PlusIcon /> {t('common.create')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{storage ? 'Хранилище' : 'Новое хранилище'}</DialogTitle>
+          <DialogTitle>{t(storage ? 'scope.storage' : 'storages.new')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="storage-name">Название канала</Label>
+            <Label htmlFor="storage-name">{t('storages.name')}</Label>
             <Input id="storage-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="storage-description">Описание</Label>
+            <Label htmlFor="storage-description">{t('storages.description')}</Label>
             <Input id="storage-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="storage-photo">Фото канала</Label>
+            <Label htmlFor="storage-photo">{t('storages.photo')}</Label>
             <Input id="storage-photo" type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
             {storage?.has_photo && (
               <Button type="button" variant="link" className="justify-self-start px-0" onClick={() => removePhoto.mutate()}>
-                Удалить текущее фото
+                {t('storages.deletePhoto')}
               </Button>
             )}
           </div>
           <DialogFooter>
             <Button type="submit" disabled={save.isPending}>
-              {storage ? 'Сохранить' : 'Создать канал'}
+              {t(storage ? 'common.save' : 'storages.createChannel')}
             </Button>
           </DialogFooter>
         </form>
@@ -194,24 +194,24 @@ function DeleteStorage({ storage }: { storage: Storage }) {
   const [keepChannel, setKeepChannel] = useState(false)
   const remove = useAction(() => api.del(`/storages/${storage.id}`, { keep_channel: keepChannel }), {
     invalidate: [['storages']],
-    success: 'Хранилище удалено',
+    success: t('storages.deleted'),
   })
 
   return (
     <Confirm
-      title={`Удалить «${storageName(storage)}»?`}
+      title={t('folder.deleteFileQ', { name: storageName(storage) })}
       description={
         <span className="grid gap-3">
-          <span>Все файлы хранилища будут удалены из базы.</span>
+          <span>{t('storages.deleteHint')}</span>
           <span className="flex items-center gap-2">
             <Checkbox id={`keep-${storage.id}`} checked={keepChannel} onCheckedChange={(v) => setKeepChannel(v === true)} />
-            <Label htmlFor={`keep-${storage.id}`}>Оставить канал в Telegram</Label>
+            <Label htmlFor={`keep-${storage.id}`}>{t('storages.keepChannel')}</Label>
           </span>
         </span>
       }
       onConfirm={() => remove.mutate()}
     >
-      <Button variant="ghost" size="icon-sm" aria-label="Удалить">
+      <Button variant="ghost" size="icon-sm" aria-label={t('common.delete')}>
         <Trash2Icon />
       </Button>
     </Confirm>

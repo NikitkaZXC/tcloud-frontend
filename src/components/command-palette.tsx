@@ -9,6 +9,7 @@ import { type Command, filterCommands, focusSearch, type FolderAction, OPEN_PALE
 import { foundLocation, storageName } from '@/lib/names'
 import { api } from '@/lib/api'
 import { parentPath } from '@/lib/format'
+import { t, tAll, type Key, type Params } from '@/lib/i18n'
 import { useSettings } from '@/lib/settings'
 import { EMPTY_SEARCH, searchQuery, searchUrl } from '@/lib/search'
 import { FileDialog } from '@/components/file-dialog'
@@ -61,33 +62,41 @@ export function CommandPalette() {
   const act = (action: FolderAction) => () => runFolderAction(action)
   const listing = open && folder ? queryClient.getQueryData<FolderListing>(['folder', folder]) : undefined
 
+  const fixed = (id: string, group: Key, label: Key, run: () => void, params?: Params, hint?: string): Command => ({
+    id,
+    group: t(group),
+    label: t(label, params),
+    keywords: `${tAll(group)} ${tAll(label, params)}`,
+    hint,
+    run,
+  })
   const commands: Command[] = [
     ...(folder
       ? ([
-          ['upload', 'Загрузить файлы'],
-          ['upload-folder', 'Загрузить папку'],
-          ['url', 'Загрузить по ссылке'],
-          ['new-folder', 'Новая папка'],
-          ['archive', `Скачать текущую папку (${archiveFormat})`],
-        ] as [FolderAction, string][]).map(([action, label]) => ({ id: `a:${action}`, group: 'Действия', label, run: act(action) }))
+          ['upload', 'palette.uploadFiles'],
+          ['upload-folder', 'folder.uploadFolder'],
+          ['url', 'palette.uploadUrl'],
+          ['new-folder', 'folder.newFolder'],
+          ['archive', 'palette.archive'],
+        ] as [FolderAction, Key][]).map(([action, label]) => fixed(`a:${action}`, 'palette.actions', label, act(action), { format: archiveFormat }))
       : []),
-    ...(listing?.folders ?? []).map((f) => ({ id: `f:${f.path}`, group: 'Папки', label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
-    { id: 'a:search', group: 'Действия', label: 'Поиск файлов', hint: '/', run: focusSearch },
-    { id: 'p:dashboard', group: 'Страницы', label: 'Дашборд', run: go('/dashboard') },
-    { id: 'p:files', group: 'Страницы', label: 'Хранилища', run: go('/files') },
-    { id: 'p:tasks', group: 'Страницы', label: 'Задачи', run: go('/tasks') },
-    { id: 'p:account', group: 'Страницы', label: 'Аккаунт', run: go('/account') },
-    { id: 'p:settings', group: 'Страницы', label: 'Настройки', run: go('/settings') },
-    ...(isAdmin(me) ? [{ id: 'p:users', group: 'Страницы', label: 'Пользователи', run: go('/users') }] : []),
-    ...(me?.role === 'root' ? [{ id: 'p:telegram', group: 'Страницы', label: 'Telegram', run: go('/telegram') }] : []),
-    ...(storages.data ?? []).map((s) => ({ id: `s:${s.id}`, group: 'Хранилища', label: storageName(s), hint: s.description ?? undefined, run: go(folderLink(s.path)) })),
+    ...(listing?.folders ?? []).map((f) => ({ id: `f:${f.path}`, group: t('palette.folders'), keywords: tAll('palette.folders'), label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
+    fixed('a:search', 'palette.actions', 'palette.searchFiles', focusSearch, undefined, '/'),
+    fixed('p:dashboard', 'palette.pages', 'nav.dashboard', go('/dashboard')),
+    fixed('p:files', 'palette.pages', 'nav.storages', go('/files')),
+    fixed('p:tasks', 'palette.pages', 'nav.tasks', go('/tasks')),
+    fixed('p:account', 'palette.pages', 'nav.account', go('/account')),
+    fixed('p:settings', 'palette.pages', 'nav.settings', go('/settings')),
+    ...(isAdmin(me) ? [fixed('p:users', 'palette.pages', 'nav.users', go('/users'))] : []),
+    ...(me?.role === 'root' ? [fixed('p:telegram', 'palette.pages', 'nav.telegram', go('/telegram'))] : []),
+    ...(storages.data ?? []).map((s) => ({ id: `s:${s.id}`, group: t('nav.storages'), keywords: tAll('nav.storages'), label: storageName(s), hint: s.description ?? undefined, run: go(folderLink(s.path)) })),
   ]
   const results: Command[] =
     term.length >= 2 && term === query.trim()
       ? [
-          ...(found.data?.folders ?? []).map((f) => ({ id: `sf:${f.id}`, group: 'Папки', label: f.name, hint: foundLocation(parentPath(f.path), f, storageList), run: go(folderLink(f.path)) })),
-          ...(found.data?.items ?? []).map((f) => ({ id: `sd:${f.uuid}`, group: 'Файлы', label: f.name, hint: foundLocation(f.folder, f, storageList), run: () => setOpened(f) })),
-          { id: 'sa:all', group: 'Поиск', label: `Все результаты «${term}»${found.data ? ` · ${found.data.total}` : ''}`, run: go(searchUrl({ ...EMPTY_SEARCH, q: term })) },
+          ...(found.data?.folders ?? []).map((f) => ({ id: `sf:${f.id}`, group: t('palette.folders'), label: f.name, hint: foundLocation(parentPath(f.path), f, storageList), run: go(folderLink(f.path)) })),
+          ...(found.data?.items ?? []).map((f) => ({ id: `sd:${f.uuid}`, group: t('palette.files'), label: f.name, hint: foundLocation(f.folder, f, storageList), run: () => setOpened(f) })),
+          { id: 'sa:all', group: t('nav.search'), label: `${t('palette.allResults', { term })}${found.data ? ` · ${found.data.total}` : ''}`, run: go(searchUrl({ ...EMPTY_SEARCH, q: term })) },
         ]
       : []
   const shown = [...filterCommands(commands, query), ...results]
@@ -125,7 +134,7 @@ export function CommandPalette() {
     <>
       <Dialog open={open} onOpenChange={close}>
         <DialogContent showCloseButton={false} aria-describedby={undefined} className="top-[20%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg">
-          <DialogTitle className="sr-only">Командная строка</DialogTitle>
+          <DialogTitle className="sr-only">{t('palette.title')}</DialogTitle>
           <div className="flex items-center gap-2 border-b px-4 py-2.5">
             <SearchIcon className="size-4 shrink-0 text-primary" aria-hidden />
             <input
@@ -135,21 +144,21 @@ export function CommandPalette() {
               aria-controls={listId}
               aria-autocomplete="list"
               aria-activedescendant={shown[current] ? `${listId}-${current}` : undefined}
-              aria-label="Команда или поиск"
+              aria-label={t('palette.input')}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
                 setIndex(0)
               }}
               onKeyDown={onKey}
-              placeholder="перейти, загрузить, найти…"
+              placeholder={t('palette.placeholder')}
               className="h-9 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
             />
-            <button type="button" onClick={() => close(false)} className="fx-chip text-[10px] text-muted-foreground pointer-coarse:h-11 pointer-coarse:px-3" aria-label="Закрыть">
+            <button type="button" onClick={() => close(false)} className="fx-chip text-[10px] text-muted-foreground pointer-coarse:h-11 pointer-coarse:px-3" aria-label={t('common.close')}>
               Esc
             </button>
           </div>
-          <ul id={listId} role="listbox" aria-label="Команды" className="max-h-80 overflow-y-auto p-1.5 text-sm max-sm:max-h-none">
+          <ul id={listId} role="listbox" aria-label={t('palette.commands')} className="max-h-80 overflow-y-auto p-1.5 text-sm max-sm:max-h-none">
             {shown.map((command, i) => (
               <li
                 key={command.id}
@@ -168,10 +177,10 @@ export function CommandPalette() {
                 {command.hint && <span className="max-w-40 truncate text-xs text-muted-foreground">{command.hint}</span>}
               </li>
             ))}
-            {found.isFetching && <li className="px-3 py-2 text-xs text-muted-foreground">ищем файлы…</li>}
-            {shown.length === 0 && !found.isFetching && <li className="px-3 py-4 text-center text-muted-foreground">Ничего не найдено</li>}
+            {found.isFetching && <li className="px-3 py-2 text-xs text-muted-foreground">{t('palette.searching')}</li>}
+            {shown.length === 0 && !found.isFetching && <li className="px-3 py-4 text-center text-muted-foreground">{t('common.nothingFound')}</li>}
           </ul>
-          <p className="border-t px-4 py-2 text-[11px] text-muted-foreground max-sm:hidden">↑↓ выбор · enter запуск · ctrl+k открыть/закрыть</p>
+          <p className="border-t px-4 py-2 text-[11px] text-muted-foreground max-sm:hidden">{t('palette.keys')}</p>
         </DialogContent>
       </Dialog>
       <FileDialog file={opened} onClose={() => setOpened(null)} />

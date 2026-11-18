@@ -10,6 +10,7 @@ import { useAction } from '@/hooks/use-action'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import type { ApiKey } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function ApiKeys({ userId }: { userId: string }) {
   const key = ['api-keys', userId]
@@ -26,7 +27,7 @@ export function ApiKeys({ userId }: { userId: string }) {
   })
   const revoke = useAction((id: string) => api.del(`/users/${userId}/api-keys/${id}`), {
     invalidate: [key],
-    success: 'Ключ отозван',
+    success: t('keys.revoked'),
   })
 
   function submit(event: FormEvent) {
@@ -37,25 +38,25 @@ export function ApiKeys({ userId }: { userId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>API-ключи</CardTitle>
+        <CardTitle>{t('keys.title')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
         <form onSubmit={submit} className="flex gap-2">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Название ключа" maxLength={100} required />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('keys.name')} maxLength={100} required />
           <Button type="submit" disabled={create.isPending}>
-            <PlusIcon /> Выпустить
+            <PlusIcon /> {t('keys.issue')}
           </Button>
         </form>
         {issued && (
           <div className="grid gap-2 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
-            <span>Ключ показывается один раз — сохраните его. Передавайте в заголовке X-API-Key.</span>
+            <span>{t('keys.once')}</span>
             <div className="flex gap-2">
               <code className="min-w-0 flex-1 break-all rounded bg-background px-2 py-1">{issued}</code>
               <Button
                 size="icon-sm"
                 variant="outline"
-                aria-label="Скопировать"
-                onClick={() => navigator.clipboard.writeText(issued).then(() => toast.success('Скопировано'))}
+                aria-label={t('common.copy')}
+                onClick={() => navigator.clipboard.writeText(issued).then(() => toast.success(t('common.copied')))}
               >
                 <CopyIcon />
               </Button>
@@ -63,14 +64,14 @@ export function ApiKeys({ userId }: { userId: string }) {
           </div>
         )}
         {keys.error && <p className="text-sm text-destructive">{keys.error.message}</p>}
-        {keys.data?.length === 0 && <p className="text-sm text-muted-foreground">Ключей нет.</p>}
+        {keys.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('keys.none')}</p>}
         <ul className="grid divide-y">
           {keys.data?.map((k) => (
             <li key={k.id} className="flex items-center gap-2 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate font-medium">{k.name}</span>
-              <span className="hidden text-muted-foreground sm:inline">использован: {formatDate(k.last_used_at)}</span>
-              <Confirm title={`Отозвать ключ «${k.name}»?`} action="Отозвать" onConfirm={() => revoke.mutate(k.id)}>
-                <Button variant="ghost" size="icon-sm" aria-label="Отозвать">
+              <span className="hidden text-muted-foreground sm:inline">{t('keys.used', { date: formatDate(k.last_used_at) })}</span>
+              <Confirm title={t('keys.revokeQ', { name: k.name })} action={t('keys.revoke')} onConfirm={() => revoke.mutate(k.id)}>
+                <Button variant="ghost" size="icon-sm" aria-label={t('keys.revoke')}>
                   <Trash2Icon />
                 </Button>
               </Confirm>

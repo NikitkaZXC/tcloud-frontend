@@ -1,4 +1,5 @@
 import type { Folder, TFile } from './types'
+import { getLang, type Key, t } from './i18n'
 
 export type SortKey = 'name' | 'modified' | 'uploaded' | 'type' | 'size'
 export interface Sort {
@@ -9,16 +10,23 @@ export interface Sort {
 
 export const DEFAULT_SORT: Sort = { key: 'name', desc: false, foldersFirst: true }
 
-export const SORT_LABELS: Record<SortKey, string> = { name: 'Имя', modified: 'Изменён', uploaded: 'Загружен', type: 'Тип', size: 'Размер' }
+export const SORT_LABELS: Record<SortKey, Key> = { name: 'sort.name', modified: 'sort.modified', uploaded: 'sort.uploaded', type: 'sort.type', size: 'sort.size' }
 
 export type Entry = { type: 'folder'; item: Folder } | { type: 'file'; item: TFile }
 
-const collator = new Intl.Collator('ru', { numeric: true, sensitivity: 'base' })
+const collators = new Map<string, Intl.Collator>()
+
+function collator(): Intl.Collator {
+  const lang = getLang()
+  let found = collators.get(lang)
+  if (!found) collators.set(lang, (found = new Intl.Collator(lang, { numeric: true, sensitivity: 'base' })))
+  return found
+}
 
 const extension = (name: string) => (name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '')
 
 export function typeLabel(entry: Entry): string {
-  if (entry.type === 'folder') return 'папка'
+  if (entry.type === 'folder') return t('files.folderType')
   return extension(entry.item.name) || entry.item.kind
 }
 
@@ -34,7 +42,7 @@ const COMPARE: Record<SortKey, (a: Entry, b: Entry) => number> = {
   name: () => 0,
   modified: (a, b) => time(a.item.updated_at) - time(b.item.updated_at),
   uploaded: (a, b) => time(a.item.created_at) - time(b.item.created_at),
-  type: (a, b) => collator.compare(typeLabel(a), typeLabel(b)),
+  type: (a, b) => collator().compare(typeLabel(a), typeLabel(b)),
   size: (a, b) => size(a) - size(b),
 }
 
@@ -48,7 +56,7 @@ export function viewEntries(folders: Folder[], files: TFile[], query: string, so
     .map((entry, index) => ({ entry, index }))
     .sort((a, b) => {
       if (sort.foldersFirst && a.entry.type !== b.entry.type) return a.entry.type === 'folder' ? -1 : 1
-      return sign * (COMPARE[sort.key](a.entry, b.entry) || collator.compare(a.entry.item.name, b.entry.item.name)) || a.index - b.index
+      return sign * (COMPARE[sort.key](a.entry, b.entry) || collator().compare(a.entry.item.name, b.entry.item.name)) || a.index - b.index
     })
     .map(({ entry }) => entry)
 }

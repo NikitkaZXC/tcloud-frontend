@@ -1,5 +1,6 @@
 import { storageIdOf } from './format'
 import type { TFile } from './types'
+import type { Key } from './i18n'
 
 export type Scope = 'folder' | 'storage' | 'all'
 export type SearchSort = 'relevance' | 'name' | 'size' | 'date'
@@ -20,23 +21,23 @@ export interface SearchState {
   desc: boolean | null
 }
 
-export const KINDS: [Kind, string][] = [
-  ['photo', 'фото'],
-  ['video', 'видео'],
-  ['audio', 'аудио'],
-  ['animation', 'анимации'],
-  ['document', 'документы'],
+export const KINDS: [Kind, Key][] = [
+  ['photo', 'kind.photo'],
+  ['video', 'kind.video'],
+  ['audio', 'kind.audio'],
+  ['animation', 'kind.animation'],
+  ['document', 'kind.document'],
 ]
-export const SCOPES: [Scope, string][] = [
-  ['folder', 'Эта папка'],
-  ['storage', 'Хранилище'],
-  ['all', 'Везде'],
+export const SCOPES: [Scope, Key][] = [
+  ['folder', 'scope.folder'],
+  ['storage', 'scope.storage'],
+  ['all', 'scope.all'],
 ]
-export const SEARCH_SORTS: [SearchSort, string][] = [
-  ['relevance', 'по совпадению'],
-  ['name', 'по имени'],
-  ['size', 'по размеру'],
-  ['date', 'по дате'],
+export const SEARCH_SORTS: [SearchSort, Key][] = [
+  ['relevance', 'searchSort.relevance'],
+  ['name', 'searchSort.name'],
+  ['size', 'searchSort.size'],
+  ['date', 'searchSort.date'],
 ]
 export const SIZE_UNITS: [string, number][] = [
   ['KB', 1024],

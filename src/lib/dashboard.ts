@@ -1,14 +1,15 @@
 import type { Account, Health, Storage, Task, TaskStatus } from './types'
+import type { Key } from './i18n'
 import type { Sending } from './upload'
 
-export const HEALTH_LABELS: Record<string, string> = {
-  db: 'база данных',
-  redis: 'redis',
-  queue: 'очередь',
-  antivirus: 'антивирус',
-  telegram: 'telegram api',
-  telegram_upload: 'telegram upload',
-  telegram_download: 'telegram download',
+export const HEALTH_LABELS: Record<string, Key> = {
+  db: 'health.db',
+  redis: 'health.redis',
+  queue: 'health.queue',
+  antivirus: 'health.antivirus',
+  telegram: 'health.telegram',
+  telegram_upload: 'health.telegramUpload',
+  telegram_download: 'health.telegramDownload',
 }
 
 export function healthChecks(health: Health): [string, boolean][] {

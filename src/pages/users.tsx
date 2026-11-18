@@ -15,6 +15,7 @@ import { useMe } from '@/hooks/use-me'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import type { Role, User } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 export function UsersPage() {
   const users = useQuery({ queryKey: ['users'], queryFn: () => api.get<User[]>('/users') })
@@ -22,7 +23,7 @@ export function UsersPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <PageTitle text="Пользователи" />
+        <PageTitle text={t('nav.users')} />
         <CreateUser />
       </div>
       {users.error && <p className="text-destructive">{users.error.message}</p>}
@@ -31,9 +32,9 @@ export function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Логин</TableHead>
-                <TableHead>Роль</TableHead>
-                <TableHead className="hidden sm:table-cell">Последний вход</TableHead>
+                <TableHead>{t('login.login')}</TableHead>
+                <TableHead>{t('users.role')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('users.lastLogin')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,7 +46,7 @@ export function UsersPage() {
                     </Link>
                     {user.blocked && (
                       <Badge variant="destructive" className="ml-2">
-                        заблокирован
+                        {t('users.blocked')}
                       </Badge>
                     )}
                   </TableCell>
@@ -71,7 +72,7 @@ function CreateUser() {
   const [role, setRole] = useState<Role>('user')
   const create = useAction(() => api.post<User>('/users', { login, password, role }), {
     invalidate: [['users']],
-    success: 'Пользователь создан',
+    success: t('users.created'),
     onSuccess: () => {
       setOpen(false)
       setLogin('')
@@ -88,25 +89,25 @@ function CreateUser() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <PlusIcon /> Создать
+          <PlusIcon /> {t('common.create')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Новый пользователь</DialogTitle>
+          <DialogTitle>{t('users.new')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="new-login">Логин</Label>
+            <Label htmlFor="new-login">{t('login.login')}</Label>
             <Input id="new-login" value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="off" required />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="new-user-password">Пароль</Label>
+            <Label htmlFor="new-user-password">{t('login.password')}</Label>
             <Input id="new-user-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           {me?.role === 'root' && (
             <div className="grid gap-1.5">
-              <Label>Роль</Label>
+              <Label>{t('users.role')}</Label>
               <Select value={role} onValueChange={(v) => setRole(v as Role)}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -118,7 +119,7 @@ function CreateUser() {
           )}
           <DialogFooter>
             <Button type="submit" disabled={create.isPending}>
-              Создать
+              {t('common.create')}
             </Button>
           </DialogFooter>
         </form>

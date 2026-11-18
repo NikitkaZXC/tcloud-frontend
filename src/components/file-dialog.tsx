@@ -9,6 +9,7 @@ import { useStorages } from '@/hooks/use-storages'
 import { humanPath } from '@/lib/names'
 import { thumbUrl } from '@/lib/thumbs'
 import type { TFile } from '@/lib/types'
+import { t } from '@/lib/i18n'
 
 const PREVIEW = ['photo', 'animation', 'video', 'audio']
 
@@ -30,16 +31,16 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
   const storages = useStorages().data ?? []
   const rows: [string, string][] = file
     ? [
-        ['Расположение', humanPath(file.path.split('/').slice(0, -1).join('/'), storages)],
-        ['Размер', formatBytes(file.size)],
-        ['Тип', `${file.kind} · ${file.mime} · ${file.sent_as}`],
-        ...(file.width ? [['Размеры', `${file.width}×${file.height}`] as [string, string]] : []),
-        ...(file.duration ? [['Длительность', formatDuration(file.duration)] as [string, string]] : []),
-        ['Шифрование', file.encrypted ? 'да' : 'нет'],
+        [t('file.location'), humanPath(file.path.split('/').slice(0, -1).join('/'), storages)],
+        [t('sort.size'), formatBytes(file.size)],
+        [t('sort.type'), `${file.kind} · ${file.mime} · ${file.sent_as}`],
+        ...(file.width ? [[t('file.dimensions'), `${file.width}×${file.height}`] as [string, string]] : []),
+        ...(file.duration ? [[t('file.duration'), formatDuration(file.duration)] as [string, string]] : []),
+        [t('file.encryption'), t(file.encrypted ? 'common.yes' : 'common.no')],
         ['SHA-256', file.sha256],
-        ['Поиск в Telegram', file.telegram.search],
-        ['Загружен', formatDate(file.created_at)],
-        ['Изменён', formatDate(file.updated_at)],
+        [t('file.telegramSearch'), file.telegram.search],
+        [t('sort.uploaded'), formatDate(file.created_at)],
+        [t('sort.modified'), formatDate(file.updated_at)],
       ]
     : []
 
@@ -50,7 +51,7 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
           <>
             <DialogHeader>
               <DialogTitle className="break-all pr-6">
-                {file.encrypted && <LockIcon className="mr-2 inline size-4 align-[-2px] text-muted-foreground" aria-label="зашифрован" />}
+                {file.encrypted && <LockIcon className="mr-2 inline size-4 align-[-2px] text-muted-foreground" aria-label={t('folder.encrypted')} />}
                 {file.name}
               </DialogTitle>
             </DialogHeader>
@@ -66,18 +67,18 @@ export function FileDialog({ file, onClose }: { file: TFile | null; onClose: () 
             <div className="flex flex-wrap gap-2">
               <Button asChild>
                 <a href={downloadUrl(file)} download={file.name} onClick={() => markRead(file.path)}>
-                  <DownloadIcon /> Скачать
+                  <DownloadIcon /> {t('common.download')}
                 </a>
               </Button>
-              <Button variant="outline" onClick={() => copy(file.path, 'путь')}>
-                <CopyIcon /> Путь
+              <Button variant="outline" onClick={() => copy(file.path, t('folder.copiedPath'))}>
+                <CopyIcon /> {t('file.path')}
               </Button>
-              <Button variant="outline" onClick={() => copy(absoluteUrl(downloadUrl(file)), 'ссылка на скачивание')}>
-                <LinkIcon /> Ссылка
+              <Button variant="outline" onClick={() => copy(absoluteUrl(downloadUrl(file)), t('folder.copiedLink'))}>
+                <LinkIcon /> {t('file.link')}
               </Button>
               <Button variant="outline" asChild>
                 <a href={file.telegram.link} target="_blank" rel="noreferrer">
-                  <ExternalLinkIcon /> Открыть в Telegram
+                  <ExternalLinkIcon /> {t('file.openTelegram')}
                 </a>
               </Button>
             </div>
