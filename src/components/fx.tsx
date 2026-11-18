@@ -109,7 +109,7 @@ export function ChannelsRing({ usage, size = 'lg' }: { usage: ChannelUsage; size
       center={
         <span className="grid leading-none">
           <span>{usage.used}</span>
-          <span className="text-[0.45em] text-muted-foreground">/ {usage.limit}</span>
+          <span className="mt-1 font-sans text-xs text-muted-foreground antialiased">/ {usage.limit}</span>
         </span>
       }
       label={t(usage.accountWide ? 'channels.used' : 'channels.storagesOfLimit')}

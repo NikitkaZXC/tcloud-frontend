@@ -26,7 +26,7 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
       <StorageIcon id={storage.id} io={io} off={isUnavailable(storage)} className="mt-1" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <div className="flex items-start gap-2">
-          <Link to={to} className="min-w-0 flex-1 truncate text-[18px] font-medium tracking-[0.06em] uppercase hover:underline pointer-coarse:py-2.5">
+          <Link to={to} className="min-w-0 flex-1 truncate text-[14px] font-medium tracking-[0.04em] uppercase hover:underline pointer-coarse:py-2.5">
             {storageName(storage)}
           </Link>
           <IoTag io={io} />

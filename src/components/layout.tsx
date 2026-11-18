@@ -153,7 +153,7 @@ function LangSwitch({ collapsed }: { collapsed: boolean }) {
       onClick={() => updateSettings({ interface: { language: next } }).catch(showError)}
       aria-label={t('nav.language', { lang: next.toUpperCase() })}
       title={t('nav.language', { lang: next.toUpperCase() })}
-      className={cn("fx-label relative inline-flex h-7 w-9 shrink-0 items-center justify-center border text-[12px] after:absolute after:-inset-2 after:content-['']", collapsed && 'w-7')}
+      className={cn("fx-label relative inline-flex h-7 w-9 shrink-0 items-center justify-center border text-[11px] after:absolute after:-inset-2 after:content-['']", collapsed && 'w-7')}
     >
       {lang.toUpperCase()}
     </button>
@@ -223,7 +223,7 @@ function Sidebar({
               <span className="flex items-center gap-2">
                 <SearchIcon /> {t('nav.search')}
               </span>
-              <kbd className="fx-label text-[12px]">Ctrl K</kbd>
+              <kbd className="fx-label text-[11px]">Ctrl K</kbd>
             </>
           )}
         </Button>

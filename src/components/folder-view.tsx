@@ -392,12 +392,12 @@ export function FolderView({ path }: { path: string }) {
                     </Link>
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
-                  <TableCell className="hidden text-right text-muted-foreground tabular-nums sm:table-cell">
+                  <TableCell className="hidden text-right text-xs text-muted-foreground tabular-nums sm:table-cell">
                     {formatBytes(folder.size)}
                     <span className="block text-xs">{filesCount(folder.files)}</span>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
-                  <TableCell className="hidden text-muted-foreground lg:table-cell">{formatDate(folder.created_at)}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground md:table-cell">{formatDate(folder.updated_at)}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">{formatDate(folder.created_at)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
                 </TableRow>
   )
@@ -415,10 +415,10 @@ export function FolderView({ path }: { path: string }) {
                         {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                       </button>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
-                    <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">{formatDate(file.updated_at)}</TableCell>
-                    <TableCell className="hidden text-muted-foreground lg:table-cell">{formatDate(file.created_at)}</TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
+                    <TableCell className="hidden text-right text-xs text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground md:table-cell">{formatDate(file.updated_at)}</TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">{formatDate(file.created_at)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
                   </TableRow>
                 )

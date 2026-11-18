@@ -154,7 +154,7 @@ export function CommandPalette() {
               placeholder={t('palette.placeholder')}
               className="h-9 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
             />
-            <button type="button" onClick={() => close(false)} className="fx-chip text-[12px] text-muted-foreground pointer-coarse:h-11 pointer-coarse:px-3" aria-label={t('common.close')}>
+            <button type="button" onClick={() => close(false)} className="fx-chip text-[11px] text-muted-foreground pointer-coarse:h-11 pointer-coarse:px-3" aria-label={t('common.close')}>
               Esc
             </button>
           </div>
@@ -172,7 +172,7 @@ export function CommandPalette() {
                 }}
                 className={cn('flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors pointer-coarse:py-3', i === current && 'bg-foreground/8 text-foreground shadow-[inset_2px_0_0_var(--primary-ink)]')}
               >
-                <span className="fx-label w-24 shrink-0 truncate text-[12px] max-sm:hidden">{command.group}</span>
+                <span className="fx-label w-24 shrink-0 truncate text-[11px] max-sm:hidden">{command.group}</span>
                 <span className="min-w-0 flex-1 truncate">{command.label}</span>
                 {command.hint && <span className="max-w-40 truncate text-xs text-muted-foreground">{command.hint}</span>}
               </li>
@@ -180,7 +180,7 @@ export function CommandPalette() {
             {found.isFetching && <li className="px-3 py-2 text-xs text-muted-foreground">{t('palette.searching')}</li>}
             {shown.length === 0 && !found.isFetching && <li className="px-3 py-4 text-center text-muted-foreground">{t('common.nothingFound')}</li>}
           </ul>
-          <p className="border-t px-4 py-2 text-[13px] text-muted-foreground max-sm:hidden">{t('palette.keys')}</p>
+          <p className="border-t px-4 py-2 text-[12px] text-muted-foreground max-sm:hidden">{t('palette.keys')}</p>
         </DialogContent>
       </Dialog>
       <FileDialog file={opened} onClose={() => setOpened(null)} />
