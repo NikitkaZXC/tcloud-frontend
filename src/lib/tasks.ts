@@ -58,6 +58,8 @@ function write(next: string[], nextPending = pending) {
   }
 }
 
+export const pollInterval = (status: string | undefined) => (status === 'queued' ? 5000 : 1500)
+
 export const MAX_TASKS = 50
 
 export function capTasks(list: string[], keep: string[], max = MAX_TASKS): string[] {

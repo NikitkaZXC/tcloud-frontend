@@ -83,7 +83,7 @@ sequenceDiagram
     participant W as TaskWatcher
     participant C as QueryClient
     T-->>Q: useTrackedTasks(): id[]
-    loop каждые 1500 мс, пока статус не done/failed/cancelled
+    loop queued — раз в 5 с, running — раз в 1,5 с (pollInterval), пока не done/failed/cancelled
         Q->>B: GET /api/tasks/{id}
         B-->>Q: Task
     end
@@ -127,7 +127,7 @@ stateDiagram-v2
     Sending --> [*]: ошибка отправки → toast
     [*] --> Tracked: batch / архив / повтор → trackTask
     Tracked --> Polling
-    Polling --> Polling: GET /tasks/{id} каждые 1,5 с
+    Polling --> Polling: GET /tasks/{id} каждые 5 с (queued) / 1,5 с
     Polling --> Finished: done / failed / cancelled
     Polling --> [*]: 404 → forgetTasks
     Finished --> Polling: «Повторить» (setQueryData queued)

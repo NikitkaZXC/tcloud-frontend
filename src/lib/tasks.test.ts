@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { capTasks, forgetTask, isPending, reportTask, taskFolders, taskFraction, trackTask } from './tasks'
+import { capTasks, forgetTask, isPending, pollInterval, reportTask, taskFolders, taskFraction, trackTask } from './tasks'
 
 describe('task progress', () => {
   it('reads the backend percent as a fraction', () => {
@@ -43,5 +43,13 @@ describe('task folders', () => {
         { path: '/s3/docs', archive },
       ]),
     ).toEqual(['/s1/a/b', '/s1/a', '/s1', '/s2'])
+  })
+})
+
+describe('task polling', () => {
+  it('polls queued tasks slower than running ones', () => {
+    expect(pollInterval('queued')).toBe(5000)
+    expect(pollInterval('running')).toBe(1500)
+    expect(pollInterval(undefined)).toBe(1500)
   })
 })
