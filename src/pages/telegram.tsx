@@ -93,6 +93,8 @@ export function TelegramPage() {
   )
 }
 
+const QR_LOGO = { src: '/favicon.svg', width: 48, height: 48, excavate: true }
+
 function useRefreshTelegram() {
   const queryClient = useQueryClient()
   return () => {
@@ -242,7 +244,7 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
             <div className="grid justify-items-start gap-2">
               {qr && qrLeft > 0 && !needQr ? (
                 <div className="grid justify-items-center gap-2 bg-white p-4">
-                  <QRCodeSVG value={qr.url} size={192} />
+                  <QRCodeSVG value={qr.url} size={216} level="H" bgColor="#ffffff" fgColor="#000000" imageSettings={QR_LOGO} className="[&_image]:[image-rendering:pixelated]" />
                   <p className="text-center text-xs text-neutral-600">{t('telegram.qrPath')}</p>
                   <p className="text-xs text-neutral-600 tabular-nums">{t('telegram.qrRefresh', { n: qrLeft })}</p>
                 </div>

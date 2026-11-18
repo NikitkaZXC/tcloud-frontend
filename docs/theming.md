@@ -92,6 +92,12 @@ navy), `logo-light.svg` на светлых (light, lavender, clay) — пере
 Фавиконки в `public/`: `favicon.svg` (вариант с тёмным фоном — прозрачный не виден на светлой вкладке),
 `favicon-48.png`, `favicon-96.png`, `apple-touch-icon.png` (192 px); манифеста нет. Исходники — у владельца, вне репо.
 
+QR входа в Telegram (`pages/telegram.tsx`, `QR_LOGO`) несёт знак в центре: `favicon.svg` (с тёмным фоном, чтобы
+читался на модулях) 48 px на QR 216 px (22 %), `excavate` вырезает модули под ним, коррекция `level="H"` (30 %)
+восстанавливает закрытое. Цвета QR всегда чёрный на белом (`fgColor`/`bgColor`, белая рамка `p-4` — тихая зона) во
+всех темах: сканерам нужен контраст. Знак — `image-rendering: pixelated`. Проверено декодированием (resvg + jsQR,
+вне репо) для URL `tg://login?token=…` длиной 60–97 символов.
+
 ## Анимации
 
 Класс `still` на `<html>` ставит `main.tsx`, когда `interface.animations = false`; правила `:root.still …` в
