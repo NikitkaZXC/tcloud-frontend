@@ -33,8 +33,12 @@ export function startSending(path: string, total: number): number {
   return id
 }
 
+export const SENDING_TICK_MS = 250
+
 export function updateSending(id: number, loaded: number) {
   const now = Date.now()
+  const item = sending.find((entry) => entry.id === id)
+  if (!item || (now - item.at < SENDING_TICK_MS && loaded < item.total)) return
   setSending(sending.map((item) => (item.id === id ? { ...item, loaded, rate: nextRate(item, loaded, now), at: now } : item)))
 }
 

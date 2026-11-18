@@ -1,19 +1,26 @@
-import { useEffect, useState } from 'react'
-import { prefersReducedMotion } from '@/lib/fx'
+import { useEffect, useRef, useState } from 'react'
+import { easeOut, prefersReducedMotion } from '@/lib/fx'
 
-export function useProgress(duration: number, key: unknown): number {
-  const [progress, setProgress] = useState(() => (prefersReducedMotion() ? 1 : 0))
+export function useTween(target: number, duration: number): number {
+  const [shown, setShown] = useState(0)
+  const current = useRef(0)
   useEffect(() => {
-    if (prefersReducedMotion()) return
+    const from = current.current
+    if (prefersReducedMotion() || from === target) {
+      current.current = target
+      setShown(target)
+      return
+    }
     const start = performance.now()
     let frame = 0
     const tick = (now: number) => {
-      const next = Math.min((now - start) / duration, 1)
-      setProgress(next)
-      if (next < 1) frame = requestAnimationFrame(tick)
+      const next = from + (target - from) * easeOut((now - start) / duration)
+      current.current = next
+      setShown(next)
+      if (now - start < duration) frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [duration, key])
-  return progress
+  }, [target, duration])
+  return prefersReducedMotion() ? target : shown
 }

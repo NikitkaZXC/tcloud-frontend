@@ -187,9 +187,8 @@ function Sidebar({
     if (!pill.current) return
     pill.current.style.opacity = target ? '1' : '0'
     if (!target) return
-    pill.current.style.top = `${target.offsetTop}px`
+    pill.current.style.transform = `translate(${target.offsetLeft}px, ${target.offsetTop}px)`
     pill.current.style.height = `${target.offsetHeight}px`
-    pill.current.style.left = `${target.offsetLeft}px`
     pill.current.style.width = `${target.offsetWidth}px`
   }, [location.pathname, location.search, collapsed, storages.data?.length])
 

@@ -517,8 +517,16 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 .fx-flow {
   display: block;
   height: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.fx-flow::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -8px;
   background: linear-gradient(90deg, var(--warning) 0 4px, transparent 4px 8px) 0 0 / 8px 100% repeat-x;
-  animation: fx-flow 0.6s steps(2) infinite;
+  animation: fx-flow 0.6s linear infinite;
 }
 
 .fx-chip {
@@ -541,7 +549,9 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   position: absolute;
   pointer-events: none;
   border: 2px solid var(--foreground);
-  transition: top 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.3s, width 0.3s, opacity 0.2s;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s;
 }
 
 .fx-ring {
@@ -628,7 +638,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 
 .fx-drive:is([data-read], [data-write]) .fx-drive-bar {
   stroke: currentColor;
-  animation: fx-march 0.6s steps(3) infinite;
+  animation: fx-march 0.6s linear infinite;
 }
 
 .fx-drive[data-write] .fx-drive-bar { stroke: var(--warning); }
@@ -687,7 +697,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 .fx-cubes-dot {
   fill: var(--muted-foreground);
   stroke: none;
-  animation: fx-blink 3s steps(2) infinite;
+  animation: fx-blink 3s ease-in-out infinite;
 }
 
 .fx-cubes-dot:nth-of-type(2n) { animation-delay: -1.3s; }
@@ -753,7 +763,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   fill: var(--foreground);
   transform-box: view-box;
   transform-origin: 60px 62px;
-  transition: rotate 0.6s steps(6);
+  transition: rotate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .fx-flaps {
@@ -771,7 +781,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   font-size: 20px;
   background: var(--track);
   background-image: linear-gradient(transparent calc(50% - 1px), var(--background) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
-  animation: fx-flip 0.3s steps(3) both;
+  animation: fx-flip 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes fx-flip {
@@ -816,14 +826,19 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 .fx-pet-eyes-shut, .fx-pet-z { display: none; }
 .fx-pet[data-mood=sleep] .fx-pet-eyes-open { display: none; }
 .fx-pet[data-mood=sleep] :is(.fx-pet-eyes-shut, .fx-pet-z) { display: inline; }
-.fx-pet[data-mood=sleep] .fx-pet-z { animation: fx-blink 2s steps(1) infinite; }
-.fx-pet[data-mood=eat] .fx-pet-mouth { fill: var(--warning); animation: fx-chomp 0.4s steps(1) infinite; }
-.fx-pet[data-mood=happy] svg { animation: fx-hop 0.5s steps(2) 4; }
+.fx-pet[data-mood=sleep] .fx-pet-z { animation: fx-blink 2s ease-in-out infinite; }
+.fx-pet[data-mood=eat] .fx-pet-mouth {
+  fill: var(--warning);
+  transform-box: fill-box;
+  transform-origin: top;
+  animation: fx-chomp 0.4s ease-in-out infinite;
+}
+.fx-pet[data-mood=happy] svg { animation: fx-hop 0.5s ease-in-out 4; }
 .fx-pet[data-mood=happy] .fx-pet-mouth { fill: var(--success); }
-.fx-pet[data-mood=scared] svg { animation: fx-shake 0.2s steps(2) 8; }
+.fx-pet[data-mood=scared] svg { animation: fx-shake 0.2s ease-in-out 8; }
 .fx-pet[data-mood=scared] .fx-pet-eyes-open { fill: var(--destructive); }
 
-@keyframes fx-chomp { 50% { height: 3px; } }
+@keyframes fx-chomp { 50% { scale: 1 3; } }
 @keyframes fx-hop { 50% { translate: 0 -4px; } }
 @keyframes fx-shake { 50% { translate: 2px 0; } }
 
@@ -857,7 +872,8 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 
 .fx-px {
   position: absolute;
-  animation: fx-px 0.9s steps(9) both;
+  animation: fx-px 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: translate, opacity;
   image-rendering: pixelated;
 }
 
@@ -876,7 +892,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 }
 
 @keyframes fx-flow {
-  to { background-position: 8px 0; }
+  to { translate: 8px 0; }
 }
 
 @keyframes fx-blink {
@@ -898,7 +914,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
-  .fx-light, .fx-flow, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth {
+  .fx-light, .fx-flow::before, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth {
     animation: none !important;
   }
 }
@@ -910,6 +926,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   transition-duration: 0.01ms !important;
 }
 
-:root.still :is(.fx-light, .fx-flow, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth) {
+:root.still :is(.fx-light, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth),
+:root.still .fx-flow::before {
   animation: none !important;
 }

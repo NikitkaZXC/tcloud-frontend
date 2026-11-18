@@ -1,8 +1,7 @@
 import { type ReactNode, useId } from 'react'
-import { useProgress } from '@/hooks/use-fx'
+import { useTween } from '@/hooks/use-fx'
 import { openPalette } from '@/lib/commands'
 import type { Activity, ChannelUsage, Io } from '@/lib/dashboard'
-import { easeOut } from '@/lib/fx'
 import { cn } from '@/lib/utils'
 import { t } from '@/lib/i18n'
 
@@ -19,8 +18,7 @@ export function PageTitle({ text, eyebrow, children, className }: { text: string
 }
 
 export function CountUp({ value, format = String }: { value: number; format?: (value: number) => string }) {
-  const progress = useProgress(1200, value)
-  return <span className="tabular-nums">{format(Math.round(value * easeOut(progress)))}</span>
+  return <span className="tabular-nums">{format(Math.round(useTween(value, 1200)))}</span>
 }
 
 export type Tone = 'ok' | 'busy' | 'fail' | 'read' | 'idle'
@@ -62,9 +60,9 @@ export function Ring({
   tone?: Tone
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const progress = useProgress(1100, value)
+  const shown = useTween(value == null ? 0 : Math.min(Math.max(value, 0), 1), 1100)
   const id = useId().replace(/[^a-zA-Z0-9]/g, '')
-  const raw = value == null ? 0.25 : Math.min(Math.max(value, 0), 1) * easeOut(progress)
+  const raw = value == null ? 0.25 : shown
   const ratio = raw > 0 ? Math.max(Math.round(raw * SEGMENTS), 1) / SEGMENTS : 0
   const r = 42
   const length = 2 * Math.PI * r
