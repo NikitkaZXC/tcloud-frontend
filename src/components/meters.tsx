@@ -67,7 +67,7 @@ export function ActivityMap() {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        {data && <span className="fx-pixel text-[30px]">{data.files}</span>}
+        {data && <span className="fx-pixel text-[33px]">{data.files}</span>}
         <span className="text-sm text-muted-foreground">{activity.isPending ? t('common.loading') : summary}</span>
       </div>
       <div className="overflow-x-auto pb-1">

@@ -383,14 +383,14 @@ export function FolderView({ path }: { path: string }) {
                 <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
                   <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
                   <TableCell className="max-w-0">
-                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base font-medium hover:underline" title={folder.name}>
+                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base hover:underline" title={folder.name}>
                       <span className="fx-mini">
                         <FolderIcon className="size-4 text-primary" />
                       </span>
                       <span className="truncate">{folder.name}</span>
                     </Link>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
                   <TableCell className="hidden text-right text-xs text-muted-foreground tabular-nums sm:table-cell">
                     {formatBytes(folder.size)}
                     <span className="block text-xs">{filesCount(folder.files)}</span>
@@ -432,7 +432,7 @@ export function FolderView({ path }: { path: string }) {
                 <div className="fx-tile-check">{check(folderKey(folder.path), folder.name)}</div>
               </div>
               <div className="grid min-w-0 flex-1 content-between gap-1">
-                <Link to={link(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2.5" title={folder.name}>
+                <Link to={link(folder.path)} className="truncate text-base hover:underline pointer-coarse:py-2.5" title={folder.name}>
                   {folder.name}
                 </Link>
                 <span className="text-xs text-muted-foreground tabular-nums">
@@ -458,7 +458,7 @@ export function FolderView({ path }: { path: string }) {
                   <div className="fx-tile-check">{check(fileKey(file.uuid), file.name)}</div>
                 </div>
                 <div className="grid min-w-0 flex-1 content-between gap-1">
-                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2.5" title={file.name}>
+                  <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base hover:underline pointer-coarse:py-2.5" title={file.name}>
                     <span className="truncate">{file.name}</span>
                     {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                   </button>
@@ -498,7 +498,7 @@ export function FolderView({ path }: { path: string }) {
       onDrop={onDrop}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/60 font-semibold text-primary backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/60 text-lg uppercase text-primary backdrop-blur-md">
           {t('folder.dropHint')}
         </div>
       )}
@@ -611,7 +611,7 @@ export function FolderView({ path }: { path: string }) {
 
       {picked.length > 0 && (
         <div role="toolbar" aria-label={t('folder.selectedToolbar')} className="fx-glass sticky top-20 z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
-          <span className="px-1 font-semibold text-primary tabular-nums">{t('folder.selectedCount', { n: picked.length })}</span>
+          <span className="px-1 tracking-[0.04em] text-primary uppercase tabular-nums">{t('folder.selectedCount', { n: picked.length })}</span>
           <ArchiveMenu label={t('folder.archiveSelection')} onArchive={(format) => archiveSelection.mutate(format)}>
             <Button size="sm" variant="outline" disabled={archiveSelection.isPending}>
               <ArchiveIcon /> {t('folder.downloadArchive')}
@@ -640,7 +640,7 @@ export function FolderView({ path }: { path: string }) {
       {empty && (
         <div className="fx-panel grid justify-items-center gap-3 p-10 text-center">
           {eggs ? <StorageIcon scale={3} /> : <UploadIcon className="size-8 text-primary" />}
-          <p className="fx-pixel text-[20px] uppercase">{t('folder.empty')}</p>
+          <p className="fx-pixel text-[22px] uppercase">{t('folder.empty')}</p>
           <p className="max-w-md text-sm text-muted-foreground">
             {t('folder.emptyHint')}
           </p>

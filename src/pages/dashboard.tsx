@@ -60,7 +60,7 @@ function SystemSection() {
             caption={t('dashboard.components', { ok, n: checks.length })}
             tone={health.data?.ok ? 'ok' : 'fail'}
           />
-          <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 flex-1 basis-72 gap-4 sm:grid-cols-2">
             {groups.map(({ id, checks: rows }) => {
               const Icon = GROUP_ICONS[id]
               return (
@@ -410,7 +410,7 @@ export function DashboardPage() {
     <div className={cn('grid', dragging && 'select-none')}>
       <header className="grid items-center gap-6 pb-8 md:grid-cols-[1fr_auto] md:pb-10">
         <div className="grid gap-4">
-          <PageTitle text={t('nav.dashboard')} eyebrow={t('dashboard.eyebrow')} className="text-[40px] sm:text-[50px] md:text-[80px]" />
+          <PageTitle text={t('nav.dashboard')} eyebrow={t('dashboard.eyebrow')} className="text-[33px] sm:text-[44px] md:text-[66px]" />
           <div className="flex flex-wrap items-center gap-2">
             {draft ? (
               <>

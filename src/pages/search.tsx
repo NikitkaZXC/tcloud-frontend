@@ -35,7 +35,7 @@ function SizeFilter({ state, update }: { state: SearchState; update: (patch: Par
   const toBytes = (value: string, factor = unit) => (value.trim() === '' || Number.isNaN(Number(value)) ? null : Math.round(Number(value) * factor))
   return (
     <fieldset className="grid gap-1.5">
-      <legend className="mb-1.5 text-sm font-medium">{t('sort.size')}</legend>
+      <legend className="mb-1.5 fx-label">{t('sort.size')}</legend>
       <div className="flex items-center gap-1.5">
         <Input type="number" min={0} step="any" inputMode="decimal" aria-label={t('search.sizeFrom')} placeholder={t('search.from')} value={shown(state.sizeMin)} onChange={(e) => update({ sizeMin: toBytes(e.target.value) }, true)} />
         <span aria-hidden>–</span>
@@ -71,12 +71,12 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
   const [open] = useState(() => hasFilters(state) || window.matchMedia('(min-width: 640px)').matches)
   return (
     <details open={open} className="fx-panel group p-4">
-      <summary className="cursor-pointer text-sm font-medium select-none pointer-coarse:py-2.5">
+      <summary className="cursor-pointer fx-label select-none pointer-coarse:py-2.5">
         {t('search.filters')}{hasFilters(state) ? ` · ${t('search.filtersOn')}` : ''}
       </summary>
       <div className="mt-4 grid gap-4">
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium">{t('sort.type')}</legend>
+          <legend className="mb-1.5 fx-label">{t('sort.type')}</legend>
           <div className="flex flex-wrap gap-1.5">
             {KINDS.map(([kind, label]) => {
               const on = state.kinds.includes(kind)
@@ -93,7 +93,7 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
             <Label htmlFor="search-mime">{t('search.format')}</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button id="search-mime" type="button" variant="outline" className="w-full justify-between font-normal">
+                <Button id="search-mime" type="button" variant="outline" className="w-full justify-between">
                   <span className="truncate">{state.mimes.length === 0 ? t('search.any') : state.mimes.length === 1 ? state.mimes[0] : `${state.mimes[0]} +${state.mimes.length - 1}`}</span>
                   <ChevronDownIcon className="text-muted-foreground" aria-hidden />
                 </Button>
@@ -122,7 +122,7 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
           </div>
           <SizeFilter state={state} update={update} />
           <fieldset className="grid gap-1.5 lg:col-span-2">
-            <legend className="mb-1.5 text-sm font-medium">{t('sort.modified')}</legend>
+            <legend className="mb-1.5 fx-label">{t('sort.modified')}</legend>
             <div className="flex items-center gap-1.5">
               <Input type="date" aria-label={t('search.modifiedFrom')} value={state.dateFrom} max={state.dateTo || undefined} onChange={(e) => update({ dateFrom: e.target.value })} />
               <span aria-hidden>–</span>
@@ -204,7 +204,7 @@ export function SearchPage() {
                 <FolderIcon className="size-4 text-primary" aria-hidden />
               </span>
               <div className="grid min-w-0 flex-1">
-                <Link to={folderLink(folder.path)} className="truncate text-base font-medium hover:underline pointer-coarse:py-2" title={folder.name}>
+                <Link to={folderLink(folder.path)} className="truncate text-base hover:underline pointer-coarse:py-2" title={folder.name}>
                   {folder.name}
                 </Link>
                 <span className="truncate text-xs text-muted-foreground">{t('search.folderIn', { where: foundLocation(parentPath(folder.path), folder, storages) })}</span>
@@ -217,7 +217,7 @@ export function SearchPage() {
                 <Thumb file={file} iconClassName="size-5" />
               </button>
               <div className="grid min-w-0 flex-1">
-                <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base font-medium hover:underline pointer-coarse:py-2" title={file.name}>
+                <button type="button" onClick={() => setOpened(file)} className="flex min-w-0 items-center gap-1.5 text-left text-base hover:underline pointer-coarse:py-2" title={file.name}>
                   <span className="truncate">{file.name}</span>
                   {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                 </button>

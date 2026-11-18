@@ -90,7 +90,7 @@ function TaskCard({ task }: { task: Task }) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
           {!finished && <span className="text-xs text-muted-foreground">{stageLabel(task.stage)}</span>}
-          <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+          <span className="min-w-0 flex-1 truncate text-foreground">{name}</span>
           <div className="flex items-center gap-1">
             {task.status === 'queued' && (
               <Select value={task.priority} onValueChange={(v) => priority.mutate(v as Priority)}>

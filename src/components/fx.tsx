@@ -8,7 +8,7 @@ import { t } from '@/lib/i18n'
 export function PageTitle({ text, eyebrow, children, className }: { text: string; eyebrow?: ReactNode; children?: ReactNode; className?: string }) {
   return (
     <div className="fx-page grid gap-2">
-      <h1 className={cn('fx-pixel flex flex-wrap items-center gap-3 text-[25px] uppercase [overflow-wrap:anywhere] min-[400px]:text-[30px] sm:text-[40px] md:text-[50px]', className)}>
+      <h1 className={cn('fx-pixel flex flex-wrap items-center gap-3 text-[22px] uppercase [overflow-wrap:anywhere] min-[400px]:text-[33px] md:text-[44px]', className)}>
         {text}
         {children}
       </h1>
@@ -109,7 +109,7 @@ export function ChannelsRing({ usage, size = 'lg' }: { usage: ChannelUsage; size
       center={
         <span className="grid leading-none">
           <span>{usage.used}</span>
-          <span className="mt-1 font-sans text-xs text-muted-foreground antialiased">/ {usage.limit}</span>
+          <span className="mt-1 text-xs text-muted-foreground">/ {usage.limit}</span>
         </span>
       }
       label={t(usage.accountWide ? 'channels.used' : 'channels.storagesOfLimit')}
@@ -262,7 +262,7 @@ export function Section({ label, children, className }: { label: string; childre
 export function Stat({ label, value, format }: { label: string; value: number; format?: (value: number) => string }) {
   return (
     <div className="grid content-center justify-items-center gap-2 px-3 py-5 text-center">
-      <span className="fx-pixel text-[30px] sm:text-[45px]">
+      <span className="fx-pixel text-[33px]">
         <CountUp value={value} format={format} />
       </span>
       <span className="text-xs text-muted-foreground">{label}</span>

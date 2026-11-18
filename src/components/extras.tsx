@@ -140,7 +140,7 @@ export function Achievements({ files, size, checklist }: { files: number; size: 
 export function NotFound() {
   return (
     <div className="fx-page grid justify-items-start gap-5 py-10">
-      <p className="fx-pixel text-[80px]">404</p>
+      <p className="fx-pixel text-[88px]">404</p>
       <StorageIcon scale={3} off />
       <p className="text-sm text-muted-foreground">{t('notFound.text')}</p>
       <Button asChild variant="outline">

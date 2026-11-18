@@ -68,7 +68,7 @@ export function ApiKeys({ userId }: { userId: string }) {
         <ul className="grid divide-y">
           {keys.data?.map((k) => (
             <li key={k.id} className="flex items-center gap-2 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate font-medium">{k.name}</span>
+              <span className="min-w-0 flex-1 truncate text-foreground">{k.name}</span>
               <span className="hidden text-muted-foreground sm:inline">{t('keys.used', { date: formatDate(k.last_used_at) })}</span>
               <Confirm title={t('keys.revokeQ', { name: k.name })} action={t('keys.revoke')} onConfirm={() => revoke.mutate(k.id)}>
                 <Button variant="ghost" size="icon-sm" aria-label={t('keys.revoke')}>

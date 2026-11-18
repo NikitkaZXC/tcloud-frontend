@@ -111,7 +111,7 @@ export function Brand({ short }: { short?: boolean }) {
   return (
     <span className="flex items-center gap-2" aria-hidden>
       <Logo />
-      {!short && <span className="fx-pixel text-[20px] uppercase">tcloud</span>}
+      {!short && <span className="fx-pixel text-[22px] uppercase">tcloud</span>}
     </span>
   )
 }
@@ -153,7 +153,7 @@ function LangSwitch({ collapsed }: { collapsed: boolean }) {
       onClick={() => updateSettings({ interface: { language: next } }).catch(showError)}
       aria-label={t('nav.language', { lang: next.toUpperCase() })}
       title={t('nav.language', { lang: next.toUpperCase() })}
-      className={cn("fx-label relative inline-flex h-7 w-9 shrink-0 items-center justify-center border text-[11px] after:absolute after:-inset-2 after:content-['']", collapsed && 'w-7')}
+      className={cn("fx-label relative inline-flex h-7 w-9 shrink-0 items-center justify-center border text-xs after:absolute after:-inset-2 after:content-['']", collapsed && 'w-7')}
     >
       {lang.toUpperCase()}
     </button>
@@ -223,7 +223,7 @@ function Sidebar({
               <span className="flex items-center gap-2">
                 <SearchIcon /> {t('nav.search')}
               </span>
-              <kbd className="fx-label text-[11px]">Ctrl K</kbd>
+              <kbd className="fx-label">Ctrl K</kbd>
             </>
           )}
         </Button>
@@ -270,11 +270,11 @@ function Sidebar({
             cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 pr-2 transition-colors hover:bg-secondary', collapsed && 'flex-none pr-1', isActive && 'outline outline-1 outline-foreground')
           }
         >
-          <span className="flex size-8 shrink-0 items-center justify-center border fx-pixel text-[20px] uppercase">
+          <span className="flex size-8 shrink-0 items-center justify-center border fx-pixel text-[22px] uppercase">
             {me.login.slice(0, 1)}
           </span>
           <span className={cn('min-w-0', collapsed && 'sr-only')}>
-            <span className="block truncate text-sm font-medium">{me.login}</span>
+            <span className="block truncate text-sm text-foreground">{me.login}</span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <KeyRoundIcon className="size-3" /> {me.role}
             </span>

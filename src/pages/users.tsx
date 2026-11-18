@@ -41,7 +41,7 @@ export function UsersPage() {
               {users.data.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <Link to={`/users/${user.id}`} className="font-medium hover:underline">
+                    <Link to={`/users/${user.id}`} className="text-foreground hover:underline">
                       {user.login}
                     </Link>
                     {user.blocked && (

@@ -2,20 +2,26 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
 
 @theme inline {
-    --font-heading: 'IBM Plex Mono', ui-monospace, monospace;
-    --font-pixel: 'Tiny5', ui-monospace, monospace;
-    --font-sans: 'IBM Plex Mono', ui-monospace, monospace;
-    --text-xs: 12px;
+    --font-sans: 'Departure Mono', monospace;
+    --font-mono: 'Departure Mono', monospace;
+    --text-xs: 11px;
     --text-xs--line-height: 1.5;
-    --text-sm: 14px;
+    --text-sm: 16.5px;
     --text-sm--line-height: 1.5;
-    --text-base: 15px;
-    --text-base--line-height: 1.55;
-    --text-lg: 17px;
-    --text-lg--line-height: 1.5;
+    --text-base: 16.5px;
+    --text-base--line-height: 1.5;
+    --text-lg: 22px;
+    --text-lg--line-height: 1.25;
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-ink: var(--foreground);
@@ -335,6 +341,7 @@
   }
   html {
     @apply font-sans;
+    font-synthesis: none;
     background: radial-gradient(70% 60% at 0% 0%, var(--glow), transparent 70%) fixed, var(--backdrop) fixed, var(--background);
     -webkit-tap-highlight-color: transparent;
   }
@@ -358,6 +365,18 @@
   }
 }
 
+[data-sonner-toaster] {
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast][data-styled=true] {
+  font-size: 16.5px;
+}
+
+[data-sonner-toast][data-styled=true] :is([data-button], [data-cancel]) {
+  font-size: 11px;
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -371,9 +390,7 @@ body::before {
 }
 
 [data-slot=card-title], [data-slot=dialog-title], [data-slot=alert-dialog-title] {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16.5px;
   line-height: 1.4;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -383,22 +400,13 @@ body::before {
   clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
 }
 
-.fx-pixel, .fx-ring-center, .fx-flap {
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: auto;
-  font-smooth: never;
-}
-
 .fx-pixel {
-  font-family: var(--font-pixel);
-  font-weight: 400;
   line-height: 1;
   letter-spacing: 0.04em;
 }
 
 .fx-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -409,8 +417,7 @@ body::before {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   line-height: 1.2;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -423,8 +430,7 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-decoration: underline;
@@ -567,8 +573,7 @@ body::before {
 .fx-vlabel {
   writing-mode: vertical-rl;
   rotate: 180deg;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--foreground);
@@ -583,12 +588,11 @@ body::before {
 :is([data-slot=button], [data-slot$=-trigger]) {
   border-radius: 0;
   border-width: 2px;
-  font-weight: 500;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
 :is([data-slot=button], [data-slot$=-trigger]):not([data-size^=icon]):is([data-variant=default], [data-variant=outline], [data-variant=secondary], [data-variant=destructive]) {
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -687,8 +691,7 @@ a:is([data-slot=button], [data-slot$=-trigger])[data-variant=outline]:not([data-
 }
 
 [data-slot=table] thead th {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -724,7 +727,7 @@ a:is([data-slot=button], [data-slot$=-trigger])[data-variant=outline]:not([data-
 }
 
 [data-slot=breadcrumb] {
-  font-size: 14px;
+  font-size: 16.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -783,9 +786,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   height: 1.5rem;
   padding: 0 0.55rem;
   border: 2px solid var(--border);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -842,13 +843,14 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: var(--font-pixel);
-  font-size: 20px;
+  padding: 0 1rem;
+  font-size: 22px;
+  line-height: 1;
   text-align: center;
 }
 
-.fx-ring[data-size=sm] .fx-ring-center { font-family: var(--font-sans); font-size: 13px; font-weight: 500; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-smooth: auto; }
-.fx-ring[data-size=lg] .fx-ring-center { font-size: 30px; }
+.fx-ring[data-size=sm] .fx-ring-center { font-size: 11px; }
+.fx-ring[data-size=lg] .fx-ring-center { font-size: 33px; }
 
 .fx-drive {
   flex-shrink: 0;
@@ -900,7 +902,6 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   height: 1.375rem;
   padding: 0 0.4rem;
   font-size: 11px;
-  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -919,7 +920,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   gap: 0.5rem 0.75rem;
   padding: 0.6rem 0.8rem;
   border: 2px solid var(--warning);
-  font-size: 14px;
+  font-size: 16.5px;
 }
 
 .fx-io-line[data-io=read] {
@@ -1023,8 +1024,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   min-width: 1.4rem;
   height: 2rem;
   padding: 0 0.15rem;
-  font-family: var(--font-pixel);
-  font-size: 20px;
+  font-size: 22px;
   background: var(--track);
   background-image: linear-gradient(transparent calc(50% - 1px), var(--background) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
   animation: fx-flip 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;

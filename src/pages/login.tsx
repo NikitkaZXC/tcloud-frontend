@@ -49,7 +49,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="fx-page flex w-full max-w-sm items-end justify-between gap-4">
-        <p className="fx-pixel text-[50px] uppercase sm:text-[70px]" aria-hidden>
+        <p className="fx-pixel text-[44px] uppercase sm:text-[66px]" aria-hidden>
           tcloud
         </p>
         <Logo size={48} className="mb-2" />
@@ -96,14 +96,14 @@ export function LoginPage() {
                   </Button>
                 </div>
                 {caps && (
-                  <p id="caps" className="flex items-center gap-1.5 text-xs font-semibold text-warning">
+                  <p id="caps" className="flex items-center gap-1.5 text-xs text-warning uppercase tracking-[0.04em]">
                     <TriangleAlertIcon className="size-3.5" /> {t('login.caps')}
                   </p>
                 )}
               </div>
               {error && (
                 <div className="fx-well grid gap-1 px-4 py-3 text-sm" role="alert">
-                  <p className="flex items-center gap-2 font-semibold text-destructive">
+                  <p className="flex items-center gap-2 text-destructive">
                     <StatusLight ok={false} /> {error}
                   </p>
                   {wait > 0 && <p className="text-xs text-muted-foreground tabular-nums">{t('login.retryIn', { time: formatDuration(wait) })}</p>}

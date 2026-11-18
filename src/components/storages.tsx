@@ -26,7 +26,7 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
       <StorageIcon id={storage.id} io={io} off={isUnavailable(storage)} className="mt-1" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <div className="flex items-start gap-2">
-          <Link to={to} className="min-w-0 flex-1 truncate text-[14px] font-medium tracking-[0.04em] uppercase hover:underline pointer-coarse:py-2.5">
+          <Link to={to} className="min-w-0 flex-1 truncate text-sm tracking-[0.04em] uppercase hover:underline pointer-coarse:py-2.5">
             {storageName(storage)}
           </Link>
           <IoTag io={io} />
@@ -36,12 +36,12 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
         {!isUnavailable(storage) ? (
           <p className="flex flex-wrap items-baseline gap-x-3 text-xs text-muted-foreground tabular-nums">
             <span>
-              <span className="fx-pixel text-[20px] text-foreground">{storage.total_size != null ? formatBytes(storage.total_size) : '—'}</span>
+              <span className="fx-pixel text-[22px] text-foreground">{storage.total_size != null ? formatBytes(storage.total_size) : '—'}</span>
             </span>
             <span>{storage.files != null ? filesCount(storage.files) : t('storages.filesNoData')}</span>
           </p>
         ) : (
-          <p className="text-xs font-medium tracking-[0.08em] text-destructive uppercase">{t('io.off')}</p>
+          <p className="text-xs tracking-[0.08em] text-destructive uppercase">{t('io.off')}</p>
         )}
         {activity || io === 'write' || io === 'both' ? (
           <UploadPulse activity={activity ?? WRITTEN} />

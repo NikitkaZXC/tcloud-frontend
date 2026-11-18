@@ -111,11 +111,11 @@ function StepRow({ state, index, total, active, onPick }: { state: TelegramSessi
       aria-current={active ? 'step' : undefined}
       className={cn('flex items-center gap-3 border border-transparent px-3 py-2 transition-colors', active && 'border-foreground')}
     >
-      <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+      <span className="text-xs text-muted-foreground tabular-nums">
         {index + 1} / {total}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">{state.session}</p>
+        <p className="text-base text-foreground uppercase tracking-[0.04em]">{state.session}</p>
         <p className="truncate text-xs text-muted-foreground">{t(ROLES[state.session])}</p>
       </div>
       {state.authorized ? (
@@ -205,11 +205,11 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
   return (
     <section aria-label={t('telegram.stepAria', { step: index + 1, total, name })} className="grid content-start gap-3">
       <p className="text-xs text-muted-foreground">
-        {t('telegram.step', { step: index + 1, total })} <span className="font-semibold text-primary">{name}</span>
+        {t('telegram.step', { step: index + 1, total })} <span className="text-primary uppercase">{name}</span>
       </p>
       {loginError && <p className="text-sm text-destructive" role="alert">{loginError}</p>}
       {wait > 0 && (
-        <p className="text-xs font-semibold text-warning" role="status">
+        <p className="text-xs text-warning uppercase tracking-[0.04em]" role="status">
           {t('telegram.flood', { time: formatDuration(wait) })}
         </p>
       )}
