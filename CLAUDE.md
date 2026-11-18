@@ -38,7 +38,7 @@ docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 - Folder listing order lives in `lib/files.ts` (`viewEntries`: natural `Intl.Collator`, folders-first toggle, header sort with `aria-sort`).
 - Optional extras (pet, sounds, confetti, cursor, eggs) are behind `lib/features.ts` flags, default off; must-have effects (pixel bursts, speedometer, activity map) are always on but skip animation under reduced motion. No new dependencies for effects.
 - Dashboard uses only existing endpoints; admin-only queries (`users`) are `enabled`/rendered only for admins; the first-run checklist (`telegram` query) only for root.
-- No thumbnails in the API: never load full images from `/download` in listings; previews only in the file card.
+- Thumbnails: only via `Thumb` / `thumbUrl` (`lib/thumbs.ts`): `/api/files/{id}/thumb?v=<updated_at>`, only for non-encrypted photo/video/animation, lazy, a failed URL falls back to the kind icon and is not retried. Never load full images from `/download` in listings.
 - Uploads are encrypted by default: send `encrypt: true` explicitly; `withSendAs` turns it off for `media` and back on for `file`.
 - Uploads keep relative paths (folder upload); the backend creates parent folders. Bulk download = sequential links + zip per folder (no archive of an arbitrary file set in the API).
 

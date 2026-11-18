@@ -5,19 +5,14 @@ import {
   ArrowUpNarrowWideIcon,
   CopyIcon,
   DownloadIcon,
-  FileIcon,
-  FileTextIcon,
-  FilmIcon,
   FolderIcon,
   FolderPlusIcon,
   FolderUpIcon,
-  ImageIcon,
   LayoutGridIcon,
   LinkIcon,
   ListIcon,
   LockIcon,
   MoreHorizontalIcon,
-  MusicIcon,
   SearchIcon,
   Trash2Icon,
   UploadIcon,
@@ -30,6 +25,7 @@ import { Confirm } from '@/components/confirm'
 import { FileDialog } from '@/components/file-dialog'
 import { FolderUploads, IoBanner } from '@/components/folder-uploads'
 import { StorageIcon } from '@/components/fx'
+import { Thumb } from '@/components/thumb'
 import { useFeature } from '@/lib/features'
 import {
   Breadcrumb,
@@ -74,7 +70,6 @@ import { trackTask } from '@/lib/tasks'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-const KIND_ICONS = { photo: ImageIcon, video: FilmIcon, audio: MusicIcon, animation: FilmIcon, document: FileTextIcon }
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
 
 const link = (path: string) => `/files?path=${encodeURIComponent(path)}`
@@ -422,13 +417,14 @@ export function FolderView({ path }: { path: string }) {
   )
 
   const fileRow = (file: TFile) => {
-                const Icon = KIND_ICONS[file.kind] ?? FileIcon
                 return (
                   <TableRow key={file.uuid} data-state={selected.has(fileKey(file.uuid)) ? 'selected' : undefined}>
                     <TableCell>{check(fileKey(file.uuid), file.name)}</TableCell>
                     <TableCell className="max-w-0">
                       <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left text-base hover:underline" title={file.name}>
-                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="fx-mini">
+                          <Thumb file={file} iconClassName="size-4" />
+                        </span>
                         <span className="truncate">{file.name}</span>
                         {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label="зашифрован" />}
                       </button>
@@ -468,12 +464,11 @@ export function FolderView({ path }: { path: string }) {
   )
 
   const fileTile = (file: TFile) => {
-            const Icon = KIND_ICONS[file.kind] ?? FileIcon
             return (
               <li key={file.uuid} className={cn('fx-panel flex gap-3 p-3 transition-colors hover:border-foreground/30', selected.has(fileKey(file.uuid)) && 'border-ink')}>
                 <div className="relative">
                   <span className="fx-thumb">
-                    <Icon className="size-6" />
+                    <Thumb file={file} iconClassName="size-6" />
                   </span>
                   <div className="absolute top-1 left-1">{check(fileKey(file.uuid), file.name)}</div>
                 </div>

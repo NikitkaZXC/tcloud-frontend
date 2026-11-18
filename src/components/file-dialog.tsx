@@ -7,6 +7,7 @@ import { downloadUrl, formatBytes, formatDate, formatDuration } from '@/lib/form
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { humanPath } from '@/lib/names'
+import { thumbUrl } from '@/lib/thumbs'
 import type { TFile } from '@/lib/types'
 
 const PREVIEW = ['photo', 'animation', 'video', 'audio']
@@ -20,7 +21,7 @@ function Preview({ file }: { file: TFile }) {
     if (file.mime.startsWith('video/')) return <video src={src} autoPlay loop muted className="max-h-96 w-full rounded-md" />
     return <img src={src} alt={file.name} className="max-h-96 w-full rounded-md object-contain" />
   }
-  if (file.kind === 'video') return <video src={src} controls className="max-h-96 w-full rounded-md" />
+  if (file.kind === 'video') return <video src={src} poster={thumbUrl(file) ?? undefined} controls preload="metadata" className="max-h-96 w-full rounded-md" />
   if (file.kind === 'audio') return <audio src={src} controls className="w-full" />
   return null
 }
