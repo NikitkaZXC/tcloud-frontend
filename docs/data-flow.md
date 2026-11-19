@@ -161,6 +161,7 @@ sequenceDiagram
     S->>S: id = ++pending
     S->>S: publish(mergeSettings(current, patch))
     Note over S: UI сразу видит новое значение,<br/>hydrateSettings игнорируется
+    S->>S: queue = queue.then(send) — ждёт предыдущий PATCH/DELETE
     S->>B: PATCH /api/account/settings (только patch)
     alt 2xx
         B-->>S: полные Settings
@@ -175,6 +176,9 @@ sequenceDiagram
 ```
 
 - Только последнее из одновременных сохранений публикует результат; промежуточные ответы обновляют `confirmed`.
+- Запросы уходят строго по одному (`queue` в `commit`): бэкенд сливает патч с сохранённым read-modify-write без
+  блокировки, и два параллельных PATCH теряли одно изменение (так «Готово» на дашборде теряло `dashboard_layout`,
+  отправленный вместе с `dashboard_hidden`).
 - `resetSettings()` — то же с `DEFAULT_SETTINGS` и `DELETE /api/account/settings`.
 - Кто пишет: `pages/settings.tsx` (каждое поле сразу, вебхук — кнопкой), `FolderView` (сортировка `sortPatch`, вид
   `folder_view`), `Layout` (тема `setTheme`, язык).

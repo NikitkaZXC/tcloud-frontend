@@ -141,6 +141,7 @@ const listeners = new Set<() => void>()
 let confirmed: Settings = mergeSettings(DEFAULT_SETTINGS, { interface: readMirror() })
 let current = confirmed
 let pending = 0
+let queue: Promise<unknown> = Promise.resolve()
 
 function publish(next: Settings) {
   current = next
@@ -172,8 +173,10 @@ export function hydrateSettings(settings: Settings | undefined) {
 async function commit(optimistic: Settings, send: () => Promise<Settings>): Promise<Settings> {
   const id = ++pending
   publish(optimistic)
+  const sent = queue.then(send)
+  queue = sent.catch(() => undefined)
   try {
-    confirmed = mergeSettings(DEFAULT_SETTINGS, await send())
+    confirmed = mergeSettings(DEFAULT_SETTINGS, await sent)
     if (id === pending) publish(confirmed)
     return confirmed
   } catch (error) {

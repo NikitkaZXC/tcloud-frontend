@@ -97,4 +97,26 @@ describe('settings', () => {
     await store.updateSettings({ interface: { theme: 'light' } })
     expect(store.getSettings()).toEqual(saved)
   })
+
+  it('sends settings changes one at a time so the server never merges two at once', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
+    const order: string[] = []
+    const replies: (() => void)[] = []
+    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => {
+      order.push(`start ${init.body}`)
+      return new Promise<Response>((resolve) => replies.push(() => {
+        order.push(`end ${init.body}`)
+        resolve(new Response(JSON.stringify(DEFAULT_SETTINGS), { status: 200 }))
+      }))
+    }))
+    const store = await import('./settings')
+    const a = store.updateSettings({ interface: { dashboard_layout: ['users'] } })
+    const b = store.updateSettings({ interface: { dashboard_hidden: ['users'] } })
+    await vi.waitFor(() => expect(replies).toHaveLength(1))
+    replies[0]()
+    await vi.waitFor(() => expect(replies).toHaveLength(2))
+    replies[1]()
+    await Promise.all([a, b])
+    expect(order.map((line) => line.split(' ')[0])).toEqual(['start', 'end', 'start', 'end'])
+  })
 })
