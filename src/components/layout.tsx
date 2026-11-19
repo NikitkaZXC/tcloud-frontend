@@ -184,12 +184,19 @@ function Sidebar({
 
   useLayoutEffect(() => {
     const target = list.current?.querySelector<HTMLElement>('[aria-current=page], [data-active=true]')
-    if (!pill.current) return
-    pill.current.style.opacity = target ? '1' : '0'
+    const box = pill.current
+    if (!box) return
+    box.style.opacity = target ? '1' : '0'
     if (!target) return
-    pill.current.style.transform = `translate(${target.offsetLeft}px, ${target.offsetTop}px)`
-    pill.current.style.height = `${target.offsetHeight}px`
-    pill.current.style.width = `${target.offsetWidth}px`
+    const place = () => {
+      box.style.transform = `translate(${target.offsetLeft}px, ${target.offsetTop}px)`
+      box.style.height = `${target.offsetHeight}px`
+      box.style.width = `${target.offsetWidth}px`
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(target)
+    return () => observer.disconnect()
   }, [location.pathname, location.search, collapsed, storages.data?.length])
 
   return (
