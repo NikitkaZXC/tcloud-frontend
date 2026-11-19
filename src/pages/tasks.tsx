@@ -12,7 +12,7 @@ import { useAction } from '@/hooks/use-action'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { api, errorText } from '@/lib/api'
 import { t, type Key } from '@/lib/i18n'
-import { filesCount, formatBytes, formatDate, formatDuration, parentPath } from '@/lib/format'
+import { filesCount, formatBytes, formatDate, formatDuration, formatShortDate, parentPath } from '@/lib/format'
 import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
@@ -157,7 +157,7 @@ function TaskCard({ task }: { task: Task }) {
               {task.archive.expires_at && ` · ${t('tasks.keptUntil', { date: formatDate(task.archive.expires_at) })}`}
             </span>
           )}
-          <span>{formatDate(task.created_at)}</span>
+          <span title={formatDate(task.created_at)}>{formatShortDate(task.created_at)}</span>
         </div>
         {task.error && (
           <p className="text-sm text-destructive">

@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatShortDate } from '@/lib/format'
 import type { Role, User } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
@@ -53,7 +53,7 @@ export function UsersPage() {
                   <TableCell>
                     <Badge variant="outline">{user.role}</Badge>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">{formatDate(user.last_login_at)}</TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell" title={formatDate(user.last_login_at)}>{formatShortDate(user.last_login_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

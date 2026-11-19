@@ -582,8 +582,8 @@ export function FolderView({ path }: { path: string }) {
                     <span className="truncate">{file.name}</span>
                     {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                   </button>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {formatBytes(file.size)} · {formatDate(file.updated_at)}
+                  <span className="text-xs text-muted-foreground tabular-nums" title={formatDate(file.updated_at)}>
+                    {formatBytes(file.size)} · {formatShortDate(file.updated_at)}
                   </span>
                   <div className="flex items-center justify-between gap-2">
                     <button type="button" onClick={() => setOpened(file)} className="fx-more" tabIndex={-1} aria-hidden>

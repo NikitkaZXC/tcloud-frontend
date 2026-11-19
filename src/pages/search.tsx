@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useMimes, useSearch } from '@/hooks/use-search'
 import { useStorages } from '@/hooks/use-storages'
 import { ApiError } from '@/lib/api'
-import { filesCount, formatBytes, formatDate, parentPath } from '@/lib/format'
+import { filesCount, formatBytes, formatDate, formatShortDate, parentPath } from '@/lib/format'
 import { foundLocation } from '@/lib/names'
 import { hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
 import type { FoundFile } from '@/lib/types'
@@ -227,7 +227,7 @@ export function SearchPage() {
               </div>
               <span className="hidden shrink-0 text-right text-xs text-muted-foreground tabular-nums sm:block">
                 {formatBytes(file.size)}
-                <span className="block">{formatDate(file.updated_at)}</span>
+                <span className="block" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</span>
               </span>
             </li>
           ))}
