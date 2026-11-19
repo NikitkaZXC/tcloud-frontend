@@ -154,7 +154,7 @@ function TaskCard({ task }: { task: Task }) {
           {task.archive && (
             <span>
               {filesCount(task.archive.files)}{task.archive.size != null && ` · ${formatBytes(task.archive.size)}`}
-              {task.archive.expires_at && ` · ${t('tasks.keptUntil', { date: formatDate(task.archive.expires_at) })}`}
+              {task.archive.expires_at && ` · ${t('tasks.keptUntil', { date: formatShortDate(task.archive.expires_at) })}`}
             </span>
           )}
           <span title={formatDate(task.created_at)}>{formatShortDate(task.created_at)}</span>
