@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowUpRightIcon, LogOutIcon } from 'lucide-react'
+import { LogOutIcon } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { PageTitle, StatusChip } from '@/components/fx'
@@ -77,7 +77,7 @@ export function TelegramPage() {
                 <p>{t('telegram.allReadyHint')}</p>
                 <Button asChild variant="outline" size="sm">
                   <Link to="/files">
-                    {t('telegram.toStorages')} <ArrowUpRightIcon />
+                    {t('telegram.toStorages')}
                   </Link>
                 </Button>
               </div>
