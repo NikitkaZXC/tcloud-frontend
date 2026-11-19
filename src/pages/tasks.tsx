@@ -95,8 +95,8 @@ function TaskCard({ task }: { task: Task }) {
           ) : (
             !finished && <span className="text-xs text-muted-foreground">{stageLabel(task.stage)}</span>
           )}
-          <span className="min-w-0 flex-1 truncate text-foreground">{name}</span>
-          <div className="flex items-center gap-1">
+          <span className="min-w-0 flex-1 truncate text-foreground max-sm:order-first max-sm:basis-full">{name}</span>
+          <div className="ml-auto flex items-center gap-1">
             {task.status === 'queued' && (
               <Select value={task.priority} onValueChange={(v) => priority.mutate(v as Priority)}>
                 <SelectTrigger size="sm" className="w-32" aria-label={t('upload.priority')}>
