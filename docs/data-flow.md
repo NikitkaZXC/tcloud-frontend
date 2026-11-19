@@ -122,7 +122,7 @@ flowchart LR
 ```
 
 Каждый стор — модульная переменная + `Set` слушателей + `useSyncExternalStore`. Прочие ключи `localStorage`
-(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.achievements`, `tcloud.dashboard.layout` — копия
+(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` — копия
 `interface.dashboard_layout`, `tcloud.file_columns` — копия `interface.file_columns`; обе читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
 `try/catch`.
 
@@ -185,7 +185,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    start["migrateLegacy()"] --> any{"есть хоть один из LEGACY_KEYS<br/>tcloud.view / sort / theme / feature.*?"}
+    start["migrateLegacy()"] --> any{"есть хоть один из LEGACY_KEYS<br/>tcloud.view / sort / theme / feature.* / achievements?"}
     any -- нет --> done["ничего"]
     any -- да --> patch["migrationPatch(current, read)"]
     patch --> def{"interface на сервере = умолчания<br/>и есть отличия?"}

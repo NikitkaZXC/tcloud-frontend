@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
 import {
   DEFAULT_SETTINGS,
+  LEGACY_KEYS,
   mergeSettings,
   migrationPatch,
   settingsError,
@@ -46,11 +47,13 @@ describe('settings', () => {
       'tcloud.feature.sounds': 'off',
     })
     expect(migrationPatch(DEFAULT_SETTINGS, old)).toEqual({
-      interface: { folder_view: 'grid', theme: 'light', sort_by: 'uploaded', sort_order: 'desc', folders_first: false, fx_pet: true },
+      interface: { folder_view: 'grid', theme: 'light', sort_by: 'uploaded', sort_order: 'desc', folders_first: false },
     })
     expect(migrationPatch(mergeSettings(DEFAULT_SETTINGS, { interface: { start_page: 'tasks' } }), old)).toBeNull()
     expect(migrationPatch(DEFAULT_SETTINGS, legacy({ 'tcloud.theme': 'dark', 'tcloud.view': 'list' }))).toBeNull()
     expect(migrationPatch(DEFAULT_SETTINGS, legacy({ 'tcloud.sort': 'garbage' }))).toBeNull()
+    expect(migrationPatch(DEFAULT_SETTINGS, legacy({ 'tcloud.feature.cursor': 'on', 'tcloud.feature.confetti': 'on' }))).toBeNull()
+    expect(LEGACY_KEYS).toContain('tcloud.achievements')
   })
 
   it('picks the start page', () => {

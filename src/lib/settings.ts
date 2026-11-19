@@ -35,10 +35,7 @@ export interface Settings {
     confirm_delete: boolean
     start_page: StartPage
     tasks_filter: TasksFilter
-    fx_pet: boolean
     fx_sounds: boolean
-    fx_confetti: boolean
-    fx_cursor: boolean
     fx_easter_eggs: boolean
     dashboard_layout?: string[]
     file_columns?: ColumnWidths
@@ -63,10 +60,7 @@ export const DEFAULT_SETTINGS: Settings = {
     confirm_delete: true,
     start_page: 'dashboard',
     tasks_filter: 'all',
-    fx_pet: false,
     fx_sounds: false,
-    fx_confetti: false,
-    fx_cursor: false,
     fx_easter_eggs: true,
   },
   telegram: { chat_folder: true },
@@ -82,9 +76,9 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
 }
 
 export const MIRROR_KEY = 'tcloud.mirror'
-export const LEGACY_KEYS = ['view', 'sort', 'theme', 'feature.pet', 'feature.sounds', 'feature.confetti', 'feature.cursor', 'feature.eggs'].map((key) => `tcloud.${key}`)
+export const LEGACY_KEYS = ['view', 'sort', 'theme', 'feature.pet', 'feature.sounds', 'feature.confetti', 'feature.cursor', 'feature.eggs', 'achievements'].map((key) => `tcloud.${key}`)
 
-const FEATURE_KEYS = { pet: 'fx_pet', sounds: 'fx_sounds', confetti: 'fx_confetti', cursor: 'fx_cursor', eggs: 'fx_easter_eggs' } as const
+const FEATURE_KEYS = { sounds: 'fx_sounds', eggs: 'fx_easter_eggs' } as const
 
 export function legacyPatch(read: (key: string) => string | null): SettingsPatch['interface'] {
   const patch: SettingsPatch['interface'] = {}

@@ -321,10 +321,7 @@ export function SettingsPage() {
 
       <Section label={t('settings.extras')}>
         <div className="grid">
-          <Toggle label={t('settings.pet')} hint={t('settings.petHint')} checked={ui.fx_pet} onChange={(fx_pet) => setUi({ fx_pet })} />
           <Toggle label={t('settings.sounds')} hint={t('settings.soundsHint')} checked={ui.fx_sounds} onChange={(fx_sounds) => setUi({ fx_sounds })} />
-          <Toggle label={t('settings.confetti')} checked={ui.fx_confetti} onChange={(fx_confetti) => setUi({ fx_confetti })} />
-          <Toggle label={t('settings.cursor')} hint={t('settings.cursorHint')} checked={ui.fx_cursor} onChange={(fx_cursor) => setUi({ fx_cursor })} />
           <Toggle label={t('settings.eggs')} hint={t('settings.eggsHint')} checked={ui.fx_easter_eggs} onChange={(fx_easter_eggs) => setUi({ fx_easter_eggs })} />
         </div>
       </Section>

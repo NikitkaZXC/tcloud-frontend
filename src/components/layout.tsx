@@ -23,7 +23,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchPar
 import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, Logo, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
-import { Extras, Pet, Tip } from '@/components/extras'
+import { Extras, Tip } from '@/components/extras'
 import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
@@ -255,7 +255,6 @@ function Sidebar({
           )}
         </div>
       </div>
-      <Pet />
       <div className={cn('fx-panel flex items-center gap-2 p-2.5', collapsed && 'flex-col')}>
         <NavLink
           to="/account"

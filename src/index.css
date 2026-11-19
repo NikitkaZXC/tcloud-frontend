@@ -1101,40 +1101,6 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 .fx-heat-cell[data-level="3"] { background: var(--ring-from); }
 .fx-heat-cell[data-level="4"] { background: var(--ring-to); }
 
-.fx-pet {
-  display: flex;
-  justify-content: center;
-  padding: 0.25rem 0;
-  color: var(--foreground);
-}
-
-.fx-pet svg { shape-rendering: crispEdges; }
-.fx-pet-body { fill: var(--foreground); }
-.fx-pet-face { fill: var(--card); }
-.fx-pet svg g, .fx-pet-mouth { fill: var(--foreground); }
-.fx-pet-eyes-shut, .fx-pet-z { display: none; }
-.fx-pet[data-mood=sleep] .fx-pet-eyes-open { display: none; }
-.fx-pet[data-mood=sleep] :is(.fx-pet-eyes-shut, .fx-pet-z) { display: inline; }
-.fx-pet[data-mood=sleep] .fx-pet-z { animation: fx-blink 2s ease-in-out infinite; }
-.fx-pet[data-mood=eat] .fx-pet-mouth {
-  fill: var(--warning);
-  transform-box: fill-box;
-  transform-origin: top;
-  animation: fx-chomp 0.4s ease-in-out infinite;
-}
-.fx-pet[data-mood=happy] svg { animation: fx-hop 0.5s ease-in-out 4; }
-.fx-pet[data-mood=happy] .fx-pet-mouth { fill: var(--success); }
-.fx-pet[data-mood=scared] svg { animation: fx-shake 0.2s ease-in-out 8; }
-.fx-pet[data-mood=scared] .fx-pet-eyes-open { fill: var(--destructive); }
-
-@keyframes fx-chomp { 50% { scale: 1 3; } }
-@keyframes fx-hop { 50% { translate: 0 -4px; } }
-@keyframes fx-shake { 50% { translate: 2px 0; } }
-
-:root.fx-cursor, :root.fx-cursor * {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h2v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1H8v1h1v2H8v1H7v-2H6v-1H5v1H4v1H3v1H1z' fill='%23051f20'/%3E%3Cpath d='M2 3h1v1h1v1h1v1h1v1h1v1h1v1H7v2H6v-1H5v1H4v1H3v1H2z' fill='%23daf1de'/%3E%3C/svg%3E") 1 1, auto;
-}
-
 :root.fx-secret {
   --background: #1a1205;
   --foreground: #ffd58a;
@@ -1149,27 +1115,6 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   --ring-to: #ffd58a;
   --primary: #ffd58a;
   --primary-foreground: #1a1205;
-}
-
-.fx-px-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.fx-px {
-  position: absolute;
-  animation: fx-px 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  will-change: translate, opacity;
-  image-rendering: pixelated;
-}
-
-@keyframes fx-px {
-  from { translate: 0 0; opacity: 1; }
-  80% { opacity: 1; }
-  to { translate: var(--dx) var(--dy); opacity: 0; }
 }
 
 @keyframes fx-rise {
@@ -1203,7 +1148,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
-  .fx-light, .fx-flow::before, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth {
+  .fx-light, .fx-flow::before, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap {
     animation: none !important;
   }
 }
@@ -1215,7 +1160,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   transition-duration: 0.01ms !important;
 }
 
-:root.still :is(.fx-light, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap, .fx-px, .fx-pet svg, .fx-pet-z, .fx-pet-mouth),
+:root.still :is(.fx-light, .fx-drive-led, .fx-drive-bar, .fx-cubes-dot, .fx-ring-bar, .fx-flap),
 :root.still .fx-flow::before {
   animation: none !important;
 }

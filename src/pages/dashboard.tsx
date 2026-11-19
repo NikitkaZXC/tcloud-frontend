@@ -4,7 +4,6 @@ import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Link, useBlocker } from 'react-router'
 import { Confirm } from '@/components/confirm'
-import { Achievements } from '@/components/extras'
 import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
 import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, StatusLight, WireCubes } from '@/components/fx'
@@ -232,7 +231,7 @@ function Checklist() {
   const tasks = useTrackedData()
   if (hidden || !telegram.data || !storages.data) return null
   const steps = checklist(telegram.data.sessions, storages.data, tasks)
-  if (steps.every((step) => step.done)) return <Achievements files={0} size={0} checklist />
+  if (steps.every((step) => step.done)) return null
 
   return (
     <Section label={t('dashboard.firstRun')}>
@@ -449,7 +448,6 @@ export function DashboardPage() {
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>
-      <Achievements files={totals.files} size={totals.size} checklist={false} />
       {me?.role === 'root' && <Checklist />}
       {shown.map((id, i) =>
         draft ? (

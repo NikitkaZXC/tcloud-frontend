@@ -183,7 +183,7 @@ sequenceDiagram
 |---|---|---|
 | `tcloud:folder-action` (`FOLDER_ACTION`, `lib/commands.ts`) | `CommandPalette` (`runFolderAction`) | `FolderView`: загрузить файлы/папку/по ссылке, новая папка, архив |
 | `tcloud:palette` (`OPEN_PALETTE`) | кнопки в шапке/панели (`openPalette`) | `CommandPalette` |
-| `tcloud:task-finished` (`TASK_EVENT`, `lib/features.ts`) | `TaskWatcher` при завершении задачи | `components/extras.tsx` (питомец, звуки, конфетти) |
+| `tcloud:task-finished` (`TASK_EVENT`, `lib/features.ts`) | `TaskWatcher` при завершении задачи | `components/extras.tsx` (звуки) |
 
 ## Языки (i18n)
 
