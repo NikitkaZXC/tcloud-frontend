@@ -22,14 +22,14 @@ import { t } from '@/lib/i18n'
 export function StorageCard({ storage, activity, io, actions }: { storage: Storage; activity?: Activity; io?: Io; actions?: ReactNode }) {
   const to = `/files?path=${encodeURIComponent(storage.path)}`
   return (
-    <div className="fx-panel flex gap-4 p-4">
+    <div className="fx-panel flex h-full gap-4 p-4">
       <StorageIcon id={storage.id} io={io} off={isUnavailable(storage)} className="mt-1" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <div className="flex items-start gap-2">
           <Link to={to} className="min-w-0 flex-1 truncate text-sm tracking-[0.04em] uppercase hover:underline pointer-coarse:py-2.5">
             {storageName(storage)}
           </Link>
-          <IoTag io={io} />
+          <IoTag io={io} short />
           {actions}
         </div>
         {storage.description && <p className="truncate text-xs text-muted-foreground">{storage.description}</p>}
