@@ -115,7 +115,7 @@
     color-scheme: light;
     --success: #17663a;
     --warning: #8a5a00;
-    --read: #0e7490;
+    --read: #0c6a85;
     --dots: rgb(35 83 71 / 0.5);
     --track: #b9d9c1;
     --dither: #8eb69b;
@@ -346,8 +346,11 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-transparent text-foreground antialiased;
+    @apply bg-transparent text-base text-foreground antialiased;
     overflow-x: hidden;
+  }
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
   }
   table, [data-slot=badge], [data-slot=progress], time {
     font-variant-numeric: tabular-nums;
