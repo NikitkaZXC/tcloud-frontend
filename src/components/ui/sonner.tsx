@@ -32,6 +32,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "1rem",
+          "--success-bg": "color-mix(in oklab, var(--success) 12%, var(--popover))",
+          "--success-border": "var(--success)",
+          "--success-text": "var(--success)",
+          "--error-bg": "color-mix(in oklab, var(--destructive) 12%, var(--popover))",
+          "--error-border": "var(--destructive)",
+          "--error-text": "var(--destructive)",
+          "--warning-bg": "color-mix(in oklab, var(--warning) 12%, var(--popover))",
+          "--warning-border": "var(--warning)",
+          "--warning-text": "var(--warning)",
+          "--info-bg": "color-mix(in oklab, var(--read) 12%, var(--popover))",
+          "--info-border": "var(--read)",
+          "--info-text": "var(--read)",
         } as React.CSSProperties
       }
       toastOptions={{
