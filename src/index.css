@@ -803,6 +803,7 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
 }
 
 .fx-light[data-tone=fail] { background: var(--destructive); }
+.fx-light[data-alert] { animation: fx-blink 1s steps(1) infinite; }
 .fx-light[data-tone=read] { background: var(--read); animation: fx-blink 1.2s steps(1) infinite; }
 .fx-light[data-tone=idle] { background: transparent; box-shadow: inset 0 0 0 1px var(--muted-foreground); }
 .fx-light[data-tone=busy] {

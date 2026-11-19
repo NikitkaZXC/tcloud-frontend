@@ -20,7 +20,7 @@
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `staleTime` 60 с, `retry: false` |
 | `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется при `activity_map = false` |
 | `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
-| `['health']` | `GET /health` | `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с |
+| `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
 | `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
 | `['telegram-devices']` | `GET /telegram/sessions` | `pages/telegram.tsx` | `retry: false` |
 | `['users']` | `GET /users` | `pages/users.tsx`, `pages/dashboard.tsx` (admin) | |

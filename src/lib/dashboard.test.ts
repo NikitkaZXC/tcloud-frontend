@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthChecks, healthGroups, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -101,19 +101,37 @@ describe('dashboard', () => {
     expect(channelUsage(undefined, 2)).toEqual({ used: 2, limit: 500, accountWide: false })
   })
 
-  it('lists health checks with workers', () => {
-    const health = { ok: false, db: true, redis: true, queue: false, antivirus: true, telegram: true, telegram_upload: true, telegram_download: true, workers: { 'archives.build': false } } as Health
-    const checks = healthChecks(health)
-    expect(checks).toContainEqual(['queue', false])
-    expect(checks).toContainEqual(['archives.build', false])
-    expect(checks.find(([key]) => key === 'ok')).toBeUndefined()
+  it('builds health rack rows with metrics', () => {
+    const health = {
+      ok: false, db: true, redis: true, queue: false, antivirus: true, telegram: true, telegram_upload: true, telegram_download: true,
+      workers: { 'uploads.prepare': true, 'archives.build': false, 'custom.q': true },
+      details: {
+        db: { latency_ms: 3.4, last_seen_s: null },
+        redis: { latency_ms: 0.3, last_seen_s: null },
+        telegram: { latency_ms: 0.01, last_seen_s: null },
+        'uploads.prepare': { latency_ms: null, last_seen_s: 1.6 },
+        'archives.build': { latency_ms: null, last_seen_s: null },
+      },
+    } as Health
+    const groups = healthRows(health)
+    expect(groups.map((group) => [group.id, group.inline])).toEqual([['telegram', false], ['workers', false], ['infra', true]])
+    const rows = Object.fromEntries(groups.flatMap((group) => group.rows).map((row) => [row.key, row]))
+    expect(rows.telegram.metric).toBe('ok')
+    expect(rows.telegram.name).toBe('Основной клиент')
+    expect(rows.db.metric).toBe('3 мс')
+    expect(rows.redis.metric).toBe('<1 мс')
+    expect(rows.antivirus.metric).toBe('ok')
+    expect(rows.queue).toMatchObject({ ok: false, metric: 'сбой' })
+    expect(rows['uploads.prepare'].metric).toBe('2 с назад')
+    expect(rows['archives.build']).toMatchObject({ ok: false, metric: 'нет сигнала' })
+    expect(rows['custom.q']).toMatchObject({ name: 'custom.q', hint: '', metric: 'ok' })
+    expect(groups[1].rows.map((row) => row.key)).toEqual(['uploads.prepare', 'archives.build', 'custom.q'])
+    expect(healthRows({ ...health, workers: {}, details: undefined }).map((group) => group.id)).toEqual(['telegram', 'infra'])
   })
 
-  it('groups health checks by component and drops empty groups', () => {
-    const health = { ok: true, db: true, redis: true, queue: true, antivirus: true, telegram: true, telegram_upload: false, telegram_download: true, workers: {} } as Health
-    const groups = healthGroups(health)
-    expect(groups.map((group) => group.id)).toEqual(['telegram', 'infra', 'antivirus'])
-    expect(groups[0].checks).toEqual([['telegram', true], ['telegram_upload', false], ['telegram_download', true]])
+  it('says how long a failing worker has been silent', () => {
+    const health = { ok: false, db: true, redis: true, queue: true, antivirus: true, telegram: true, telegram_upload: true, telegram_download: true, workers: { 'uploads.download': false }, details: { 'uploads.download': { latency_ms: null, last_seen_s: 40.2 } } } as Health
+    expect(healthRows(health)[1].rows[0].metric).toBe('нет сигнала 40 с')
   })
 
   it('counts tasks by status', () => {

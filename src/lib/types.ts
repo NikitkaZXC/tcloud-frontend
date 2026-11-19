@@ -181,6 +181,12 @@ export interface Health {
   redis: boolean
   queue: boolean
   workers: Record<string, boolean>
+  details?: Record<string, HealthDetail>
+}
+
+export interface HealthDetail {
+  latency_ms: number | null
+  last_seen_s: number | null
 }
 
 export interface Account {

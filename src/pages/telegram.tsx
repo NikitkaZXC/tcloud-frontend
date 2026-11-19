@@ -5,20 +5,21 @@ import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { PageTitle, StatusChip } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
+import { HealthRack } from '@/components/health'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useHealth } from '@/hooks/use-health'
 import { useAction } from '@/hooks/use-action'
 import { useCountdown, useNow } from '@/hooks/use-countdown'
 import { api } from '@/lib/api'
 import { activeSession, describeError, qrExpired, retryAfterOf, SESSION_ORDER } from '@/lib/auth'
-import { healthChecks } from '@/lib/dashboard'
 import { formatBytes, formatDate, formatDuration } from '@/lib/format'
 import { t, type Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import type { Account, Health, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
+import type { Account, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
 
 const ROLES: Record<TelegramSessionName, Key> = {
   api: 'telegram.roleApi',
@@ -284,25 +285,17 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
 }
 
 function SystemCard() {
-  const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
+  const health = useHealth()
   const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
-  const checks = health.data ? healthChecks(health.data) : []
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {t('dashboard.system')} {health.data && <Badge variant={health.data.ok ? 'default' : 'destructive'}>{health.data.ok ? 'ok' : t('telegram.problems')}</Badge>}
-        </CardTitle>
+        <CardTitle>{t('dashboard.system')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 text-sm">
-        <div className="flex flex-wrap gap-1.5">
-          {checks.map(([name, ok]) => (
-            <Badge key={name} variant={ok ? 'secondary' : 'destructive'}>
-              {name}
-            </Badge>
-          ))}
-        </div>
+        {health.error && <p className="text-destructive">{health.error.message}</p>}
+        {health.data && <HealthRack health={health.data} />}
         {account.data?.telegram_connected && (
           <p className="text-muted-foreground">
             Premium: {t(account.data.premium ? 'common.yes' : 'common.no')} · {t('dashboard.fileLimit')} {formatBytes(account.data.file_limit)}

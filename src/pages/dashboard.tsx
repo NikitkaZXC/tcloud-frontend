@@ -1,23 +1,25 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownIcon, ArrowUpIcon, CheckIcon, CpuIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, SendIcon, ServerIcon, ShieldCheckIcon, XIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, XIcon } from 'lucide-react'
 import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Link, useBlocker } from 'react-router'
 import { Confirm } from '@/components/confirm'
+import { HealthRack } from '@/components/health'
 import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
-import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, StatusLight, WireCubes } from '@/components/fx'
+import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
+import { useHealth } from '@/hooks/use-health'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, HEALTH_LABELS, moveBlock, parseLayout, healthGroups, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, moveBlock, parseLayout, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { stageLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
-import type { Account, Health, Task, TelegramSessionState, User } from '@/lib/types'
+import type { Account, Task, TelegramSessionState, User } from '@/lib/types'
 import { load, save } from '@/lib/prefs'
 import { settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
@@ -38,50 +40,14 @@ function useTrackedData(): Task[] {
     .filter((task): task is Task => !!task)
 }
 
-const GROUP_ICONS = { telegram: SendIcon, workers: CpuIcon, infra: ServerIcon, antivirus: ShieldCheckIcon }
-
 function SystemSection() {
-  const health = useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), refetchInterval: 15000 })
-  const groups = health.data ? healthGroups(health.data) : []
-  const checks = groups.flatMap((group) => group.checks)
-  const ok = checks.filter(([, value]) => value).length
+  const health = useHealth()
 
   return (
     <Section label={t('dashboard.system')}>
       {health.isPending && <StatusChip status="wait" label={t('dashboard.checking')} />}
       {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
-      {checks.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
-          <Ring
-            size="lg"
-            value={ok / checks.length}
-            label={t(health.data?.ok ? 'dashboard.healthy' : 'dashboard.unhealthy')}
-            caption={t('dashboard.components', { ok, n: checks.length })}
-            tone={health.data?.ok ? 'ok' : 'fail'}
-          />
-          <div className="grid min-w-0 flex-1 basis-72 gap-4 sm:grid-cols-2">
-            {groups.map(({ id, checks: rows }) => {
-              const Icon = GROUP_ICONS[id]
-              return (
-                <div key={id} className="fx-panel grid content-start gap-4 p-4">
-                  <h3 className="fx-group-label">
-                    <Icon className="size-4 shrink-0" />
-                    <span className="flex-1">{t(`health.group.${id}`)}</span>
-                    <StatusLight ok={rows.every(([, value]) => value)} />
-                  </h3>
-                  <ul className={`fx-stagger ${rings}`}>
-                    {rows.map(([key, value]) => (
-                      <li key={key}>
-                        <Ring size="sm" value={value ? 1 : 0} center={value ? 'OK' : '×'} label={HEALTH_LABELS[key] ? t(HEALTH_LABELS[key]) : key} tone={value ? 'ok' : 'fail'} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {health.data && <HealthRack health={health.data} />}
     </Section>
   )
 }

@@ -1,35 +1,71 @@
-import type { Account, Health, Storage, StorageActivity, Task, TaskCounts, TaskStatus } from './types'
-import type { Key } from './i18n'
+import type { Account, Health, HealthDetail, Storage, StorageActivity, Task, TaskCounts, TaskStatus } from './types'
+import { type Key, t } from './i18n'
 import type { Sending } from './upload'
 
-export const HEALTH_LABELS: Record<string, Key> = {
-  db: 'health.db',
-  redis: 'health.redis',
-  queue: 'health.queue',
-  antivirus: 'health.antivirus',
-  telegram: 'health.telegram',
-  telegram_upload: 'health.telegramUpload',
-  telegram_download: 'health.telegramDownload',
-}
+export type HealthGroup = 'telegram' | 'workers' | 'infra'
 
-export type HealthGroup = 'telegram' | 'workers' | 'infra' | 'antivirus'
+type Check = [key: string, name?: Key, hint?: Key]
 
-const HEALTH_GROUPS: [HealthGroup, (keyof Health)[] | null][] = [
-  ['telegram', ['telegram', 'telegram_upload', 'telegram_download']],
-  ['workers', null],
-  ['infra', ['db', 'redis', 'queue']],
-  ['antivirus', ['antivirus']],
+export const HEALTH_GROUPS: { id: HealthGroup; inline?: boolean; checks: Check[] }[] = [
+  {
+    id: 'telegram',
+    checks: [
+      ['telegram', 'health.name.telegram', 'health.hint.telegram'],
+      ['telegram_upload', 'health.name.telegram_upload', 'health.hint.telegram_upload'],
+      ['telegram_download', 'health.name.telegram_download', 'health.hint.telegram_download'],
+    ],
+  },
+  {
+    id: 'workers',
+    checks: [
+      ['uploads.download', 'health.name.uploads.download', 'health.hint.uploads.download'],
+      ['uploads.prepare', 'health.name.uploads.prepare', 'health.hint.uploads.prepare'],
+      ['uploads.telegram', 'health.name.uploads.telegram', 'health.hint.uploads.telegram'],
+      ['archives.build', 'health.name.archives.build', 'health.hint.archives.build'],
+    ],
+  },
+  {
+    id: 'infra',
+    inline: true,
+    checks: [
+      ['db', 'health.name.db', 'health.hint.db'],
+      ['redis', 'health.name.redis', 'health.hint.redis'],
+      ['queue', 'health.name.queue', 'health.hint.queue'],
+      ['antivirus', 'health.name.antivirus', 'health.hint.antivirus'],
+    ],
+  },
 ]
 
-export function healthGroups(health: Health): { id: HealthGroup; checks: [string, boolean][] }[] {
-  return HEALTH_GROUPS.map(([id, keys]) => ({
-    id,
-    checks: keys ? keys.map((key) => [key, Boolean(health[key])] as [string, boolean]) : Object.entries(health.workers),
-  })).filter((group) => group.checks.length > 0)
+export interface HealthRow {
+  key: string
+  ok: boolean
+  name: string
+  hint: string
+  metric: string
 }
 
-export function healthChecks(health: Health): [string, boolean][] {
-  return healthGroups(health).flatMap((group) => group.checks)
+const ms = (value: number) => t('health.ms', { n: value < 1 ? '<1' : Math.round(value) })
+
+function metric(key: string, ok: boolean, worker: boolean, detail: HealthDetail | undefined): string {
+  const seen = detail?.last_seen_s
+  if (!ok) return worker ? (seen != null ? t('health.noSignalFor', { n: Math.round(seen) }) : t('health.noSignal')) : t('health.down')
+  if (key.startsWith('telegram')) return 'ok'
+  if (detail?.latency_ms != null) return ms(detail.latency_ms)
+  if (seen != null) return t('health.ago', { n: Math.round(seen) })
+  return 'ok'
+}
+
+export function healthRows(health: Health): { id: HealthGroup; inline: boolean; rows: HealthRow[] }[] {
+  return HEALTH_GROUPS.map(({ id, inline, checks }) => {
+    const listed = id === 'workers' ? checks.filter(([key]) => key in health.workers) : checks
+    const extra: Check[] = id === 'workers' ? Object.keys(health.workers).filter((key) => !checks.some(([listedKey]) => listedKey === key)).map((key) => [key]) : []
+    const rows = [...listed, ...extra].map(([key, name, hint]) => {
+      const worker = key in health.workers
+      const ok = worker ? health.workers[key] : Boolean(health[key as keyof Health])
+      return { key, ok, name: name ? t(name) : key, hint: hint ? t(hint) : '', metric: metric(key, ok, worker, health.details?.[key]) }
+    })
+    return { id, inline: !!inline, rows }
+  }).filter((group) => group.rows.length > 0)
 }
 
 export function storageTotals(storages: Storage[]) {
