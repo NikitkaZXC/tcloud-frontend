@@ -809,7 +809,7 @@ export function FolderView({ path }: { path: string }) {
         </div>
       )}
       {!empty && order.length > 0 && view === 'grid' && (
-        <ul data-selecting={picked.length > 0 || undefined} className="fx-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul data-selecting={picked.length > 0 || undefined} className="fx-stagger grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-3">
           {entries.map((entry) => (entry.type === 'folder' ? folderTile(entry.item) : fileTile(entry.item)))}
         </ul>
       )}
