@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Confirm } from '@/components/confirm'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
@@ -59,9 +60,9 @@ function Row({
 }) {
   return (
     <li className="grid gap-1" data-muted={muted || undefined}>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">{name}</span>
-        <span className={error ? 'shrink-0 text-destructive' : 'shrink-0 text-muted-foreground'}>
+      <div className="flex items-center gap-x-2 text-sm max-sm:flex-wrap">
+        <span className="min-w-0 flex-1 truncate" title={name}>{name}</span>
+        <span className={cn('min-w-0 truncate max-sm:order-last max-sm:basis-full sm:shrink-0', error ? 'text-destructive' : 'text-muted-foreground')}>
           {label}
           {fraction != null && ` · ${(fraction * 100).toFixed(0)}%`}
         </span>
