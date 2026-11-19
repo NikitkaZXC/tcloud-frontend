@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { type ComponentType, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
-import { toast } from 'sonner'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
@@ -28,7 +27,7 @@ import { TaskWatcher } from '@/components/task-watcher'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { ApiError, api, errorMessage } from '@/lib/api'
+import { ApiError, api, showError } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
 import { isUnavailable, storageName } from '@/lib/names'
@@ -38,7 +37,6 @@ import type { Me } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { t, useLang } from '@/lib/i18n'
 
-const showError = (error: unknown) => toast.error(errorMessage(error))
 
 const item =
   'relative z-10 flex h-10 items-center gap-3 px-3 text-sm tracking-[0.06em] text-muted-foreground uppercase transition-colors hover:text-foreground pointer-coarse:h-11'

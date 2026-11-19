@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody } from './types'
 
@@ -28,11 +29,31 @@ export function withQuery(url: string, query?: Query): string {
 
 export async function toError(response: Response): Promise<ApiError> {
   const body = await response.json().catch(() => null)
-  return new ApiError(
-    response.status,
-    body?.error ?? { code: 'http_error', message: `${response.status} ${response.statusText}` },
-  )
+  const error: ApiErrorBody = body?.error ?? { code: 'http_error', message: `${response.status} ${response.statusText}` }
+  if (response.status === 429) error.retry_after ??= Number(response.headers.get('Retry-After')) || 1
+  return new ApiError(response.status, error)
 }
+
+export function retryAfter(error: unknown): number | null {
+  if (!(error instanceof ApiError) || error.status !== 429) return null
+  const value = Number(error.body.retry_after)
+  return Number.isFinite(value) && value > 0 ? value : 1
+}
+
+export const RATE_LIMIT_TOAST = 'rate-limited'
+
+export function notifyRateLimit(seconds: number) {
+  toast.error(t('error.rateLimitedWait', { n: Math.ceil(seconds) }), { id: RATE_LIMIT_TOAST })
+}
+
+export const RATE_LIMIT_RETRIES = 3
+
+export function queryRetry(count: number, error: unknown): boolean {
+  if (retryAfter(error) != null) return count < RATE_LIMIT_RETRIES
+  return !(error instanceof ApiError && error.status < 500) && count < 2
+}
+
+export const queryRetryDelay = (count: number, error: unknown) => (retryAfter(error) ?? Math.min(2 ** count, 30)) * 1000
 
 let refreshing: Promise<boolean> | null = null
 
@@ -63,7 +84,11 @@ export async function request<T = void>(
   if (response.status === 401 && options.retry !== false && !url.startsWith('/auth/')) {
     if (await refreshSession()) response = await fetch(full, init)
   }
-  if (!response.ok) throw await toError(response)
+  if (!response.ok) {
+    const error = await toError(response)
+    if (error.status === 429 && !url.startsWith('/auth/')) notifyRateLimit(retryAfter(error)!)
+    throw error
+  }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
@@ -84,6 +109,10 @@ export function errorMessage(error: unknown): string {
   if (error instanceof TypeError) return t('error.network')
   if (error instanceof Error) return error.message
   return String(error)
+}
+
+export function showError(error: unknown, prefix = '') {
+  if (retryAfter(error) == null) toast.error(prefix + errorMessage(error))
 }
 
 export function errorText(body: ApiErrorBody | null | undefined): string {

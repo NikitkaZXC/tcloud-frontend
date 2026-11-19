@@ -57,6 +57,9 @@ gzip (от 1 КБ, `gzip_vary`) сжимает HTML, CSS, JS, SVG и JSON; в `/
   все POST/PUT/PATCH/DELETE получают `403 cross_site_request`.
 - **Авторизация** (`src/lib/api.ts`): на `401` один раз вызывается `POST /api/auth/refresh` и запрос повторяется;
   не вышло — переход на `/login`. Параллельные запросы делят одно обновление.
+- **429** (`rate_limited`, любой эндпоинт): одно уведомление «Слишком много запросов — повторите через N с» (повторные
+  429 обновляют его, а не множат), запросы TanStack Query повторяются не раньше `retry_after`, опрос на это время
+  замирает (`queryRetry`/`queryRetryDelay`, `docs/architecture.md`).
 - **Страница входа**: автофокус на логине, показать/скрыть пароль, предупреждение о Caps Lock, кнопка выключена во
   время запроса. Ошибки `POST /api/auth/signin` переводятся по `code` (`src/lib/auth.ts`, `describeError`):
   `invalid_credentials`, `account_locked` (после `JWT_MAX_FAILED_LOGINS` неверных паролей), `rate_limited` (лимит

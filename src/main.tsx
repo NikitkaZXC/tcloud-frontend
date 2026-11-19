@@ -3,7 +3,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Toaster } from '@/components/ui/sonner'
-import { ApiError } from '@/lib/api'
+import { queryRetry, queryRetryDelay } from '@/lib/api'
 import { resolveLang, setLang } from '@/lib/i18n'
 import { getSettings, subscribeSettings } from '@/lib/settings'
 import { applyTheme } from '@/lib/theme'
@@ -25,7 +25,8 @@ subscribeSettings(applySettings)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (count, error) => !(error instanceof ApiError && error.status < 500) && count < 2,
+      retry: queryRetry,
+      retryDelay: queryRetryDelay,
       refetchOnWindowFocus: false,
     },
   },

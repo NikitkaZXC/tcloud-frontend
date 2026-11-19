@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes, formatDuration } from '@/lib/format'
-import { toast } from 'sonner'
-import { ApiError, api, errorMessage, errorText } from '@/lib/api'
+import { ApiError, api, errorText, showError } from '@/lib/api'
 import { IoTag } from '@/components/fx'
 import { Speedometer } from '@/components/meters'
 import { transferStats } from '@/lib/dashboard'
@@ -120,7 +119,7 @@ export function FolderUploads({ path }: { path: string }) {
     try {
       queryClient.setQueryData(['task', id], await api.post<Task>(`/tasks/${id}/cancel`))
     } catch (e) {
-      if (!(e instanceof ApiError && e.code === 'task_finished')) toast.error(errorMessage(e))
+      if (!(e instanceof ApiError && e.code === 'task_finished')) showError(e)
     } finally {
       setInFlight((list) => list.filter((x) => x !== id))
     }

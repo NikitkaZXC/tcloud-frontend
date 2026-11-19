@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { api, errorMessage, errorText } from '@/lib/api'
+import { api, errorText, showError } from '@/lib/api'
 import type { Picked } from '@/lib/dir-upload'
 import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
@@ -124,7 +124,7 @@ export function UploadDialog({
         hintTask(task.id, { source: 'device', encrypt: options.encrypt })
         trackTask(task.id)
       } catch (e) {
-        if (!isAbort(e)) toast.error(`${file.name}: ${errorMessage(e)}`)
+        if (!isAbort(e)) showError(e, `${file.name}: `)
       } finally {
         finishSending(id)
       }
@@ -196,7 +196,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
       setOptions(null)
       onOpenChange(false)
     } catch (e) {
-      toast.error(errorMessage(e))
+      showError(e)
     } finally {
       setBusy(false)
     }

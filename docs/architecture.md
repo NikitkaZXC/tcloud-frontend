@@ -118,6 +118,34 @@ flowchart LR
 тела — `http_error`). Обёртки `api.get/post/put/patch/del`. Тексты ошибок: `errorMessage` (по `error.<code>` из
 словаря, иначе `message (code)`, `TypeError` → «нет сети»), `errorText` для тела ошибки задачи.
 
+### 429 rate_limited
+
+Любой эндпоинт может ответить `429` с телом `{"error": {"code": "rate_limited", "message", "retry_after": N}}` и
+заголовком `Retry-After: N`. `toError` кладёт в `body.retry_after` значение из тела, иначе из заголовка (минимум 1 с);
+`retryAfter(error)` отдаёт N только для 429. Уведомление одно на всё приложение: `notifyRateLimit` — `toast.error` с
+фиксированным `id` (`RATE_LIMIT_TOAST`), повторные 429 обновляют тот же тост, а не добавляют новые. Обычные
+уведомления об ошибке (`showError`, `useAction`) 429 пропускают. Пути `/auth/*` тост не показывают: вход сам выводит
+`rate_limited` с обратным отсчётом. Отправка файла (XHR в `lib/upload.ts`) показывает тот же тост.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Q as useQuery (опрос)
+    participant R as request()
+    participant B as Backend
+    participant T as sonner
+    Q->>R: queryFn
+    R->>B: GET …
+    B-->>R: 429, retry_after = N
+    R->>T: toast id=rate-limited «повторите через N с»
+    R-->>Q: throw ApiError(429)
+    Note over Q: queryRetry: 429 — до RATE_LIMIT_RETRIES (3) повторов,<br/>queryRetryDelay = N с; пока идёт ожидание повтора,<br/>refetchInterval не шлёт новых запросов (fetch уже идёт)
+    Q->>R: повтор через N с
+```
+
+`main.tsx` ставит `retry: queryRetry`, `retryDelay: queryRetryDelay` для всех запросов; остальные ошибки как раньше
+(4xx — без повторов, 5xx/сеть — до двух, задержка 2ⁿ с). Мутации не повторяются.
+
 ### Авторизация и обновление сессии
 
 ```mermaid

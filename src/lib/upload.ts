@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { ApiError, refreshSession, withQuery } from './api'
+import { ApiError, notifyRateLimit, refreshSession, retryAfter, withQuery } from './api'
 import type { SendAs, Task, UploadOptions } from './types'
 
 export interface Sending {
@@ -103,7 +103,12 @@ export async function uploadFile(file: File, options: UploadOptions, onProgress:
     body = null
   }
   if (xhr.status >= 200 && xhr.status < 300) return body as Task
-  throw new ApiError(xhr.status, body?.error ?? { code: 'http_error', message: `${xhr.status}` })
+  const error = new ApiError(xhr.status, body?.error ?? { code: 'http_error', message: `${xhr.status}` })
+  if (xhr.status === 429) {
+    error.body.retry_after ??= Number(xhr.getResponseHeader('Retry-After')) || 1
+    notifyRateLimit(retryAfter(error)!)
+  }
+  throw error
 }
 
 export function withSendAs<T extends { send_as: SendAs; encrypt: boolean }>(options: T, sendAs: SendAs): T {

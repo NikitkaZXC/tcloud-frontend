@@ -138,6 +138,7 @@ export const ru = {
   'error.invalid_media': 'Telegram не принял файл как медиа — отправьте файлом',
   'error.invalid_path': 'Недопустимый путь',
   'error.network': 'Нет связи с сервером',
+  'error.rateLimitedWait': 'Слишком много запросов — повторите через {n} с',
   'error.queue_unavailable': 'Очередь задач недоступна, попробуйте позже',
   'error.scanner_unavailable': 'Антивирус недоступен, попробуйте позже',
   'error.server': 'Сервер не отвечает, попробуйте позже',

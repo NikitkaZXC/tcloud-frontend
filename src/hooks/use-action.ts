@@ -1,6 +1,6 @@
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { errorMessage } from '@/lib/api'
+import { errorMessage, retryAfter } from '@/lib/api'
 
 export function useAction<TArgs = void, TResult = unknown>(
   fn: (args: TArgs) => Promise<TResult>,
@@ -14,6 +14,8 @@ export function useAction<TArgs = void, TResult = unknown>(
       if (options.success) toast.success(options.success)
       options.onSuccess?.(result)
     },
-    onError: (error) => toast.error((options.describe ?? errorMessage)(error)),
+    onError: (error) => {
+      if (retryAfter(error) == null) toast.error((options.describe ?? errorMessage)(error))
+    },
   })
 }

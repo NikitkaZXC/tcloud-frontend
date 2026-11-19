@@ -57,7 +57,7 @@ import { UploadDialog, UrlUploadDialog } from '@/components/upload-dialog'
 import { useAction } from '@/hooks/use-action'
 import { useMedia } from '@/hooks/use-media'
 import { useStorages } from '@/hooks/use-storages'
-import { api, errorMessage } from '@/lib/api'
+import { api, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
@@ -285,7 +285,7 @@ export function FolderView({ path }: { path: string }) {
         else await api.del(`/files/${target}`)
       } catch (e) {
         failed++
-        toast.error(errorMessage(e))
+        showError(e)
       }
     }
     setSelected(new Set())
@@ -352,12 +352,12 @@ export function FolderView({ path }: { path: string }) {
     try {
       choose(await readEntries(entries))
     } catch (e) {
-      toast.error(errorMessage(e))
+      showError(e)
     }
   }
 
   function changeSort(next: Sort) {
-    updateSettings(sortPatch(next)).catch((e) => toast.error(errorMessage(e)))
+    updateSettings(sortPatch(next)).catch((e) => showError(e))
   }
 
   const head = (key: SortKey, className?: string) => {
@@ -457,7 +457,7 @@ export function FolderView({ path }: { path: string }) {
   }
 
   function changeView(next: 'list' | 'grid') {
-    updateSettings({ interface: { folder_view: next } }).catch((e) => toast.error(errorMessage(e)))
+    updateSettings({ interface: { folder_view: next } }).catch((e) => showError(e))
   }
 
   const fileButtons = (file: TFile) => (

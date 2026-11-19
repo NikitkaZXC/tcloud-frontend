@@ -138,6 +138,7 @@ export const en: Record<Key, Entry> = {
   'error.invalid_media': 'Telegram rejected the file as media — send it as a file',
   'error.invalid_path': 'Invalid path',
   'error.network': 'No connection to the server',
+  'error.rateLimitedWait': 'Too many requests — try again in {n} s',
   'error.queue_unavailable': 'The task queue is unavailable, try again later',
   'error.scanner_unavailable': 'The antivirus is unavailable, try again later',
   'error.server': 'The server is not responding, try again later',
