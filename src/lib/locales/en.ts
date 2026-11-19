@@ -100,6 +100,7 @@ export const en: Record<Key, Entry> = {
   'dashboard.previews': 'previews',
   'dashboard.previewsSize': 'preview size',
   'dashboard.unhealthy': 'failure',
+  'dashboard.show': 'Show',
   'dashboard.customize': 'Customize',
   'dashboard.layoutReset': 'Reset',
   'dashboard.layoutDone': 'Done',

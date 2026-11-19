@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -150,6 +150,19 @@ describe('dashboard', () => {
     expect(blockOrder(undefined)).toEqual([...DASHBOARD_BLOCKS])
     expect(blockOrder([])).toEqual([...DASHBOARD_BLOCKS])
     expect(blockOrder(['system', 'nope', 'summary', 'system', 3])).toEqual(['system', 'summary', 'previews', 'channels', 'storages', 'tasks', 'activity_map', 'users'])
+  })
+
+  it('keeps known unique hidden blocks and hides them from the order', () => {
+    expect(hiddenBlocks(undefined)).toEqual([])
+    expect(hiddenBlocks(['users', 'nope', 'users', 2])).toEqual(['users'])
+    expect(visibleBlocks(blockOrder(['system']), ['users', 'summary'])).toEqual(['system', 'previews', 'channels', 'storages', 'tasks', 'activity_map'])
+  })
+
+  it('migrates activity_map = false into hidden blocks only while dashboard_hidden is absent', () => {
+    expect(hiddenBlocks(undefined, false)).toEqual(['activity_map'])
+    expect(hiddenBlocks(undefined, true)).toEqual([])
+    expect(hiddenBlocks([], false)).toEqual([])
+    expect(hiddenBlocks(['users'], false)).toEqual(['users'])
   })
 
   it('moves a block onto another block position', () => {

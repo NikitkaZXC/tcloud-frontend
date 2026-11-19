@@ -18,7 +18,7 @@
 | `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, страницы по `offset`; `lang` (язык интерфейса) входит в `apiQuery`, порядок по имени — от бэкенда |
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `staleTime` 60 с, `retry: false` |
-| `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется при `activity_map = false` |
+| `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется, если блок `activity_map` скрыт (`interface.dashboard_hidden`) |
 | `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
 | `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
 | `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
@@ -103,7 +103,7 @@ flowchart LR
     subgraph ls["localStorage"]
         tasksLs["tcloud.tasks<br/>tcloud.tasks.pending"]
         mirror["tcloud.mirror"]
-        layout["tcloud.dashboard.layout"]
+        layout["tcloud.dashboard.layout<br/>tcloud.dashboard.hidden"]
         cols["tcloud.file_columns"]
     end
     settings["lib/settings.ts<br/>useSettings"] -- "theme, language" --> mirror
@@ -117,13 +117,13 @@ flowchart LR
     tasks --> io
     reads --> io
     settings --> lang
-    settings -- "dashboard_layout (копия)" --> layout
+    settings -- "dashboard_layout, dashboard_hidden (копии)" --> layout
     settings -- "file_columns (копия)" --> cols
 ```
 
 Каждый стор — модульная переменная + `Set` слушателей + `useSyncExternalStore`. Прочие ключи `localStorage`
-(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` — копия
-`interface.dashboard_layout`, `tcloud.file_columns` — копия `interface.file_columns`; обе читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
+(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` / `tcloud.dashboard.hidden` — копии
+`interface.dashboard_layout` / `interface.dashboard_hidden`, `tcloud.file_columns` — копия `interface.file_columns`; обе читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
 `try/catch`.
 
 ## Настройки

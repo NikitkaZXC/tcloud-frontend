@@ -100,6 +100,7 @@ export const ru = {
   'dashboard.previews': 'превью',
   'dashboard.previewsSize': 'объём превью',
   'dashboard.unhealthy': 'есть сбой',
+  'dashboard.show': 'Показывать',
   'dashboard.customize': 'Настроить',
   'dashboard.layoutReset': 'По умолчанию',
   'dashboard.layoutDone': 'Готово',

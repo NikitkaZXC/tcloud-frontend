@@ -244,6 +244,15 @@ export function blockOrder(stored: readonly unknown[] | undefined): DashboardBlo
   return [...known, ...DASHBOARD_BLOCKS.filter((id) => !known.includes(id))]
 }
 
+export function hiddenBlocks(stored: readonly unknown[] | undefined, activityMap?: unknown): DashboardBlock[] {
+  const known = [...new Set((stored ?? []).filter((id): id is DashboardBlock => DASHBOARD_BLOCKS.includes(id as DashboardBlock)))]
+  return stored === undefined && activityMap === false ? ['activity_map'] : known
+}
+
+export function visibleBlocks(order: DashboardBlock[], hidden: readonly DashboardBlock[]): DashboardBlock[] {
+  return order.filter((id) => !hidden.includes(id))
+}
+
 export function moveBlock(order: DashboardBlock[], id: DashboardBlock, to: DashboardBlock): DashboardBlock[] {
   const index = order.indexOf(to)
   const rest = order.filter((block) => block !== id)

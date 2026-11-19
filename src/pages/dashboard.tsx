@@ -7,21 +7,21 @@ import { Confirm } from '@/components/confirm'
 import { HealthRack } from '@/components/health'
 import { ActivityMap, Speedometer } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
-import { ChannelsRing, PageTitle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
+import { ChannelsRing, PageTitle, PixelToggle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { useHealth } from '@/hooks/use-health'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, moveBlock, parseLayout, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { stageLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Account, Task, TelegramSessionState, User } from '@/lib/types'
 import { load, save } from '@/lib/prefs'
-import { settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
+import { type Settings, settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
 import { type Key, t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -248,9 +248,19 @@ function moved(id: DashboardBlock, visible: (string | undefined)[]) {
   return t('dashboard.moved', { name: t(BLOCK_LABELS[id]), n: visible.indexOf(id) + 1, total: visible.length })
 }
 
-function savedLayout(stored: string[] | undefined): DashboardBlock[] {
-  return blockOrder(stored ?? parseLayout(load('dashboard.layout')))
+interface Layout {
+  order: DashboardBlock[]
+  hidden: DashboardBlock[]
 }
+
+function savedLayout(ui: Settings['interface']): Layout {
+  return {
+    order: blockOrder(ui.dashboard_layout ?? parseLayout(load('dashboard.layout'))),
+    hidden: hiddenBlocks(ui.dashboard_hidden ?? parseLayout(load('dashboard.hidden')), 'activity_map' in ui ? ui.activity_map : undefined),
+  }
+}
+
+const sameLayout = (a: Layout, b: Layout) => a.order.join() === b.order.join() && [...a.hidden].sort().join() === [...b.hidden].sort().join()
 
 export function DashboardPage() {
   const { data: me } = useMe()
@@ -260,14 +270,14 @@ export function DashboardPage() {
   const previews = previewTotals(storageList)
   const counts = taskCounts(useTaskCounts().data)
   const active = counts.queued + counts.running + useSending().length
-  const [draft, setDraft] = useState<DashboardBlock[] | null>(null)
+  const [draft, setDraft] = useState<Layout | null>(null)
   const [dragging, setDragging] = useState<DashboardBlock | null>(null)
   const [announce, setAnnounce] = useState('')
   const focus = useRef<[DashboardBlock, 'up' | 'down'] | null>(null)
   const dragOrder = useRef<DashboardBlock[]>([])
-  const saved = savedLayout(ui.dashboard_layout)
-  const order = draft ?? saved
-  const dirty = !!draft && draft.join() !== saved.join()
+  const saved = savedLayout(ui)
+  const { order, hidden } = draft ?? saved
+  const dirty = !!draft && !sameLayout(draft, saved)
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname)
 
   const blocks: Record<DashboardBlock, ReactNode> = {
@@ -288,7 +298,7 @@ export function DashboardPage() {
     channels: <ChannelsSection />,
     storages: <StoragesSection />,
     tasks: <ActivitySection />,
-    activity_map: ui.activity_map && (
+    activity_map: (
       <Section label={t('dashboard.map')}>
         <ActivityMap />
       </Section>
@@ -296,13 +306,13 @@ export function DashboardPage() {
     system: <SystemSection />,
     users: isAdmin(me) && <UsersSection />,
   }
-  const shown = order.filter((id) => blocks[id])
+  const shown = (draft ? order : visibleBlocks(order, hidden)).filter((id) => blocks[id])
 
   const step = (id: DashboardBlock, dir: 'up' | 'down') => {
     const to = shown[shown.indexOf(id) + (dir === 'up' ? -1 : 1)]
     if (!to) return
     const next = moveBlock(order, id, to)
-    setDraft(next)
+    setDraft({ order: next, hidden })
     focus.current = [id, dir]
     setAnnounce(moved(id, next.filter((block) => shown.includes(block))))
   }
@@ -330,7 +340,7 @@ export function DashboardPage() {
       const middle = rect.top + rect.height / 2
       if (latest.indexOf(to) > latest.indexOf(dragging) ? y < middle : y > middle) return
       latest = moveBlock(latest, dragging, to)
-      setDraft(latest)
+      setDraft((current) => current && { ...current, order: latest })
     }
     const end = () => {
       setAnnounce(moved(dragging, [...document.querySelectorAll<HTMLElement>('[data-block]')].map((el) => el.dataset.block)))
@@ -366,10 +376,20 @@ export function DashboardPage() {
 
   const done = () => {
     setDraft(null)
-    if (!dirty) return
-    save('dashboard.layout', JSON.stringify(draft))
-    updateSettings({ interface: { dashboard_layout: draft } }).catch((error) => toast.error(settingsError(error)))
+    if (!draft || !dirty) return
+    const changes: Partial<Settings['interface']>[] = []
+    if (draft.order.join() !== saved.order.join()) {
+      save('dashboard.layout', JSON.stringify(draft.order))
+      changes.push({ dashboard_layout: draft.order })
+    }
+    if (!sameLayout({ ...draft, order: saved.order }, saved)) {
+      save('dashboard.hidden', JSON.stringify(draft.hidden))
+      changes.push({ dashboard_hidden: draft.hidden })
+    }
+    for (const change of changes) updateSettings({ interface: change }).catch((error) => toast.error(settingsError(error)))
   }
+
+  const toggle = (id: DashboardBlock, show: boolean) => setDraft((current) => current && { ...current, hidden: show ? current.hidden.filter((block) => block !== id) : [...current.hidden, id] })
 
   return (
     <div className={cn('grid', dragging && 'select-none')}>
@@ -387,14 +407,14 @@ export function DashboardPage() {
                   <XIcon />
                   {t('common.cancel')}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setDraft([...DASHBOARD_BLOCKS])}>
+                <Button size="sm" variant="outline" onClick={() => setDraft({ order: [...DASHBOARD_BLOCKS], hidden: [] })}>
                   <RotateCcwIcon />
                   {t('dashboard.layoutReset')}
                 </Button>
                 <p className="text-xs text-muted-foreground">{t('dashboard.layoutHint')}</p>
               </>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setDraft(order)}>
+              <Button size="sm" variant="outline" onClick={() => setDraft({ order, hidden })}>
                 <LayoutGridIcon />
                 {t('dashboard.customize')}
               </Button>
@@ -434,7 +454,15 @@ export function DashboardPage() {
               >
                 <GripVerticalIcon />
               </Button>
-              <span className="fx-label min-w-0 flex-1 truncate">{t(BLOCK_LABELS[id])}</span>
+              <span id={`block-${id}`} className={cn('fx-label min-w-0 flex-1 truncate', hidden.includes(id) && 'line-through')}>
+                {t(BLOCK_LABELS[id])}
+              </span>
+              <span id={`block-${id}-show`} className="hidden text-xs text-muted-foreground uppercase sm:inline">
+                {t('dashboard.show')}
+              </span>
+              <span className="mr-2 flex">
+                <PixelToggle checked={!hidden.includes(id)} onChange={(show) => toggle(id, show)} labelledBy={`block-${id}-show block-${id}`} />
+              </span>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -458,7 +486,9 @@ export function DashboardPage() {
                 <ArrowDownIcon />
               </Button>
             </div>
-            {blocks[id]}
+            <div className={cn('transition-opacity duration-200', hidden.includes(id) && 'opacity-40')} inert={hidden.includes(id)}>
+              {blocks[id]}
+            </div>
           </div>
         ) : (
           <Fragment key={id}>{blocks[id]}</Fragment>
