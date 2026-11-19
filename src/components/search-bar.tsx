@@ -83,7 +83,7 @@ export function SearchBar() {
           }}
           placeholder={t('search.placeholder')}
           aria-label={t('search.label')}
-          className="pr-8 pl-8"
+          className="pr-8 pl-8 text-ellipsis"
         />
         {text && (
           <button type="button" onClick={() => type('')} aria-label={t('common.clear')} className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground pointer-coarse:size-11">
