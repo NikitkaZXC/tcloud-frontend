@@ -205,7 +205,7 @@ function DeleteStorage({ storage }: { storage: Storage }) {
           <span>{t('storages.deleteHint')}</span>
           <span className="flex items-center gap-2">
             <Checkbox id={`keep-${storage.id}`} checked={keepChannel} onCheckedChange={(v) => setKeepChannel(v === true)} />
-            <Label htmlFor={`keep-${storage.id}`}>{t('storages.keepChannel')}</Label>
+            <Label htmlFor={`keep-${storage.id}`} className="text-sm tracking-normal text-foreground normal-case">{t('storages.keepChannel')}</Label>
           </span>
         </span>
       }

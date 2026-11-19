@@ -659,6 +659,19 @@ a:is([data-slot=button], [data-slot$=-trigger])[data-variant=outline]:not([data-
   box-shadow: inset 0 0 0 1px var(--foreground);
 }
 
+[data-slot=select-trigger] {
+  min-width: 0;
+}
+
+[data-slot=select-trigger] > [data-slot=select-value] {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
 [data-slot=checkbox] {
   border-radius: 0;
 }
