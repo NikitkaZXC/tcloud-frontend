@@ -17,7 +17,7 @@ import {
   UploadIcon,
   XIcon,
 } from 'lucide-react'
-import { type DragEvent, type FormEvent, type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
@@ -55,6 +55,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UploadDialog, UrlUploadDialog } from '@/components/upload-dialog'
 import { useAction } from '@/hooks/use-action'
+import { useMedia } from '@/hooks/use-media'
 import { useStorages } from '@/hooks/use-storages'
 import { api, errorMessage } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
@@ -62,7 +63,9 @@ import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
 import { nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
-import { sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
+import { settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
+import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
+import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
@@ -77,6 +80,28 @@ const link = (path: string) => `/files?path=${encodeURIComponent(path)}`
 const folderKey = (path: string) => `d:${path}`
 const fileKey = (uuid: string) => `f:${uuid}`
 const directory = { webkitdirectory: '' } as Record<string, string>
+
+function saveColumns(next: ColumnWidths) {
+  save('file_columns', JSON.stringify(next))
+  updateSettings({ interface: { file_columns: next } }).catch((error) => toast.error(settingsError(error)))
+}
+
+function contentWidths(cells: HTMLElement[], host: HTMLElement): number[] {
+  const box = document.createElement('div')
+  box.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;width:max-content'
+  const clones = cells.map((cell) => {
+    const clone = cell.cloneNode(true) as HTMLElement
+    clone.style.width = ''
+    const row = document.createElement('div')
+    row.appendChild(clone)
+    box.appendChild(row)
+    return clone
+  })
+  host.appendChild(box)
+  const widths = clones.map((clone) => clone.getBoundingClientRect().width)
+  box.remove()
+  return widths
+}
 
 function ArchiveMenu({ onArchive, label = t('folder.archiveFolder'), children }: { onArchive: (format: ArchiveFormat) => void; label?: string; children: ReactNode }) {
   const preferred = useSettings().archives.format
@@ -206,6 +231,16 @@ export function FolderView({ path }: { path: string }) {
   const order = entries.map((e) => (e.type === 'folder' ? folderKey(e.item.path) : fileKey(e.item.uuid)))
   const picked = order.filter((key) => selected.has(key))
   const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
+  const storedColumns = settings.interface.file_columns ?? parseColumns(load('file_columns'))
+  const [draftColumns, setDraftColumns] = useState<ColumnWidths | null>(null)
+  const [autoName, setAutoName] = useState(0)
+  const draftRef = useRef<ColumnWidths | null>(null)
+  const saveTimer = useRef(0)
+  const sm = useMedia('(width >= 40rem)')
+  const columns = sm ? (draftColumns ?? storedColumns) : {}
+  const shown: Record<Column, boolean> = { name: true, type: useMedia('(width >= 80rem)'), size: sm, modified: useMedia('(width >= 48rem)'), uploaded: useMedia('(width >= 1100px)') }
+  const actionsWidth = sm ? 128 : 44
+  const tableWidth = tableMinWidth(columns, COLUMNS.filter((column) => shown[column]), 32 + actionsWidth)
 
   const archive = useAction(
     ({ target, format }: { target: string; format: ArchiveFormat }) => api.post<Task>('/folders/archive', undefined, { path: target, format, priority: settings.archives.priority }),
@@ -325,16 +360,101 @@ export function FolderView({ path }: { path: string }) {
     updateSettings(sortPatch(next)).catch((e) => toast.error(errorMessage(e)))
   }
 
-  const head = (key: SortKey, className?: string) => (
-    <TableHead className={className} aria-sort={sort.key === key ? (sort.desc ? 'descending' : 'ascending') : 'none'}>
-      <button type="button" className="fx-sort" onClick={() => changeSort(nextSort(sort, key))}>
-        {t(SORT_LABELS[key])}
-        <span aria-hidden className={sort.key === key ? '' : 'invisible'}>
-          {sort.desc ? '▼' : '▲'}
-        </span>
-      </button>
-    </TableHead>
+  const head = (key: SortKey, className?: string) => {
+    const width = key === 'name' ? columns.name : (columns[key] ?? DEFAULT_WIDTHS[key])
+    return (
+      <TableHead data-col={key} className={`relative ${className ?? ''}`} style={{ width }} aria-sort={sort.key === key ? (sort.desc ? 'descending' : 'ascending') : 'none'}>
+        <button type="button" className="fx-sort max-w-full overflow-hidden" onClick={() => changeSort(nextSort(sort, key))}>
+          {t(SORT_LABELS[key])}
+          <span aria-hidden className={sort.key === key ? '' : 'invisible'}>
+            {sort.desc ? '▼' : '▲'}
+          </span>
+        </button>
+        {sm && (
+          <span
+            role="separator"
+            tabIndex={0}
+            aria-orientation="vertical"
+            aria-label={t('folder.resizeColumn', { name: t(SORT_LABELS[key]) })}
+            aria-valuemin={minWidth(key)}
+            aria-valuemax={MAX_WIDTH}
+            aria-valuenow={Math.round(width ?? autoName)}
+            className="fx-col-handle"
+            onFocus={(e) => width === undefined && setAutoName(e.currentTarget.parentElement!.getBoundingClientRect().width)}
+            onPointerDown={(e) => startResize(key, e)}
+            onDoubleClick={(e) => autoFit(key, e.currentTarget)}
+            onKeyDown={(e) => resizeByKey(key, e)}
+          />
+        )}
+      </TableHead>
+    )
+  }
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(saveTimer.current)
+      if (draftRef.current) saveColumns(draftRef.current)
+    },
+    [],
   )
+
+  function resize(column: Column, width: number) {
+    const next = { ...(draftRef.current ?? storedColumns), [column]: clampWidth(column, width) }
+    draftRef.current = next
+    setDraftColumns(next)
+  }
+
+  function persistColumns() {
+    window.clearTimeout(saveTimer.current)
+    const next = draftRef.current
+    draftRef.current = null
+    setDraftColumns(null)
+    if (next) saveColumns(next)
+  }
+
+  function resetColumns() {
+    window.clearTimeout(saveTimer.current)
+    draftRef.current = null
+    setDraftColumns(null)
+    saveColumns({})
+  }
+
+  function startResize(column: Column, event: ReactPointerEvent<HTMLElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const handle = event.currentTarget
+    const startX = event.clientX
+    const start = handle.parentElement!.getBoundingClientRect().width
+    handle.setPointerCapture(event.pointerId)
+    const move = (e: PointerEvent) => resize(column, start + e.clientX - startX)
+    const end = () => {
+      handle.removeEventListener('pointermove', move)
+      handle.removeEventListener('pointerup', end)
+      handle.removeEventListener('pointercancel', end)
+      persistColumns()
+    }
+    handle.addEventListener('pointermove', move)
+    handle.addEventListener('pointerup', end)
+    handle.addEventListener('pointercancel', end)
+  }
+
+  function resizeByKey(column: Column, event: ReactKeyboardEvent<HTMLElement>) {
+    const sign = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+    if (!sign) return
+    event.preventDefault()
+    const start = columns[column] ?? event.currentTarget.parentElement!.getBoundingClientRect().width
+    resize(column, start + sign * (event.shiftKey ? COLUMN_STEP_BIG : COLUMN_STEP))
+    window.clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(persistColumns, 500)
+  }
+
+  function autoFit(column: Column, handle: HTMLElement) {
+    const table = handle.closest('table')
+    if (!table?.parentElement) return
+    const cells = [...table.querySelectorAll<HTMLElement>(`[data-col="${column}"]`)]
+    resize(column, fitWidth(column, contentWidths(cells, table.parentElement)))
+    persistColumns()
+  }
 
   function changeView(next: 'list' | 'grid') {
     updateSettings({ interface: { folder_view: next } }).catch((e) => toast.error(errorMessage(e)))
@@ -382,7 +502,7 @@ export function FolderView({ path }: { path: string }) {
   const folderRow = (folder: Folder) => (
                 <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
                   <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
-                  <TableCell className="max-w-0">
+                  <TableCell data-col="name">
                     <Link to={link(folder.path)} className="flex items-center gap-2 text-base hover:underline" title={folder.name}>
                       <span className="fx-mini">
                         <FolderIcon className="size-4 text-primary" />
@@ -390,13 +510,13 @@ export function FolderView({ path }: { path: string }) {
                       <span className="truncate">{folder.name}</span>
                     </Link>
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
-                  <TableCell className="hidden text-right text-xs text-muted-foreground tabular-nums sm:table-cell">
+                  <TableCell data-col="type" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
+                  <TableCell data-col="size" className="hidden overflow-hidden text-ellipsis text-right text-xs text-muted-foreground tabular-nums sm:table-cell">
                     {formatBytes(folder.size)}
                     <span className="block text-xs">{filesCount(folder.files)}</span>
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(folder.updated_at)}>{formatShortDate(folder.updated_at)}</TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(folder.created_at)}>{formatShortDate(folder.created_at)}</TableCell>
+                  <TableCell data-col="modified" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(folder.updated_at)}>{formatShortDate(folder.updated_at)}</TableCell>
+                  <TableCell data-col="uploaded" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(folder.created_at)}>{formatShortDate(folder.created_at)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
                 </TableRow>
   )
@@ -405,7 +525,7 @@ export function FolderView({ path }: { path: string }) {
                 return (
                   <TableRow key={file.uuid} data-state={selected.has(fileKey(file.uuid)) ? 'selected' : undefined}>
                     <TableCell>{check(fileKey(file.uuid), file.name)}</TableCell>
-                    <TableCell className="max-w-0">
+                    <TableCell data-col="name">
                       <button type="button" onClick={() => setOpened(file)} className="flex w-full items-center gap-2 text-left text-base hover:underline" title={file.name}>
                         <span className="fx-mini">
                           <Thumb file={file} iconClassName="size-4" />
@@ -414,10 +534,10 @@ export function FolderView({ path }: { path: string }) {
                         {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                       </button>
                     </TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
-                    <TableCell className="hidden text-right text-xs text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(file.created_at)}>{formatShortDate(file.created_at)}</TableCell>
+                    <TableCell data-col="type" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
+                    <TableCell data-col="size" className="hidden overflow-hidden text-ellipsis text-right text-xs text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
+                    <TableCell data-col="modified" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</TableCell>
+                    <TableCell data-col="uploaded" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(file.created_at)}>{formatShortDate(file.created_at)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
                   </TableRow>
                 )
@@ -596,6 +716,14 @@ export function FolderView({ path }: { path: string }) {
               <DropdownMenuCheckboxItem checked={sort.foldersFirst} onCheckedChange={(v) => changeSort({ ...sort, foldersFirst: v === true })}>
                 {t('folder.foldersFirst')}
               </DropdownMenuCheckboxItem>
+              {view === 'list' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled={!Object.keys(columns).length} onSelect={resetColumns}>
+                    {t('folder.resetColumns')}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <div role="group" aria-label={t('folder.view')} className="flex">
@@ -656,7 +784,7 @@ export function FolderView({ path }: { path: string }) {
       )}
       {!empty && order.length > 0 && view === 'list' && (
         <div className="fx-panel overflow-hidden">
-          <Table>
+          <Table className="table-fixed" style={{ minWidth: tableWidth }}>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">
@@ -666,12 +794,12 @@ export function FolderView({ path }: { path: string }) {
                     aria-label={t('folder.selectAll')}
                   />
                 </TableHead>
-                {head('name', 'w-full min-w-40')}
+                {head('name')}
                 {head('type', 'hidden xl:table-cell')}
                 {head('size', 'hidden sm:table-cell')}
                 {head('modified', 'hidden md:table-cell')}
                 {head('uploaded', 'hidden min-[1100px]:table-cell')}
-                <TableHead className="w-24" />
+                <TableHead style={{ width: columns.name === undefined ? actionsWidth : undefined }} />
               </TableRow>
             </TableHeader>
             <TableBody>

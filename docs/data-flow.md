@@ -104,6 +104,7 @@ flowchart LR
         tasksLs["tcloud.tasks<br/>tcloud.tasks.pending"]
         mirror["tcloud.mirror"]
         layout["tcloud.dashboard.layout"]
+        cols["tcloud.file_columns"]
     end
     settings["lib/settings.ts<br/>useSettings"] -- "theme, language" --> mirror
     tasks["lib/tasks.ts<br/>useTrackedTasks: id[]"] <--> tasksLs
@@ -117,11 +118,12 @@ flowchart LR
     reads --> io
     settings --> lang
     settings -- "dashboard_layout (копия)" --> layout
+    settings -- "file_columns (копия)" --> cols
 ```
 
 Каждый стор — модульная переменная + `Set` слушателей + `useSyncExternalStore`. Прочие ключи `localStorage`
 (`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.achievements`, `tcloud.dashboard.layout` — копия
-`interface.dashboard_layout`, читается, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
+`interface.dashboard_layout`, `tcloud.file_columns` — копия `interface.file_columns`; обе читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
 `try/catch`.
 
 ## Настройки

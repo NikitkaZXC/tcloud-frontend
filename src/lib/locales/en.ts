@@ -212,6 +212,8 @@ export const en: Record<Key, Entry> = {
   'folder.encrypted': 'encrypted',
   'folder.fileDeleted': 'File deleted',
   'folder.foldersFirst': 'Folders first',
+  'folder.resetColumns': 'Reset column widths',
+  'folder.resizeColumn': 'Column width: {name}',
   'folder.grid': 'Grid',
   'folder.list': 'List',
   'folder.newFolder': 'New folder',

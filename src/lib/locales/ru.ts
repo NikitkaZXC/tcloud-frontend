@@ -212,6 +212,8 @@ export const ru = {
   'folder.encrypted': 'зашифрован',
   'folder.fileDeleted': 'Файл удалён',
   'folder.foldersFirst': 'Папки сверху',
+  'folder.resetColumns': 'Сбросить ширину столбцов',
+  'folder.resizeColumn': 'Ширина столбца «{name}»',
   'folder.grid': 'Плитка',
   'folder.list': 'Список',
   'folder.newFolder': 'Новая папка',

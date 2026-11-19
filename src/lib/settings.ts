@@ -3,6 +3,7 @@ import { api, ApiError, errorMessage } from './api'
 import { parseSort, type Sort } from './files'
 import type { ArchiveFormat, OnConflict, Priority, SendAs, UploadOptions } from './types'
 import { t } from './i18n'
+import type { ColumnWidths } from './columns'
 
 export type Language = 'ru' | 'en'
 export const THEMES = ['dark', 'light', 'sunset', 'navy', 'lavender', 'clay'] as const
@@ -40,6 +41,7 @@ export interface Settings {
     fx_cursor: boolean
     fx_easter_eggs: boolean
     dashboard_layout?: string[]
+    file_columns?: ColumnWidths
   }
   telegram: { chat_folder: boolean }
 }

@@ -29,6 +29,13 @@ describe('settings', () => {
     expect(DEFAULT_SETTINGS.interface.theme).toBe('dark')
   })
 
+  it('replaces file column widths as a whole map', () => {
+    const base = mergeSettings(DEFAULT_SETTINGS, { interface: { file_columns: { name: 300, size: 90 } } })
+    expect(base.interface.file_columns).toEqual({ name: 300, size: 90 })
+    expect(mergeSettings(base, { interface: { file_columns: { type: 70 } } }).interface.file_columns).toEqual({ type: 70 })
+    expect(mergeSettings(base, { interface: { theme: 'light' } }).interface.file_columns).toEqual({ name: 300, size: 90 })
+  })
+
   it('migrates old localStorage prefs only onto default server settings', () => {
     const old = legacy({
       'tcloud.view': 'grid',
