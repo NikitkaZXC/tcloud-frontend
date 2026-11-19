@@ -9,6 +9,8 @@ export interface Sending {
   total: number
   rate: number | null
   at: number
+  encrypt?: boolean
+  cancelled?: boolean
 }
 
 export function nextRate(item: Pick<Sending, 'loaded' | 'rate' | 'at'>, loaded: number, now: number): number | null {
@@ -20,6 +22,7 @@ export function nextRate(item: Pick<Sending, 'loaded' | 'rate' | 'at'>, loaded: 
 
 let sending: Sending[] = []
 let nextId = 0
+const controllers = new Map<number, AbortController>()
 const listeners = new Set<() => void>()
 
 function setSending(next: Sending[]) {
@@ -27,11 +30,23 @@ function setSending(next: Sending[]) {
   listeners.forEach((listener) => listener())
 }
 
-export function startSending(path: string, total: number): number {
+export function startSending(path: string, total: number, encrypt = false): number {
   const id = ++nextId
-  setSending([...sending, { id, path, loaded: 0, total, rate: null, at: Date.now() }])
+  controllers.set(id, new AbortController())
+  setSending([...sending, { id, path, loaded: 0, total, rate: null, at: Date.now(), encrypt }])
   return id
 }
+
+export const sendingSignal = (id: number) => controllers.get(id)?.signal
+
+export const CANCELLED_HOLD_MS = 3000
+
+export function cancelSending(id: number) {
+  controllers.get(id)?.abort()
+  setSending(sending.map((item) => (item.id === id ? { ...item, cancelled: true } : item)))
+}
+
+export const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
 export const SENDING_TICK_MS = 250
 
@@ -43,7 +58,10 @@ export function updateSending(id: number, loaded: number) {
 }
 
 export function finishSending(id: number) {
-  setSending(sending.filter((item) => item.id !== id))
+  controllers.delete(id)
+  const drop = () => setSending(sending.filter((item) => item.id !== id))
+  if (sending.find((item) => item.id === id)?.cancelled) setTimeout(drop, CANCELLED_HOLD_MS)
+  else drop()
 }
 
 export function getSending(): Sending[] {
@@ -60,9 +78,13 @@ export function useSending(): Sending[] {
   )
 }
 
-function send(file: File, options: UploadOptions, onProgress: (loaded: number) => void): Promise<XMLHttpRequest> {
+function send(file: File, options: UploadOptions, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<XMLHttpRequest> {
   return new Promise((resolve, reject) => {
+    const aborted = () => reject(new DOMException('Upload cancelled', 'AbortError'))
+    if (signal?.aborted) return aborted()
     const xhr = new XMLHttpRequest()
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true })
+    xhr.onabort = aborted
     xhr.open('POST', withQuery('/api/uploads', { ...options }))
     xhr.upload.onprogress = (event) => onProgress(event.loaded)
     xhr.onload = () => resolve(xhr)
@@ -71,9 +93,9 @@ function send(file: File, options: UploadOptions, onProgress: (loaded: number) =
   })
 }
 
-export async function uploadFile(file: File, options: UploadOptions, onProgress: (loaded: number) => void): Promise<Task> {
-  let xhr = await send(file, options, onProgress)
-  if (xhr.status === 401 && (await refreshSession())) xhr = await send(file, options, onProgress)
+export async function uploadFile(file: File, options: UploadOptions, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
+  let xhr = await send(file, options, onProgress, signal)
+  if (xhr.status === 401 && (await refreshSession())) xhr = await send(file, options, onProgress, signal)
   let body: { error?: ApiError['body'] } | null = null
   try {
     body = JSON.parse(xhr.responseText)

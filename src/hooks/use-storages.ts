@@ -19,7 +19,7 @@ function useTrackedData(): Task[] {
 }
 
 export function useStorageActivity(storages: Storage[]) {
-  return storageActivity(storages, useSending(), useTrackedData())
+  return storageActivity(storages, useSending().filter((item) => !item.cancelled), useTrackedData())
 }
 
 let seen: IoSeen = {}

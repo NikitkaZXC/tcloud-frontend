@@ -17,6 +17,7 @@ import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
 import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks, waitingText, warningText } from '@/lib/tasks'
+import { isMeasured, stepLabel } from '@/lib/steps'
 import { type TasksFilter, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
 
@@ -89,7 +90,11 @@ function TaskCard({ task }: { task: Task }) {
       <CardContent className="grid gap-2 px-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
-          {!finished && <span className="text-xs text-muted-foreground">{stageLabel(task.stage)}</span>}
+          {task.step && task.status !== 'done' ? (
+            <span className="text-xs text-muted-foreground">{task.cancel_requested && !finished ? t('uploads.cancelling') : stepLabel(task.step)}</span>
+          ) : (
+            !finished && <span className="text-xs text-muted-foreground">{stageLabel(task.stage)}</span>
+          )}
           <span className="min-w-0 flex-1 truncate text-foreground">{name}</span>
           <div className="flex items-center gap-1">
             {task.status === 'queued' && (
@@ -117,7 +122,7 @@ function TaskCard({ task }: { task: Task }) {
               </Button>
             )}
             {!finished && (
-              <Button size="sm" variant="outline" onClick={() => cancel.mutate()} disabled={task.cancel_requested}>
+              <Button size="sm" variant="outline" onClick={() => cancel.mutate()} disabled={cancel.isPending || task.cancel_requested}>
                 <XIcon /> {t('tasks.cancel')}
               </Button>
             )}
@@ -137,8 +142,8 @@ function TaskCard({ task }: { task: Task }) {
             {formatBytes(task.bytes_done)} / {formatBytes(task.bytes_total)}
             {percent != null && ` · ${percent.toFixed(0)}%`}
           </span>
-          {task.speed != null && !finished && <span>{t('tasks.speed', { speed: formatBytes(task.speed) })}</span>}
-          {task.eta != null && !finished && <span>{t('tasks.eta', { time: formatDuration(task.eta) })}</span>}
+          {task.speed != null && isMeasured(task) && <span>{t('tasks.speed', { speed: formatBytes(task.speed) })}</span>}
+          {task.eta != null && isMeasured(task) && <span>{t('tasks.eta', { time: formatDuration(task.eta) })}</span>}
           {task.queue_position != null && <span>{t('tasks.queuePosition', { n: task.queue_position })}</span>}
           {task.waiting && (
             <span>

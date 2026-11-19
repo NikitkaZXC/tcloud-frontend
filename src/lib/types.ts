@@ -6,6 +6,21 @@ export type SendAs = 'file' | 'media'
 export type OnConflict = 'error' | 'replace' | 'keep_both' | 'skip'
 export type ArchiveFormat = 'zip' | '7z' | 'tar.gz' | 'tar.bz2' | 'tar.xz'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
+
+export type TaskStep =
+  | 'queued_for_download'
+  | 'downloading'
+  | 'queued_for_prepare'
+  | 'analyzing'
+  | 'scanning'
+  | 'converting'
+  | 'encrypting'
+  | 'previewing'
+  | 'queued_for_telegram'
+  | 'sending'
+  | 'finishing'
+  | 'queued_for_archive'
+  | 'archiving'
 export type TelegramSessionName = 'api' | 'upload' | 'download'
 
 export interface ApiErrorBody {
@@ -131,6 +146,8 @@ export interface Task {
   user_id: string | null
   status: TaskStatus
   stage: string
+  step: TaskStep | null
+  step_progress: number | null
   priority: Priority
   path: string
   bytes_done: number

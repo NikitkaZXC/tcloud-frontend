@@ -88,7 +88,7 @@ flowchart LR
 
 Без инвалидации:
 
-- Действия на «Задачах» (`pages/tasks.tsx`: отмена, приоритет, повтор) кладут ответ прямо в кэш
+- Действия на «Задачах» (`pages/tasks.tsx`: отмена, приоритет, повтор) и отмена в виджете загрузок (`FolderUploads`) кладут ответ прямо в кэш
   `setQueryData(['task', id], task)`; повтор ещё и `trackTask`.
 - Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
 - Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, «Выйти везде» и завершение текущей сессии в

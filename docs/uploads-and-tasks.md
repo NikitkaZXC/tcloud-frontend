@@ -53,7 +53,10 @@ sequenceDiagram
     D->>U: startSending(path, size) для каждого файла
     D->>D: onClose(), toast «в очереди: N»
     loop файлы по очереди
-        D->>U: uploadFile(file, {...options, path}, onProgress)
+        D->>U: uploadFile(file, {...options, path}, onProgress, sendingSignal(id))
+        alt уже отменён (cancelSending до старта)
+            U-->>D: AbortError, без запроса
+        end
         U->>B: XHR POST /api/uploads?path=…&send_as=…&encrypt=… (тело = файл)
         B-->>U: upload.onprogress
         U->>U: updateSending(id, loaded)<br/>не чаще SENDING_TICK_MS (250 мс), последний байт всегда,<br/>rate = nextRate (сглаживание 0.7/0.3)
@@ -64,16 +67,19 @@ sequenceDiagram
         alt 2xx
             B-->>U: Task
             U-->>D: task
-            D->>T: trackTask(task.id)
+            D->>T: hintTask(id, {source: device, encrypt}), trackTask(task.id)
+        else «Отменить» (cancelSending → abort → xhr.abort())
+            U-->>D: AbortError — без уведомления
         else ошибка
             U-->>D: throw ApiError
             D->>D: toast «имя: ошибка»
         end
-        D->>U: finishSending(id)
+        D->>U: finishSending(id)<br/>отменённый висит «Отменено» ещё CANCELLED_HOLD_MS (3 с)
     end
 ```
 
-- Прогресс отправки живёт только в памяти вкладки (`useSending`). Пока список не пуст, `TaskWatcher` вешает
+- Прогресс отправки живёт только в памяти вкладки (`useSending`); у каждого элемента свой `AbortController`
+  (`startSending`/`sendingSignal`/`cancelSending` в `lib/upload.ts`). Пока список не пуст, `TaskWatcher` вешает
   `beforeunload`, чтобы браузер спросил перед закрытием.
 - Ссылки: `parseUrlLines` (строка `url` или `url | имя`) → `POST /api/uploads/batch {items}`; для каждого элемента с
   `task` — `trackTask`, с `error` — уведомление.
@@ -132,10 +138,13 @@ stateDiagram-v2
     [*] --> Sending: startSending
     Sending --> Tracked: uploadFile ok → trackTask
     Sending --> [*]: ошибка отправки → toast
+    Sending --> Aborted: «Отменить» → xhr.abort()
+    Aborted --> [*]: через 3 с
     [*] --> Tracked: batch / архив / повтор → trackTask
     Tracked --> Polling
     Polling --> Polling: GET /tasks?ids=… каждые 5 с (queued) / 1,5 с
     Polling --> Finished: done / failed / cancelled
+    Polling --> Polling: «Отменить» → POST /tasks/{id}/cancel (setQueryData)
     Polling --> [*]: 404 → forgetTasks
     Finished --> Polling: «Повторить» (setQueryData queued)
     Finished --> [*]: done без архива — сразу после уведомления (reportTask)
@@ -160,7 +169,7 @@ stateDiagram-v2
     done --> [*]
 ```
 
-Стадии — подписи `TASK_STAGE` (`downloading`, `scanning`, `uploading_tg`, `archiving`, `done`); порядок стадий и
+Шаги — `task.step`, см. ниже «Шаги и отмена». Стадии — подписи `TASK_STAGE` (запасные, когда `step` ещё `null`) (`downloading`, `scanning`, `uploading_tg`, `archiving`, `done`); порядок стадий и
 правила повторов задаёт бэкенд (`tcloud-backend/docs/flows/uploads.md`, `docs/background-tasks.md`). Повтор
 возвращает ту же задачу (тот же id) в `queued`. `task.progress` — проценты 0–100, во фронте только через
 `taskFraction` (0–1).
@@ -170,12 +179,42 @@ stateDiagram-v2
 `task.warning_details[]` → `taskWarning.<code>` с `params` (`count` идёт в плюрал как `n`). Неизвестный код (и `other`)
 показывается английским текстом бэкенда (`reason` / `message`). Таблица кодов — `tcloud-backend/docs/flows/uploads.md`.
 
+### Шаги и отмена в виджете загрузок
+
+`task.step` (код шага бэкенда, таблица — `tcloud-backend/docs/flows/uploads.md`, «Шаги») подписывается `stepLabel`
+(ключи `step.<code>`, неизвестный код — как есть), `stepFraction` даёт полосу из `step_progress` (`null` → полосатая
+неопределённая `Progress`), скорость/остаток показываются только у измеряемых шагов (`isMeasured`: `downloading`,
+`analyzing`, `scanning`, `encrypting`, `sending`, `archiving`); `progress`/`speed`/`eta` относятся к текущему шагу.
+Цепочка этапов (`lib/steps.ts`):
+
+```mermaid
+flowchart LR
+    upload["загрузить<br/>XHR в браузере"] --> check
+    download["скачать<br/>queued_for_download, downloading"] --> check
+    check["проверить<br/>queued_for_prepare, analyzing,<br/>scanning, converting"] --> encrypt["зашифровать<br/>encrypting, previewing"]
+    check --> send
+    encrypt --> send["отправить<br/>queued_for_telegram, sending, finishing"]
+    archive["собрать<br/>queued_for_archive, archiving"]
+```
+
+`taskPhases` берёт только применимые этапы: архив — один «собрать»; «загрузить»/«скачать» и «зашифровать» — по
+подсказке `hintTask(id, {source, encrypt})`, которую диалоги кладут в память вкладки при создании задачи. Без подсказки
+(после перезагрузки) этапы угадываются по текущему шагу: «скачать» видно только пока идёт скачивание, «зашифровать» —
+пока идёт шифрование/превью. `trail` закрашивает этапы до текущего (`done`), текущий — `active`, у `failed`/`cancelled` —
+`stopped` (где задача остановилась), у `done` закрашено всё.
+
+Отмена: крестик у файла без подтверждения; «Отменить всё» (если открытых больше одного) — через `Confirm`. Отправка в
+браузере — `cancelSending` (XHR обрывается, задачи нет); задача — `POST /api/tasks/{id}/cancel`, ответ кладётся в кэш,
+кнопка выключена, пока запрос идёт или `cancel_requested` (`canCancel`), подпись «Отмена…», затем «Отменено»
+(`409 task_finished` молча). `TaskWatcher` не показывает «готово» для `cancelled`. Отменённые задачи остаются в виджете до
+крестика «Забыть», как ошибки.
+
 ## Кто читает задачи и отправки
 
 | Потребитель | Что показывает |
 |---|---|
-| `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed` внутри текущей папки, спидометр |
-| `pages/tasks.tsx` | все отслеживаемые задачи, фильтр `visibleTasks(tasks_filter)`, отмена/приоритет/повтор/забыть |
+| `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed/cancelled` внутри текущей папки — шаг, полоса, цепочка этапов, отмена по одному и «Отменить всё», спидометр |
+| `pages/tasks.tsx` | все отслеживаемые задачи, подпись шага (`stepLabel`, у failed/cancelled — где остановилась), фильтр `visibleTasks(tasks_filter)`, отмена/приоритет/повтор/забыть |
 | `pages/dashboard.tsx` | «Активность»: кольца по статусам из `GET /api/tasks/counts` (`useTaskCounts`, свои задачи за 7 дней, опрос 5 с), прогресс идущих отслеживаемых, чек-лист первого запуска (`lib/onboarding.ts`) |
 | `hooks/use-storages.ts` `useStorageIo` | лампы чтения/записи хранилищ: отправки + задачи загрузки = запись, `archiving` + `markRead` = чтение, плюс `GET /api/storages/activity` (кто угодно, 5 с; опрос 2,5 с при видимой вкладке, `serverIo`/`mergeIo`), удержание `IO_HOLD_MS` (`lingerIo`) |
 | `components/extras.tsx` | реакции на `tcloud:task-finished` (за флагами `fx_*`) |

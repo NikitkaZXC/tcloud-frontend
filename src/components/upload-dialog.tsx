@@ -13,7 +13,8 @@ import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
 import { uploadOptions, useSettings } from '@/lib/settings'
-import { finishSending, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
+import { finishSending, isAbort, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
+import { hintTask } from '@/lib/steps'
 import { t } from '@/lib/i18n'
 
 type Options = Omit<UploadOptions, 'path'>
@@ -113,16 +114,17 @@ export function UploadDialog({
   const total = files.reduce((sum, item) => sum + item.file.size, 0)
 
   async function start() {
-    const queue = files.map(({ file, path }) => ({ file, path: joinPath(folder, path), id: startSending(joinPath(folder, path), file.size) }))
+    const queue = files.map(({ file, path }) => ({ file, path: joinPath(folder, path), id: startSending(joinPath(folder, path), file.size, options.encrypt) }))
     onClose()
     setOptions(null)
     toast.success(t('upload.queuedSend', { n: queue.length }))
     for (const { file, path, id } of queue) {
       try {
-        const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded))
+        const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded), sendingSignal(id))
+        hintTask(task.id, { source: 'device', encrypt: options.encrypt })
         trackTask(task.id)
       } catch (e) {
-        toast.error(`${file.name}: ${errorMessage(e)}`)
+        if (!isAbort(e)) toast.error(`${file.name}: ${errorMessage(e)}`)
       } finally {
         finishSending(id)
       }
@@ -182,7 +184,10 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
     try {
       const result = await api.post<BatchResponse>('/uploads/batch', { items })
       result.items.forEach((item) => {
-        if (item.task) trackTask(item.task.id)
+        if (item.task) {
+          hintTask(item.task.id, { source: 'url', encrypt: options.encrypt })
+          trackTask(item.task.id)
+        }
         if (item.error) toast.error(`${item.path.split('/').pop()}: ${errorText(item.error)}`)
       })
       const queued = result.items.filter((item) => item.task).length

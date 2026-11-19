@@ -18,7 +18,7 @@ export function TaskWatcher() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
   const queryClient = useQueryClient()
-  const uploading = useSending().length > 0
+  const uploading = useSending().some((item) => !item.cancelled)
   const storages = useStorages()
   const finished = useRef<Task[]>([])
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)

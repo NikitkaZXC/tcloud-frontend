@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { finishSending, getSending, nextRate, SENDING_TICK_MS, startSending, updateSending, withSendAs } from './upload'
+import type { UploadOptions } from './types'
+import { CANCELLED_HOLD_MS, cancelSending, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
 
 describe('sending', () => {
   afterEach(() => vi.useRealTimers())
@@ -42,5 +43,29 @@ describe('sending', () => {
     const media = withSendAs({ send_as: 'file', encrypt: true }, 'media')
     expect(media).toEqual({ send_as: 'media', encrypt: false })
     expect(withSendAs(media, 'file')).toEqual({ send_as: 'file', encrypt: true })
+  })
+})
+
+describe('cancel sending', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('aborts the body upload, shows it as cancelled, then drops it', async () => {
+    vi.useFakeTimers()
+    const id = startSending('tcloud/s/c.txt', 10, true)
+    const signal = sendingSignal(id)!
+    cancelSending(id)
+    expect(signal.aborted).toBe(true)
+    expect(getSending()).toMatchObject([{ id, cancelled: true, encrypt: true }])
+    await expect(uploadFile(new File(['x'], 'c.txt'), { path: 'tcloud/s/c.txt' } as UploadOptions, () => {}, signal)).rejects.toSatisfy(isAbort)
+    finishSending(id)
+    expect(getSending()).toHaveLength(1)
+    vi.advanceTimersByTime(CANCELLED_HOLD_MS)
+    expect(getSending()).toEqual([])
+  })
+
+  it('drops a finished upload at once', () => {
+    const id = startSending('tcloud/s/d.txt', 10)
+    finishSending(id)
+    expect(getSending()).toEqual([])
   })
 })
