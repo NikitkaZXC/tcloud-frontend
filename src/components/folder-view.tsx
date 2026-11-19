@@ -239,7 +239,7 @@ export function FolderView({ path }: { path: string }) {
   const sm = useMedia('(width >= 40rem)')
   const columns = sm ? (draftColumns ?? storedColumns) : {}
   const shown: Record<Column, boolean> = { name: true, type: useMedia('(width >= 80rem)'), size: sm, modified: useMedia('(width >= 48rem)'), uploaded: useMedia('(width >= 1100px)') }
-  const actionsWidth = sm ? 128 : 44
+  const actionsWidth = sm ? 128 : listing.data?.folders.length ? 72 : 44
   const tableWidth = tableMinWidth(columns, COLUMNS.filter((column) => shown[column]), 32 + actionsWidth)
 
   const archive = useAction(
@@ -738,7 +738,7 @@ export function FolderView({ path }: { path: string }) {
       )}
 
       {picked.length > 0 && (
-        <div role="toolbar" aria-label={t('folder.selectedToolbar')} className="fx-glass sticky top-20 z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
+        <div role="toolbar" aria-label={t('folder.selectedToolbar')} className="fx-glass sticky top-[calc(max(0.5rem,env(safe-area-inset-top))+4rem)] z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
           <span className="px-1 tracking-[0.04em] text-primary uppercase tabular-nums">{t('folder.selectedCount', { n: picked.length })}</span>
           <ArchiveMenu label={t('folder.archiveSelection')} onArchive={(format) => archiveSelection.mutate(format)}>
             <Button size="sm" variant="outline" disabled={archiveSelection.isPending}>
