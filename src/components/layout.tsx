@@ -12,7 +12,6 @@ import {
   SearchIcon,
   SendIcon,
   SettingsIcon,
-  ShieldIcon,
   SunIcon,
   UsersIcon,
   XIcon,
@@ -245,13 +244,9 @@ function Sidebar({
           <Item to="/tasks" label={t('nav.tasks')} icon={ListChecksIcon} collapsed={collapsed} onNavigate={onNavigate} />
           <Item to="/settings" label={t('nav.settings')} icon={SettingsIcon} collapsed={collapsed} onNavigate={onNavigate} />
           {admin.length > 0 && (
-            <div
-              role="group"
-              aria-labelledby="nav-admin"
-              className={cn('fx-dotted mt-5 grid gap-1 border-2 px-1 pb-1', collapsed && 'mt-2 border-x-0 border-b-0 px-0 pt-2 pb-0')}
-            >
-              <h2 id="nav-admin" className={cn('fx-group-label -mt-[0.75em] ml-2 justify-self-start bg-card px-1.5', collapsed && 'sr-only')}>
-                <ShieldIcon className="size-3.5" aria-hidden /> {t('nav.admin')}
+            <div role="group" aria-labelledby="nav-admin" className="fx-dotted mt-2 grid gap-1 border-t pt-2">
+              <h2 id="nav-admin" className={cn('fx-group-label px-3 pt-1 pb-0.5', collapsed && 'sr-only')}>
+                {t('nav.admin')}
               </h2>
               {admin.map((link) => (
                 <Item key={link.to} {...link} collapsed={collapsed} onNavigate={onNavigate} />
