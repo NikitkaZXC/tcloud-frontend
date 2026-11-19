@@ -326,7 +326,7 @@ export function Layout() {
         <Sidebar me={me.data} collapsed={collapsed} onCollapse={toggle} onNavigate={close} onLogout={logout} />
       </aside>
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-        <header className="fx-panel sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 mx-[max(0.5rem,env(safe-area-inset-left))] mt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 px-2 py-1.5 md:hidden">
+        <header className="fx-panel sticky! top-[max(0.5rem,env(safe-area-inset-top))] z-10 mx-[max(0.5rem,env(safe-area-inset-left))] mt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 px-2 py-1.5 md:hidden">
           <DialogPrimitive.Trigger asChild>
             <Button variant="ghost" size="icon" aria-label={t('nav.menu')}>
               <MenuIcon />
