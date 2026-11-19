@@ -67,7 +67,7 @@ export const DEFAULT_SETTINGS: Settings = {
     fx_sounds: false,
     fx_confetti: false,
     fx_cursor: false,
-    fx_easter_eggs: false,
+    fx_easter_eggs: true,
   },
   telegram: { chat_folder: true },
 }

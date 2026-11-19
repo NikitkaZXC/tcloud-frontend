@@ -27,6 +27,7 @@ describe('settings', () => {
     expect(next.archives).toEqual(DEFAULT_SETTINGS.archives)
     expect(next.telegram).toEqual({ chat_folder: true })
     expect(DEFAULT_SETTINGS.interface.theme).toBe('dark')
+    expect(DEFAULT_SETTINGS.interface.fx_easter_eggs).toBe(true)
   })
 
   it('replaces file column widths as a whole map', () => {
