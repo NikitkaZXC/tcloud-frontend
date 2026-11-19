@@ -24,6 +24,7 @@ import { load, save } from '@/lib/prefs'
 import { type Settings, settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
 import { type Key, t } from '@/lib/i18n'
+import { stepLabel } from '@/lib/steps'
 import { cn } from '@/lib/utils'
 
 const MAX_FILE = 4 * 1024 ** 3
@@ -128,7 +129,7 @@ function ActivitySection() {
               <Ring
                 size="sm"
                 value={task.status === 'queued' ? 0 : taskFraction(task)}
-                label={task.status === 'queued' ? (task.queue_position != null ? t('dashboard.queueN', { n: task.queue_position }) : t('status.queued')) : stageLabel(task.stage)}
+                label={task.status === 'queued' ? (task.queue_position != null ? t('dashboard.queueN', { n: task.queue_position }) : t('status.queued')) : task.step ? stepLabel(task.step) : stageLabel(task.stage)}
                 caption={<span className="block max-w-28 truncate" title={taskTitle(task, storages).where}>{taskTitle(task, storages).name}</span>}
                 tone={task.archive ? 'read' : 'busy'}
               />
@@ -486,7 +487,7 @@ export function DashboardPage() {
                 <ArrowDownIcon />
               </Button>
             </div>
-            <div className={cn('transition-opacity duration-200', hidden.includes(id) && 'opacity-40')} inert={hidden.includes(id)}>
+            <div className={cn('px-3 transition-opacity duration-200', hidden.includes(id) && 'opacity-40')} inert={hidden.includes(id)}>
               {blocks[id]}
             </div>
           </div>
