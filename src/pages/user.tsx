@@ -18,7 +18,7 @@ import { useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { api } from '@/lib/api'
 import { storageName } from '@/lib/names'
-import { formatDate } from '@/lib/format'
+import { formatShortDate } from '@/lib/format'
 import type { Grant, Role, User } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
@@ -61,7 +61,7 @@ export function UserPage() {
         <PageTitle text={u.login} className="normal-case" />
         <Badge variant="outline">{u.role}</Badge>
         {u.blocked && <Badge variant="destructive">{t('users.blocked')}</Badge>}
-        <span className="text-sm text-muted-foreground">{t('user.lastLogin', { date: formatDate(u.last_login_at) })}</span>
+        <span className="text-sm text-muted-foreground">{t('user.lastLogin', { date: formatShortDate(u.last_login_at) })}</span>
         {managed && (
           <Confirm title={t('user.deleteQ', { login: u.login })} description={t('user.deleteHint')} onConfirm={() => remove.mutate()}>
             <Button variant="destructive" className="ml-auto">
