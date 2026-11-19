@@ -51,7 +51,7 @@ export function UsersPage() {
                   <TableCell>
                     <Badge variant="outline">{user.role}</Badge>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell" title={formatDate(user.last_login_at)}>{formatShortDate(user.last_login_at)}</TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell" title={formatDate(user.last_login_at)}>{formatShortDate(user.last_login_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
