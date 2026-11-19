@@ -29,26 +29,24 @@ export function UsersPage() {
       {users.error && <p className="text-destructive">{users.error.message}</p>}
       {users.data && (
         <div className="overflow-hidden rounded-xl border">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead>{t('login.login')}</TableHead>
-                <TableHead>{t('users.role')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('users.lastLogin')}</TableHead>
+                <TableHead className="w-24">{t('users.role')}</TableHead>
+                <TableHead className="hidden w-48 sm:table-cell">{t('users.lastLogin')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.data.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <Link to={`/users/${user.id}`} className="text-foreground hover:underline">
-                      {user.login}
-                    </Link>
-                    {user.blocked && (
-                      <Badge variant="destructive" className="ml-2">
-                        {t('users.blocked')}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Link to={`/users/${user.id}`} className="truncate text-foreground hover:underline" title={user.login}>
+                        {user.login}
+                      </Link>
+                      {user.blocked && <Badge variant="destructive">{t('users.blocked')}</Badge>}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{user.role}</Badge>
