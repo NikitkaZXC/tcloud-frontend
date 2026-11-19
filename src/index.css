@@ -653,6 +653,10 @@ a:is([data-slot=button], [data-slot$=-trigger])[data-variant=outline]:not([data-
   background: transparent;
 }
 
+[data-slot=input][type=file] {
+  height: auto;
+}
+
 [data-slot=input]:focus-visible, [data-slot=textarea]:focus-visible, [data-slot=select-trigger]:focus-visible {
   outline: none;
   border-color: var(--foreground);
