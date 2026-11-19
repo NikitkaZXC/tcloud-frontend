@@ -31,7 +31,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--border-radius": "1rem",
+          "--border-radius": "2px",
           "--success-bg": "color-mix(in oklab, var(--success) 12%, var(--popover))",
           "--success-border": "var(--success)",
           "--success-text": "var(--success)",
