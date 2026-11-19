@@ -16,7 +16,7 @@ import { useAction } from '@/hooks/use-action'
 import { useCountdown, useNow } from '@/hooks/use-countdown'
 import { api } from '@/lib/api'
 import { activeSession, describeError, qrExpired, retryAfterOf, SESSION_ORDER } from '@/lib/auth'
-import { formatBytes, formatDate, formatDuration } from '@/lib/format'
+import { formatBytes, formatDuration, formatShortDate } from '@/lib/format'
 import { t, type Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { Account, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
@@ -328,7 +328,7 @@ function DevicesCard() {
                   {device.session} {device.current && <Badge>{t('telegram.currentDevice')}</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {device.ip} {device.country} · {t('account.active', { date: formatDate(device.active_at) })}
+                  {device.ip} {device.country} · {t('account.active', { date: formatShortDate(device.active_at) })}
                 </p>
               </div>
               {!device.current && (

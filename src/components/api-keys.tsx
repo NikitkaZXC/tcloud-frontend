@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useAction } from '@/hooks/use-action'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatShortDate } from '@/lib/format'
 import type { ApiKey } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
@@ -69,7 +69,7 @@ export function ApiKeys({ userId }: { userId: string }) {
           {keys.data?.map((k) => (
             <li key={k.id} className="flex items-center gap-2 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate text-foreground">{k.name}</span>
-              <span className="hidden text-muted-foreground sm:inline">{t('keys.used', { date: formatDate(k.last_used_at) })}</span>
+              <span className="hidden shrink-0 text-xs text-muted-foreground tabular-nums sm:inline" title={formatDate(k.last_used_at)}>{t('keys.used', { date: formatShortDate(k.last_used_at) })}</span>
               <Confirm title={t('keys.revokeQ', { name: k.name })} action={t('keys.revoke')} onConfirm={() => revoke.mutate(k.id)}>
                 <Button variant="ghost" size="icon-sm" aria-label={t('keys.revoke')}>
                   <Trash2Icon />

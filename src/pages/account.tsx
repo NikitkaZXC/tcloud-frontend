@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/format'
+import { formatShortDate } from '@/lib/format'
 import type { UserSession } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
@@ -116,11 +116,12 @@ function Sessions() {
           {sessions.data?.map((session) => (
             <li key={session.id} className="flex items-center gap-2 py-2 text-sm">
               <div className="min-w-0 flex-1">
-                <p className="truncate">
-                  {session.user_agent ?? t('account.unknown')} {session.is_current && <Badge>{t('account.currentSession')}</Badge>}
+                <p className="flex items-center gap-2">
+                  <span className="truncate" title={session.user_agent ?? undefined}>{session.user_agent ?? t('account.unknown')}</span>
+                  {session.is_current && <Badge>{t('account.currentSession')}</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {session.ip_address ?? '—'} · {t('account.signedIn', { date: formatDate(session.signed_in_at) })} · {t('account.active', { date: formatDate(session.last_active_at) })}
+                  {session.ip_address ?? '—'} · {t('account.signedIn', { date: formatShortDate(session.signed_in_at) })} · {t('account.active', { date: formatShortDate(session.last_active_at) })}
                 </p>
               </div>
               <Button
