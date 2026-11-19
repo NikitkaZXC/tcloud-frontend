@@ -2,6 +2,7 @@ import { type ReactNode, useId } from 'react'
 import { useTween } from '@/hooks/use-fx'
 import { openPalette } from '@/lib/commands'
 import type { Activity, ChannelUsage, Io } from '@/lib/dashboard'
+import { formatCount } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { t } from '@/lib/i18n'
 
@@ -90,7 +91,7 @@ export function Ring({
             <circle cx="50" cy="50" r={r} className="fx-ring-bar" stroke={`url(#${id}g)`} strokeDasharray={length} strokeDashoffset={length * (1 - ratio)} />
           </g>
         </svg>
-        <span className="fx-ring-center">{center ?? (value == null ? '…' : `${Math.round(value * 100)}%`)}</span>
+        <span className="fx-ring-center">{typeof center === 'number' ? formatCount(center) : center ?? (value == null ? '…' : `${Math.round(value * 100)}%`)}</span>
         {tone && <span className="fx-light absolute top-0 right-0" data-tone={tone} aria-hidden />}
       </div>
       <figcaption className="grid justify-items-center gap-0.5 text-center">

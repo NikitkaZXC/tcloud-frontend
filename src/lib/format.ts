@@ -19,6 +19,8 @@ export function formatDate(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleString(getLang()) : '—'
 }
 
+export const formatCount = (n: number) => (n < 10000 ? String(n) : new Intl.NumberFormat(getLang(), { notation: 'compact', maximumFractionDigits: 1 }).format(n))
+
 const shortDates = new Map<string, Intl.DateTimeFormat>()
 
 export function formatShortDate(iso: string | null | undefined): string {

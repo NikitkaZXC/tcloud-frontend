@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crumbs, filesCount, formatBytes, formatDuration, formatShortDate, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
+import { crumbs, filesCount, formatBytes, formatCount, formatDuration, formatShortDate, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
 import { setLang } from './i18n'
 
 const root = 'tcloud/0190a2b4-0000-7000-8000-000000000000'
@@ -61,5 +61,15 @@ describe('plural', () => {
     expect([0, 1, 2, 5, 11, 12, 21, 22, 25, 111].map(filesCount)).toEqual([
       '0 файлов', '1 файл', '2 файла', '5 файлов', '11 файлов', '12 файлов', '21 файл', '22 файла', '25 файлов', '111 файлов',
     ])
+  })
+})
+
+describe('formatCount', () => {
+  it('keeps small counts and compacts big ones', () => {
+    setLang('en')
+    expect(formatCount(9999)).toBe('9999')
+    expect(formatCount(1222205)).toBe('1.2M')
+    setLang('ru')
+    expect(formatCount(12345)).toBe('12,3\u00a0тыс.')
   })
 })
