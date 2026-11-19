@@ -70,6 +70,6 @@ describe('formatCount', () => {
     expect(formatCount(9999)).toBe('9999')
     expect(formatCount(1222205)).toBe('1.2M')
     setLang('ru')
-    expect(formatCount(12345)).toBe('12,3\u00a0тыс.')
+    expect(formatCount(12345)).toBe('12,3 тыс.')
   })
 })
