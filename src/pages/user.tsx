@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { PageTitle } from '@/components/fx'
+import { PageTitle, PixelToggle } from '@/components/fx'
 import { ApiKeys } from '@/components/api-keys'
 import { Confirm } from '@/components/confirm'
 import { GrantList } from '@/components/grants'
@@ -13,7 +13,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
@@ -79,10 +78,10 @@ export function UserPage() {
               <CardTitle>{t('user.manage')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <Switch checked={u.blocked} onCheckedChange={(blocked) => update.mutate({ blocked })} />
-                {t('user.blockedToggle')}
-              </label>
+              <div className="flex items-center gap-3 text-sm">
+                <PixelToggle checked={u.blocked} onChange={(blocked) => update.mutate({ blocked })} labelledBy="user-blocked" />
+                <span id="user-blocked">{t('user.blockedToggle')}</span>
+              </div>
               {me?.role === 'root' && (
                 <div className="grid gap-1.5">
                   <Label>{t('users.role')}</Label>
