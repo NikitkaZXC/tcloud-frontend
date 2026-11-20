@@ -362,6 +362,11 @@
   svg.lucide {
     shape-rendering: crispEdges;
   }
+  @supports (font: -apple-system-body) {
+    svg.lucide {
+      shape-rendering: auto;
+    }
+  }
   ::selection {
     background: var(--foreground);
     color: var(--background);

@@ -109,6 +109,9 @@ flowchart LR
 - `body` — 16.5 px (`text-base`), поэтому текст без своего класса тоже попадает в шкалу кеглей.
 - Мобильная шапка `sticky!`: у `.fx-panel` есть `position: relative` вне слоёв, он перебивает утилиту `sticky`.
   Панель выделения в папке прилипает сразу под шапкой.
+- Иконки lucide — `shape-rendering: crispEdges` (пиксельные штрихи в Chrome). WebKit/Safari с ним утолщает штрихи до
+  залитых фигур, поэтому там `auto` через `@supports (font: -apple-system-body)` — условие верно только в WebKit
+  (проверено Playwright: Chrome и WebKit).
 - Тосты sonner (`richColors`) берут цвета из токенов (`--success`, `--destructive`, `--warning`, `--read` на `--popover`).
 
 ## Логотип
