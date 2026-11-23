@@ -12,7 +12,7 @@ import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useAccount, useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
-import { type Activity, channelUsage, type Io, storageTotals } from '@/lib/dashboard'
+import { type Activity, channelUsage, type Io, storageChangeKeys, storageTotals } from '@/lib/dashboard'
 import { filesCount, formatBytes } from '@/lib/format'
 import { isUnavailable, storageName } from '@/lib/names'
 import type { Storage } from '@/lib/types'
@@ -131,7 +131,7 @@ function StorageForm({ storage }: { storage?: Storage }) {
         : await api.post<Storage>('/storages', body)
       if (photo) await request('PUT', `/storages/${saved.id}/photo`, { body: photo })
     },
-    { invalidate: [['storages']], success: t(storage ? 'common.saved' : 'storages.created'), onSuccess: () => setOpen(false) },
+    { invalidate: storageChangeKeys(storage ? 'updated' : 'created'), success: t(storage ? 'common.saved' : 'storages.created'), onSuccess: () => setOpen(false) },
   )
   const removePhoto = useAction(() => api.del(`/storages/${storage!.id}/photo`), {
     invalidate: [['storages']],
@@ -192,7 +192,7 @@ function StorageForm({ storage }: { storage?: Storage }) {
 function DeleteStorage({ storage }: { storage: Storage }) {
   const [keepChannel, setKeepChannel] = useState(false)
   const remove = useAction(() => api.del(`/storages/${storage.id}`, { keep_channel: keepChannel }), {
-    invalidate: [['storages'], ['search'], ['mimes']],
+    invalidate: storageChangeKeys('deleted'),
     success: t('storages.deleted'),
   })
 

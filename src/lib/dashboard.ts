@@ -174,6 +174,11 @@ export interface ChannelUsage {
   accountWide: boolean
 }
 
+export function storageChangeKeys(change: 'created' | 'updated' | 'deleted'): string[][] {
+  if (change === 'updated') return [['storages']]
+  return change === 'created' ? [['storages'], ['account']] : [['storages'], ['account'], ['search'], ['mimes']]
+}
+
 export function channelUsage(account: Account | undefined, storages: number): ChannelUsage {
   const limit = account?.channels_limit ?? (account?.premium ? 1000 : 500)
   if (account?.channels_used != null) return { used: account.channels_used, limit, accountWide: true }

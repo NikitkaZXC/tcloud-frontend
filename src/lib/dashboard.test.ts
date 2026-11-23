@@ -1,5 +1,6 @@
+import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, ACTIVITY_TAIL_MS, endIo, freshServerIo, IO_MIN_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts, taskRings } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, ACTIVITY_TAIL_MS, endIo, freshServerIo, IO_MIN_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageChangeKeys, storageIo, storageTotals, taskCounts, taskRings } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -197,5 +198,20 @@ describe('dashboard', () => {
     expect(parseLayout('{"a":1}')).toBeUndefined()
     expect(parseLayout('{')).toBeUndefined()
     expect(parseLayout(null)).toBeUndefined()
+  })
+})
+
+describe('storage change invalidation', () => {
+  const stale = (change: Parameters<typeof storageChangeKeys>[0]) => {
+    const client = new QueryClient()
+    for (const key of [['storages'], ['account'], ['search', 'q'], ['mimes', ''], ['folder', 'x']]) client.setQueryData(key, 1)
+    storageChangeKeys(change).forEach((queryKey) => client.invalidateQueries({ queryKey, refetchType: 'none' }))
+    return client.getQueryCache().getAll().filter((q) => q.state.isInvalidated).map((q) => q.queryKey[0])
+  }
+
+  it('refreshes the channels ring right after creating or deleting a storage', () => {
+    expect(stale('created')).toEqual(['storages', 'account'])
+    expect(stale('deleted')).toEqual(['storages', 'account', 'search', 'mimes'])
+    expect(stale('updated')).toEqual(['storages'])
   })
 })

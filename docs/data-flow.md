@@ -19,7 +19,7 @@
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `retry: false`; без `staleTime`, чтобы фасеты форматов сразу видели новые/удалённые файлы |
 | `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется, если блок `activity_map` скрыт (`interface.dashboard_hidden`) |
-| `['account']` | `GET /account` | `useAccount` (`hooks/use-storages.ts`) на дашборде, в `components/storages.tsx`, `pages/telegram.tsx` | `staleTime` 60 с (`ACCOUNT_STALE_MS`; задачи, операции с хранилищами и переключатель превью инвалидируют сразу); всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
+| `['account']` | `GET /account` | `useAccount` (`hooks/use-storages.ts`) на дашборде, в `components/storages.tsx`, `pages/telegram.tsx` | `staleTime` 60 с (`ACCOUNT_STALE_MS`; задачи, создание и удаление хранилища (`storageChangeKeys`, кольцо каналов сразу) и переключатель превью инвалидируют сразу); всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
 | `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
 | `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
 | `['telegram-devices']` | `GET /telegram/sessions` | `pages/telegram.tsx` | `retry: false` |
@@ -44,7 +44,8 @@ flowchart LR
         mkdir["POST /folders"]
     end
     subgraph st["Хранилища (storages.tsx)"]
-        stSave["POST /storages, PATCH /storages/{id}<br/>+ PUT photo"]
+        stCreate["POST /storages<br/>+ PUT photo"]
+        stSave["PATCH /storages/{id}<br/>+ PUT photo"]
         stPhoto["DELETE /storages/{id}/photo"]
         stDel["DELETE /storages/{id}"]
     end
@@ -65,9 +66,10 @@ flowchart LR
 
     delFile & delFolder & bulk --> kDeleted["folder, storages, account,<br/>activity, search, mimes"]
     mkdir --> kFolderP["folder, parent"]
-    stSave --> kStorages
+    stCreate --> kStorageAcc["storages, account"]
+    stSave --> kStorages["storages"]
     stPhoto --> kStorages
-    stDel --> kStorages
+    stDel --> kStorageDel["storages, account,<br/>search, mimes"]
     uCreate --> kUsers["users"]
     uPatch --> kUsers
     uPatch --> kUser["user, id"]
@@ -84,6 +86,7 @@ flowchart LR
     watcher --> kAccount["account"]
     watcher --> kActivity["activity"]
     watcher --> kCounts["task-counts"]
+    watcher --> kSearch["search, mimes"]
 ```
 
 Без инвалидации:
