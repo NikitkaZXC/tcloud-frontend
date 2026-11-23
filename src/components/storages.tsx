@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
@@ -11,12 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
+import { useAccount, useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { api, request } from '@/lib/api'
 import { type Activity, channelUsage, type Io, storageTotals } from '@/lib/dashboard'
 import { filesCount, formatBytes } from '@/lib/format'
 import { isUnavailable, storageName } from '@/lib/names'
-import type { Account, Storage } from '@/lib/types'
+import type { Storage } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
 export function StorageCard({ storage, activity, io, actions }: { storage: Storage; activity?: Activity; io?: Io; actions?: ReactNode }) {
@@ -59,7 +58,7 @@ export function StorageList() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
   const io = useStorageIo()
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
+  const account = useAccount()
   const { data: me } = useMe()
   const admin = isAdmin(me)
   const totals = storageTotals(storages.data ?? [])

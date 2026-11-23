@@ -5,11 +5,17 @@ import { api } from '@/lib/api'
 import { endIo, freshServerIo, IO_FAST_POLL_MS, IO_IDLE_POLL_MS, type Io, type IoSeen, lingerIo, mergeIo, serverIo, storageActivity, storageIo } from '@/lib/dashboard'
 import { onRead } from '@/lib/reads'
 import { useTrackedTasks } from '@/lib/tasks'
-import type { Storage, StorageActivity, Task } from '@/lib/types'
+import type { Account, Storage, StorageActivity, Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
+
+export const ACCOUNT_STALE_MS = 60_000
 
 export function useStorages() {
   return useQuery({ queryKey: ['storages'], queryFn: () => api.get<Storage[]>('/storages') })
+}
+
+export function useAccount() {
+  return useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account'), staleTime: ACCOUNT_STALE_MS })
 }
 
 function useTrackedData(): Task[] {

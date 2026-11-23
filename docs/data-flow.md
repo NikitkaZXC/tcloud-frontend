@@ -19,7 +19,7 @@
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
 | `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `retry: false`; без `staleTime`, чтобы фасеты форматов сразу видели новые/удалённые файлы |
 | `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется, если блок `activity_map` скрыт (`interface.dashboard_hidden`) |
-| `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
+| `['account']` | `GET /account` | `useAccount` (`hooks/use-storages.ts`) на дашборде, в `components/storages.tsx`, `pages/telegram.tsx` | `staleTime` 60 с (`ACCOUNT_STALE_MS`; задачи, операции с хранилищами и переключатель превью инвалидируют сразу); всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
 | `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
 | `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
 | `['telegram-devices']` | `GET /telegram/sessions` | `pages/telegram.tsx` | `retry: false` |

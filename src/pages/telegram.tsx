@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useHealth } from '@/hooks/use-health'
+import { useAccount } from '@/hooks/use-storages'
 import { useAction } from '@/hooks/use-action'
 import { useCountdown, useNow } from '@/hooks/use-countdown'
 import { api } from '@/lib/api'
@@ -19,7 +20,7 @@ import { activeSession, describeError, qrExpired, retryAfterOf, SESSION_ORDER } 
 import { formatBytes, formatDuration, formatShortDate } from '@/lib/format'
 import { t, type Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import type { Account, TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
+import type { TelegramAuthorization, TelegramSessionName, TelegramSessionState } from '@/lib/types'
 
 const ROLES: Record<TelegramSessionName, Key> = {
   api: 'telegram.roleApi',
@@ -286,7 +287,7 @@ function LoginStep({ state, updatedAt, index, total }: { state: TelegramSessionS
 
 function SystemCard() {
   const health = useHealth()
-  const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
+  const account = useAccount()
 
   return (
     <Card>

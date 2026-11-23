@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useAction } from '@/hooks/use-action'
 import { useHealth } from '@/hooks/use-health'
 import { isAdmin, useMe } from '@/hooks/use-me'
-import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
+import { useAccount, useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api, ApiError, errorMessage } from '@/lib/api'
 import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts, taskRings } from '@/lib/dashboard'
@@ -20,7 +20,7 @@ import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
 import { stageLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
-import type { Account, Task, TelegramSessionState, User } from '@/lib/types'
+import type { Task, TelegramSessionState, User } from '@/lib/types'
 import { load, save } from '@/lib/prefs'
 import { type Settings, settingsError, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import { useSending } from '@/lib/upload'
@@ -31,10 +31,6 @@ import { cn } from '@/lib/utils'
 const MAX_FILE = 4 * 1024 ** 3
 
 const rings = 'flex flex-wrap justify-center gap-x-6 gap-y-5 sm:justify-start'
-
-function useAccount() {
-  return useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
-}
 
 function useTrackedData(): Task[] {
   return useTasks(useTrackedTasks())
