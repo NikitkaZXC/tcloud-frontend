@@ -88,7 +88,7 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
             })}
           </div>
         </fieldset>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,4fr)]">
           <div className="grid content-start gap-1.5">
             <Label htmlFor="search-mime">{t('search.format')}</Label>
             <DropdownMenu>
@@ -121,12 +121,12 @@ function Filters({ state, update }: { state: SearchState; update: (patch: Partia
             </DropdownMenu>
           </div>
           <SizeFilter state={state} update={update} />
-          <fieldset className="grid gap-1.5 lg:col-span-2">
+          <fieldset className="grid gap-1.5">
             <legend className="mb-1.5 fx-label">{t('sort.modified')}</legend>
             <div className="flex items-center gap-1.5">
-              <Input type="date" aria-label={t('search.modifiedFrom')} value={state.dateFrom} max={state.dateTo || undefined} onChange={(e) => update({ dateFrom: e.target.value })} />
+              <Input type="date" aria-label={t('search.modifiedFrom')} className={state.dateFrom ? undefined : 'text-muted-foreground'} value={state.dateFrom} max={state.dateTo || undefined} onChange={(e) => update({ dateFrom: e.target.value })} />
               <span aria-hidden>–</span>
-              <Input type="date" aria-label={t('search.modifiedTo')} value={state.dateTo} min={state.dateFrom || undefined} onChange={(e) => update({ dateTo: e.target.value })} />
+              <Input type="date" aria-label={t('search.modifiedTo')} className={state.dateTo ? undefined : 'text-muted-foreground'} value={state.dateTo} min={state.dateFrom || undefined} onChange={(e) => update({ dateTo: e.target.value })} />
             </div>
           </fieldset>
         </div>

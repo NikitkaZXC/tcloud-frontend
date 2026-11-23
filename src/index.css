@@ -359,6 +359,27 @@
     outline: 2px dashed var(--ring);
     outline-offset: 2px;
   }
+  input[type=search]::-webkit-search-cancel-button,
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    appearance: textfield;
+  }
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::before {
+    content: "▸ ";
+  }
+  details[open] > summary::before {
+    content: "▾ ";
+  }
   svg.lucide {
     shape-rendering: crispEdges;
   }

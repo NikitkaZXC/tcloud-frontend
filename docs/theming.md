@@ -104,6 +104,7 @@ flowchart LR
 
 ## Раскладка
 
+- Проверено в Chrome и Safari (WebKit); Firefox не проверялся.
 - Любой `.grid` без своих колонок получает одну колонку `minmax(0, 1fr)` (`@layer base` в `index.css`; `grid-cols-*`
   перекрывают): иначе неявная колонка `auto` растягивается под длинное имя без пробелов, и страница уезжает вбок.
 - `body` — 16.5 px (`text-base`), поэтому текст без своего класса тоже попадает в шкалу кеглей.
@@ -112,6 +113,8 @@ flowchart LR
 - Иконки lucide — `shape-rendering: crispEdges` (пиксельные штрихи в Chrome). WebKit/Safari с ним утолщает штрихи до
   залитых фигур, поэтому там `auto` через `@supports (font: -apple-system-body)` — условие верно только в WebKit
   (проверено Playwright: Chrome и WebKit).
+- Нативные части полей скрыты одинаково для Chrome и Safari: крестик `type=search` (свой есть), стрелки `type=number`,
+  маркер `<summary>` (свой `▸`/`▾`); пустое поле даты — приглушённым цветом (Safari показывает в нём сегодняшнюю дату).
 - Тосты sonner (`richColors`) берут цвета из токенов (`--success`, `--destructive`, `--warning`, `--read` на `--popover`).
 
 ## Логотип

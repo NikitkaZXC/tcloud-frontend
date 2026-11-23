@@ -32,6 +32,8 @@ npm run lint       # oxlint
 Бэкенд должен быть запущен (`make dev-up-all` или `make app` в tcloud-backend). Вход — логином и паролем пользователя
 tcloud (root: `ROOT_LOGIN`/`ROOT_PASSWORD` из `.env` бэкенда).
 
+Проверено в Chrome и Safari (WebKit); Firefox не проверялся.
+
 ## Docker
 
 ```bash
