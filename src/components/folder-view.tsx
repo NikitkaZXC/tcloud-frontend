@@ -68,7 +68,7 @@ import { settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@
 import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitColumns, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
-import { storageName } from '@/lib/names'
+import { fileName, storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
 import { archiveError, archiveName, selectionPayload } from '@/lib/archive'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
@@ -686,8 +686,8 @@ export function FolderView({ path }: { path: string }) {
         {!isRoot && (
           <Confirm
             skip={skipConfirm}
-            title={t('folder.deleteCurrentQ')}
-            description={t('folder.deleteCurrentHint')}
+            title={t('folder.deleteFolderQ', { name: fileName(path) })}
+            description={t('folder.deleteFolderHint')}
             onConfirm={() => removeFolder.mutate(path)}
           >
             <Button variant="destructive">

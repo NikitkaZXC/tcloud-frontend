@@ -189,8 +189,6 @@ export const en: Record<Key, Entry> = {
   'folder.copyLink': 'Copy link',
   'folder.copyPath': 'Copy path',
   'folder.created': 'Folder created',
-  'folder.deleteCurrentHint': 'The files will be deleted from Telegram and the database.',
-  'folder.deleteCurrentQ': 'Delete the folder with everything inside?',
   'folder.deleteFileQ': 'Delete “{name}”?',
   'folder.deleteFolder': 'Delete folder',
   'folder.deleteFolderHint': 'Everything inside will be deleted from Telegram and the database.',

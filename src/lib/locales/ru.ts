@@ -189,8 +189,6 @@ export const ru = {
   'folder.copyLink': 'Копировать ссылку',
   'folder.copyPath': 'Копировать путь',
   'folder.created': 'Папка создана',
-  'folder.deleteCurrentHint': 'Файлы будут удалены из Telegram и базы.',
-  'folder.deleteCurrentQ': 'Удалить папку со всем содержимым?',
   'folder.deleteFileQ': 'Удалить «{name}»?',
   'folder.deleteFolder': 'Удалить папку',
   'folder.deleteFolderHint': 'Всё содержимое будет удалено из Telegram и базы.',
