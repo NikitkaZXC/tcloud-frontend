@@ -121,10 +121,10 @@ export interface Folder {
 
 export interface FolderListing {
   path: string
-  size: number
-  total_files: number
-  total_folders: number
-  direct_files: number
+  size: number | null
+  total_files: number | null
+  total_folders: number | null
+  direct_files: number | null
   items: ((Folder & { type: 'folder' }) | (TFile & { type: 'file' }))[]
   next_cursor: string | null
 }

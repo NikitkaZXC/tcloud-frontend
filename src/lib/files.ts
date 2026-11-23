@@ -45,6 +45,12 @@ export function listingEntries(pages: FolderListing[]): Entry[] {
     .map((item) => (item.type === 'folder' ? { type: 'folder' as const, item } : { type: 'file' as const, item }))
 }
 
+export function listingTotals(pages: FolderListing[]) {
+  const head = pages.find((page) => page.total_files != null)
+  if (!head) return null
+  return { size: head.size ?? 0, files: head.total_files ?? 0, folders: head.total_folders ?? 0, items: (head.total_folders ?? 0) + (head.direct_files ?? 0) }
+}
+
 export function parseSort(raw: string | null): Sort {
   try {
     const value = JSON.parse(raw ?? '{}') as Partial<Sort>

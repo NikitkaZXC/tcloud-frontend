@@ -62,7 +62,7 @@ import { api, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
-import { listingEntries, listingKey, listingParams, nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel } from '@/lib/files'
+import { listingEntries, listingKey, listingTotals, listingParams, nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { pageSizeOf, settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
 import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitColumns, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
@@ -224,7 +224,8 @@ export function FolderView({ path }: { path: string }) {
     placeholderData: keepPreviousData,
   })
   const head0 = listing.data?.pages[0]
-  const total = head0 ? head0.total_folders + head0.direct_files : 0
+  const totals = listingTotals(listing.data?.pages ?? [])
+  const total = totals?.items ?? 0
   const view = settings.interface.folder_view
   const skipConfirm = !settings.interface.confirm_delete
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -248,7 +249,7 @@ export function FolderView({ path }: { path: string }) {
   const saveTimer = useRef(0)
   const sm = useMedia('(width >= 40rem)')
   const columns = sm ? (draftColumns ?? storedColumns) : {}
-  const actionsWidth = sm ? 128 : head0?.total_folders ? 72 : 44
+  const actionsWidth = sm ? 128 : totals?.folders ? 72 : 44
   const panel = useRef<HTMLDivElement>(null)
   const [available, setAvailable] = useState(0)
   const shown = fitColumns(sm ? available : 0, {}, 32 + actionsWidth)
@@ -650,9 +651,9 @@ export function FolderView({ path }: { path: string }) {
       )}
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <Crumbs path={path} name={storageName(storage)} />
-        {head0 && (
+        {totals && (
           <span className="text-sm text-muted-foreground tabular-nums">
-            {formatBytes(head0.size)} · {filesCount(head0.total_files)}
+            {formatBytes(totals.size)} · {filesCount(totals.files)}
           </span>
         )}
       </div>

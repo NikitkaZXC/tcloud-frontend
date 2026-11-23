@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query'
-import { DEFAULT_SORT, listingEntries, listingKey, listingParams, nextSort, pageSize, parseSort, selectRange, type Sort } from './files'
+import { DEFAULT_SORT, listingEntries, listingKey, listingTotals, listingParams, nextSort, pageSize, parseSort, selectRange, type Sort } from './files'
 import type { Folder, FolderListing, TFile } from './types'
 
 const file = (name: string, size: number, updated_at: string, kind: TFile['kind'] = 'document', created_at = '2026-01-01T00:00:00Z') =>
@@ -19,6 +19,14 @@ describe('folder listing pages', () => {
       ['file', 'z.txt'],
     ])
     expect(listingEntries([])).toEqual([])
+  })
+
+  it('reads totals from the first page and ignores null totals on cursor pages', () => {
+    const first = { ...page([], 'c1'), size: 300, total_files: 7, total_folders: 2, direct_files: 3 }
+    const next = { ...page([]), size: null, total_files: null, total_folders: null, direct_files: null }
+    expect(listingTotals([first, next, next])).toEqual({ size: 300, files: 7, folders: 2, items: 5 })
+    expect(listingTotals([next])).toBeNull()
+    expect(listingTotals([])).toBeNull()
   })
 
   it('puts every sort param, the language and the page size into the query key', () => {
