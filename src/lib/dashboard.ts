@@ -135,23 +135,30 @@ export function storageActivity(storages: Storage[], sending: Sending[], tasks: 
 
 export type Io = 'write' | 'read' | 'both'
 
-export function storageIo(storages: Storage[], activity: Record<string, Activity>, tasks: Task[], reads: { path: string }[]): Record<string, Io> {
-  const readPaths = [
-    ...reads.map((read) => read.path),
-    ...tasks.filter((t) => t.archive && t.status === 'running' && t.stage === 'archiving').map((t) => t.path),
-  ]
+type IoKind = 'write' | 'read'
+
+const IO_KINDS: IoKind[] = ['write', 'read']
+
+const has = (io: Io | undefined, kind: IoKind) => io === kind || io === 'both'
+
+const toIo = (write: boolean, read: boolean): Io | undefined => (write && read ? 'both' : write ? 'write' : read ? 'read' : undefined)
+
+export function storageIo(storages: Storage[], activity: Record<string, Activity>, tasks: Task[]): Record<string, Io> {
+  const readPaths = tasks.filter((t) => t.archive && t.status === 'running' && t.stage === 'archiving').map((t) => t.path)
   const result: Record<string, Io> = {}
   for (const storage of storages) {
-    const write = !!activity[storage.id]
-    const read = readPaths.some((path) => inside(storage, path))
-    if (write || read) result[storage.id] = write && read ? 'both' : write ? 'write' : 'read'
+    const io = toIo(!!activity[storage.id], readPaths.some((path) => inside(storage, path)))
+    if (io) result[storage.id] = io
   }
   return result
 }
 
 export function serverIo(activity: StorageActivity[] = []): Record<string, Io> {
   const result: Record<string, Io> = {}
-  for (const { storage_id, read, write } of activity) if (read || write) result[storage_id] = read && write ? 'both' : write ? 'write' : 'read'
+  for (const { storage_id, read, write } of activity) {
+    const io = toIo(write, read)
+    if (io) result[storage_id] = io
+  }
   return result
 }
 
@@ -173,30 +180,55 @@ export function channelUsage(account: Account | undefined, storages: number): Ch
   return { used: storages, limit, accountWide: false }
 }
 
-export const IO_HOLD_MS = 3000
+export const IO_MIN_MS = 500
+
+export const ACTIVITY_TAIL_MS = 1000
+
+export const IO_FAST_POLL_MS = 500
+
+export const IO_IDLE_POLL_MS = 3000
 
 export type IoSeen = Record<string, { write?: number; read?: number }>
 
-export function lingerIo(current: Record<string, Io>, seen: IoSeen, now: number, hold = IO_HOLD_MS) {
+export function lingerIo(current: Record<string, Io>, seen: IoSeen, now: number, hold = IO_MIN_MS) {
   const next: IoSeen = {}
-  for (const [id, last] of Object.entries(seen)) {
-    const write = last.write != null && now - last.write < hold ? last.write : undefined
-    const read = last.read != null && now - last.read < hold ? last.read : undefined
-    if (write != null || read != null) next[id] = { write, read }
-  }
-  for (const [id, io] of Object.entries(current)) {
-    next[id] = {
-      write: io === 'write' || io === 'both' ? now : next[id]?.write,
-      read: io === 'read' || io === 'both' ? now : next[id]?.read,
-    }
-  }
   const io: Record<string, Io> = {}
   let wake: number | null = null
-  for (const [id, { write, read }] of Object.entries(next)) {
-    io[id] = write != null && read != null ? 'both' : write != null ? 'write' : 'read'
-    for (const at of [write, read]) if (at != null && at <= now) wake = Math.min(wake ?? Infinity, at + hold)
+  for (const id of new Set([...Object.keys(current), ...Object.keys(seen)])) {
+    for (const kind of IO_KINDS) {
+      const since = seen[id]?.[kind]
+      if (has(current[id], kind)) next[id] = { ...next[id], [kind]: since ?? now }
+      else if (since != null && now - since < hold) {
+        next[id] = { ...next[id], [kind]: since }
+        wake = Math.min(wake ?? Infinity, since + hold)
+      }
+    }
+    const lit = toIo(next[id]?.write != null, next[id]?.read != null)
+    if (lit) io[id] = lit
   }
   return { io, seen: next, wake }
+}
+
+export function endIo(previous: Record<string, Io>, current: Record<string, Io>, ended: IoSeen, now: number): IoSeen {
+  const next: IoSeen = {}
+  for (const id of new Set([...Object.keys(previous), ...Object.keys(current), ...Object.keys(ended)])) {
+    for (const kind of IO_KINDS) {
+      if (has(current[id], kind)) continue
+      const at = has(previous[id], kind) ? now : ended[id]?.[kind]
+      if (at != null) next[id] = { ...next[id], [kind]: at }
+    }
+  }
+  return next
+}
+
+export function freshServerIo(server: Record<string, Io>, ended: IoSeen, sampledAt: number, tail = ACTIVITY_TAIL_MS): Record<string, Io> {
+  const result: Record<string, Io> = {}
+  for (const [id, value] of Object.entries(server)) {
+    const fresh = (kind: IoKind) => has(value, kind) && !(ended[id]?.[kind] != null && sampledAt < ended[id][kind]! + tail)
+    const io = toIo(fresh('write'), fresh('read'))
+    if (io) result[id] = io
+  }
+  return result
 }
 
 export interface ActivityDay {

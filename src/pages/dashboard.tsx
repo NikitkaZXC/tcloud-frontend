@@ -141,7 +141,7 @@ function ActivitySection() {
 function StoragesSection() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
-  const io = useStorageIo(storages.data ?? [])
+  const io = useStorageIo()
 
   return (
     <Section label={t('nav.storages')}>

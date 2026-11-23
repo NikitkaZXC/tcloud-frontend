@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts, taskRings } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, ACTIVITY_TAIL_MS, endIo, freshServerIo, IO_MIN_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts, taskRings } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -41,31 +41,42 @@ describe('dashboard', () => {
     const activity = { a: { count: 1, percent: null }, c: { count: 1, percent: 10 } }
     const tasks = [
       { path: 'tcloud/ab/docs', status: 'running', stage: 'archiving', archive: { name: 'docs.zip' } },
+      { path: 'tcloud/c/pack', status: 'running', stage: 'archiving', archive: { name: 'pack.zip' } },
       { path: 'tcloud/d/old', status: 'done', stage: 'done', archive: { name: 'old.zip' } },
     ] as Task[]
-    expect(storageIo(storages, activity, tasks, [{ path: 'tcloud/c/x.jpg' }])).toEqual({ a: 'write', ab: 'read', c: 'both' })
+    expect(storageIo(storages, activity, tasks)).toEqual({ a: 'write', ab: 'read', c: 'both' })
   })
 
-  it('keeps activity visible for a minimum time after it ends', () => {
+  it('keeps a short io lit for a minimum time and drops a long one the moment it ends', () => {
     let state = lingerIo({ a: 'write' }, {}, 1000)
     expect(state.io).toEqual({ a: 'write' })
-    expect(state.wake).toBe(1000 + IO_HOLD_MS)
-    state = lingerIo({ b: 'read' }, state.seen, 1500)
+    expect(state.wake).toBeNull()
+    state = lingerIo({ b: 'read' }, state.seen, 1100)
     expect(state.io).toEqual({ a: 'write', b: 'read' })
-    expect(state.wake).toBe(1000 + IO_HOLD_MS)
-    state = lingerIo({ a: 'read' }, state.seen, 2000)
+    expect(state.wake).toBe(1000 + IO_MIN_MS)
+    state = lingerIo({ a: 'read' }, state.seen, 1200)
     expect(state.io).toEqual({ a: 'both', b: 'read' })
-    state = lingerIo({}, state.seen, 1000 + IO_HOLD_MS)
-    expect(state.io).toEqual({ a: 'read', b: 'read' })
-    expect(lingerIo({}, state.seen, 2000 + IO_HOLD_MS).io).toEqual({})
+    state = lingerIo({}, state.seen, 1200 + IO_MIN_MS - 1)
+    expect(state.io).toEqual({ a: 'read' })
+    expect(lingerIo({}, state.seen, 1200 + IO_MIN_MS).io).toEqual({})
+    const long = lingerIo({ s: 'write' }, lingerIo({ s: 'write' }, {}, 0).seen, 5000)
+    expect(lingerIo({}, long.seen, 5001)).toEqual({ io: {}, seen: {}, wake: null })
   })
 
-  it('wakes to clear an io that ended right after the previous one was stamped', () => {
-    const active = lingerIo({ s: 'read' }, {}, 1000)
-    const state = lingerIo({}, lingerIo({ s: 'read' }, active.seen, 3000).seen, 3000)
-    expect(state.io).toEqual({ s: 'read' })
-    expect(state.wake).toBe(3000 + IO_HOLD_MS)
-    expect(lingerIo({}, state.seen, state.wake!).io).toEqual({})
+  it('remembers when a local io ended until it runs again', () => {
+    let ended = endIo({ a: 'both', b: 'write' }, { a: 'read' }, {}, 1000)
+    expect(ended).toEqual({ a: { write: 1000 }, b: { write: 1000 } })
+    ended = endIo({ a: 'read' }, { a: 'read', b: 'write' }, ended, 2000)
+    expect(ended).toEqual({ a: { write: 1000 } })
+    expect(endIo({ a: 'read' }, {}, ended, 3000)).toEqual({ a: { write: 1000, read: 3000 } })
+  })
+
+  it('ignores a server io sampled before the local one ended plus the server tail', () => {
+    const server = { a: 'both', b: 'write' } as const
+    const ended = { a: { write: 1000 } }
+    expect(freshServerIo(server, ended, 1500)).toEqual({ a: 'read', b: 'write' })
+    expect(freshServerIo(server, ended, 1000 + ACTIVITY_TAIL_MS - 1)).toEqual({ a: 'read', b: 'write' })
+    expect(freshServerIo(server, ended, 1000 + ACTIVITY_TAIL_MS)).toEqual(server)
   })
 
   it('matches storage paths at the root, nested and by id', () => {

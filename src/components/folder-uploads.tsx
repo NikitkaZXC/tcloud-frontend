@@ -190,7 +190,7 @@ export function FolderUploads({ path }: { path: string }) {
 export function IoBanner({ path }: { path: string }) {
   const storages = useStorages().data ?? []
   const storage = storages.find((s) => s.id === storageIdOf(path))
-  const io = useStorageIo(storage ? [storage] : [])[storage?.id ?? '']
+  const io = useStorageIo()[storage?.id ?? '']
   const within = (item: string) => !!storage && (item === storage.path || item.startsWith(`${storage.path}/`))
   const sending = useSending().filter((item) => !item.cancelled && within(item.path))
   const tasks = useTasks(useTrackedTasks())

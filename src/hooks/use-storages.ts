@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useSyncExternalStore } from 'react'
 import { useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { type Io, type IoSeen, lingerIo, mergeIo, serverIo, storageActivity, storageIo } from '@/lib/dashboard'
-import { useReads } from '@/lib/reads'
+import { endIo, freshServerIo, IO_FAST_POLL_MS, IO_IDLE_POLL_MS, type Io, type IoSeen, lingerIo, mergeIo, serverIo, storageActivity, storageIo } from '@/lib/dashboard'
+import { onRead } from '@/lib/reads'
 import { useTrackedTasks } from '@/lib/tasks'
 import type { Storage, StorageActivity, Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
@@ -22,37 +22,54 @@ export function useStorageActivity(storages: Storage[]) {
   return storageActivity(storages, useSending().filter((item) => !item.cancelled), useTrackedData())
 }
 
+let local: Record<string, Io> = {}
+let ended: IoSeen = {}
+let server: { io: Record<string, Io>; at: number } = { io: {}, at: 0 }
 let seen: IoSeen = {}
-let active: Record<string, Io> = {}
-let lingering: Record<string, Io> = {}
+let lit: Record<string, Io> = {}
 let timer: ReturnType<typeof setTimeout> | undefined
 const listeners = new Set<() => void>()
 
-function publish(current: Record<string, Io>) {
+function publish() {
   const now = Date.now()
-  const state = lingerIo(current, lingerIo(active, seen, now).seen, now)
+  const state = lingerIo(mergeIo(local, freshServerIo(server.io, ended, server.at)), seen, now)
   seen = state.seen
-  active = current
   clearTimeout(timer)
-  if (state.wake != null) timer = setTimeout(() => publish(active), state.wake - now + 50)
-  if (JSON.stringify(state.io) === JSON.stringify(lingering)) return
-  lingering = state.io
+  if (state.wake != null) timer = setTimeout(publish, state.wake - now + 20)
+  if (JSON.stringify(state.io) === JSON.stringify(lit)) return
+  lit = state.io
   listeners.forEach((listener) => listener())
 }
 
-export function useStorageIo(storages: Storage[]): Record<string, Io> {
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+export function useStorageIo(): Record<string, Io> {
+  const storages = useStorages().data ?? []
   const tasks = useTrackedData()
-  const local = storageIo(storages, storageActivity(storages, useSending(), tasks), tasks, useReads())
-  const server = useQuery({ queryKey: ['storage-activity'], queryFn: () => api.get<StorageActivity[]>('/storages/activity'), refetchInterval: 2500 })
-  const current = mergeIo(local, serverIo(server.data))
-  const key = JSON.stringify(current)
-  useEffect(() => publish(JSON.parse(key)), [key])
-  const io = useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
-    },
-    () => lingering,
-  )
-  return mergeIo(io, current)
+  const sending = useSending().filter((item) => !item.cancelled)
+  const key = JSON.stringify(storageIo(storages, storageActivity(storages, sending, tasks), tasks))
+  const io = useSyncExternalStore(subscribe, () => lit)
+  const response = useQuery({
+    queryKey: ['storage-activity'],
+    queryFn: () => api.get<StorageActivity[]>('/storages/activity'),
+    refetchInterval: Object.keys(io).length ? IO_FAST_POLL_MS : IO_IDLE_POLL_MS,
+  })
+  const { refetch, data, dataUpdatedAt } = response
+  useEffect(() => {
+    const next = JSON.parse(key)
+    ended = endIo(local, next, ended, Date.now())
+    local = next
+    publish()
+  }, [key])
+  useEffect(() => {
+    server = { io: serverIo(data), at: dataUpdatedAt }
+    publish()
+  }, [data, dataUpdatedAt])
+  useEffect(() => onRead(() => void refetch({ cancelRefetch: false })), [refetch])
+  return io
 }

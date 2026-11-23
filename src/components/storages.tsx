@@ -58,7 +58,7 @@ export function StorageCard({ storage, activity, io, actions }: { storage: Stora
 export function StorageList() {
   const storages = useStorages()
   const activity = useStorageActivity(storages.data ?? [])
-  const io = useStorageIo(storages.data ?? [])
+  const io = useStorageIo()
   const account = useQuery({ queryKey: ['account'], queryFn: () => api.get<Account>('/account') })
   const { data: me } = useMe()
   const admin = isAdmin(me)

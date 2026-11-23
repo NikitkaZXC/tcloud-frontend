@@ -73,7 +73,7 @@ function StorageLinks({ onNavigate }: { onNavigate: () => void }) {
   const { pathname } = useLocation()
   const current = pathname === '/files' ? params.get('path') : null
   const activity = useStorageActivity(storages.data ?? [])
-  const io = useStorageIo(storages.data ?? [])
+  const io = useStorageIo()
   if (!storages.data?.length) return null
   return (
     <ul className="fx-dotted ml-5 grid gap-0.5 border-l pl-2">
