@@ -17,7 +17,7 @@ import {
   UploadIcon,
   XIcon,
 } from 'lucide-react'
-import { type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
@@ -56,6 +56,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { UploadDialog, UrlUploadDialog } from '@/components/upload-dialog'
 import { useAction } from '@/hooks/use-action'
 import { useMedia } from '@/hooks/use-media'
+import { cn } from '@/lib/utils'
 import { useStorages } from '@/hooks/use-storages'
 import { api, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
@@ -64,7 +65,7 @@ import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
 import { nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
-import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
+import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitColumns, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
 import { storageName } from '@/lib/names'
@@ -238,8 +239,20 @@ export function FolderView({ path }: { path: string }) {
   const saveTimer = useRef(0)
   const sm = useMedia('(width >= 40rem)')
   const columns = sm ? (draftColumns ?? storedColumns) : {}
-  const shown: Record<Column, boolean> = { name: true, type: useMedia('(width >= 80rem)'), size: sm, modified: useMedia('(width >= 48rem)'), uploaded: useMedia('(width >= 1100px)') }
   const actionsWidth = sm ? 128 : listing.data?.folders.length ? 72 : 44
+  const panel = useRef<HTMLDivElement>(null)
+  const [available, setAvailable] = useState(0)
+  const shown = fitColumns(sm ? available : 0, {}, 32 + actionsWidth)
+  const listed = !empty && order.length > 0 && view === 'list'
+  useLayoutEffect(() => {
+    const element = panel.current
+    if (!element) return
+    const measure = () => setAvailable(element.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [listed])
   const tableWidth = tableMinWidth(columns, COLUMNS.filter((column) => shown[column]), 32 + actionsWidth)
 
   const archive = useAction(
@@ -510,13 +523,13 @@ export function FolderView({ path }: { path: string }) {
                       <span className="truncate">{folder.name}</span>
                     </Link>
                   </TableCell>
-                  <TableCell data-col="type" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground xl:table-cell">{t('files.folderType')}</TableCell>
-                  <TableCell data-col="size" className="hidden overflow-hidden text-ellipsis text-right text-xs text-muted-foreground tabular-nums sm:table-cell">
+                  <TableCell data-col="type" className="overflow-hidden text-ellipsis text-xs text-muted-foreground">{t('files.folderType')}</TableCell>
+                  <TableCell data-col="size" className="overflow-hidden text-ellipsis text-right text-xs text-muted-foreground tabular-nums">
                     {formatBytes(folder.size)}
                     <span className="block text-xs">{filesCount(folder.files)}</span>
                   </TableCell>
-                  <TableCell data-col="modified" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(folder.updated_at)}>{formatShortDate(folder.updated_at)}</TableCell>
-                  <TableCell data-col="uploaded" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(folder.created_at)}>{formatShortDate(folder.created_at)}</TableCell>
+                  <TableCell data-col="modified" className="overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums" title={formatDate(folder.updated_at)}>{formatShortDate(folder.updated_at)}</TableCell>
+                  <TableCell data-col="uploaded" className="overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums" title={formatDate(folder.created_at)}>{formatShortDate(folder.created_at)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{folderButtons(folder)}</TableCell>
                 </TableRow>
   )
@@ -534,10 +547,10 @@ export function FolderView({ path }: { path: string }) {
                         {file.encrypted && <LockIcon className="size-3 shrink-0 text-muted-foreground" aria-label={t('folder.encrypted')} />}
                       </button>
                     </TableCell>
-                    <TableCell data-col="type" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground uppercase xl:table-cell">{typeLabel({ type: 'file', item: file })}</TableCell>
-                    <TableCell data-col="size" className="hidden overflow-hidden text-ellipsis text-right text-xs text-muted-foreground sm:table-cell">{formatBytes(file.size)}</TableCell>
-                    <TableCell data-col="modified" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums md:table-cell" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</TableCell>
-                    <TableCell data-col="uploaded" className="hidden overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums min-[1100px]:table-cell" title={formatDate(file.created_at)}>{formatShortDate(file.created_at)}</TableCell>
+                    <TableCell data-col="type" className="overflow-hidden text-ellipsis text-xs text-muted-foreground uppercase">{typeLabel({ type: 'file', item: file })}</TableCell>
+                    <TableCell data-col="size" className="overflow-hidden text-ellipsis text-right text-xs text-muted-foreground">{formatBytes(file.size)}</TableCell>
+                    <TableCell data-col="modified" className="overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums" title={formatDate(file.updated_at)}>{formatShortDate(file.updated_at)}</TableCell>
+                    <TableCell data-col="uploaded" className="overflow-hidden text-ellipsis text-xs text-muted-foreground tabular-nums" title={formatDate(file.created_at)}>{formatShortDate(file.created_at)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">{fileButtons(file)}</TableCell>
                   </TableRow>
                 )
@@ -782,9 +795,12 @@ export function FolderView({ path }: { path: string }) {
           </div>
         </div>
       )}
-      {!empty && order.length > 0 && view === 'list' && (
-        <div className="fx-panel overflow-hidden">
-          <Table className="table-fixed" style={{ minWidth: tableWidth }}>
+      {listed && (
+        <div ref={panel} className="fx-panel overflow-hidden">
+          <Table
+            className={cn('table-fixed', !shown.type && '[&_[data-col=type]]:hidden', !shown.size && '[&_[data-col=size]]:hidden', !shown.modified && '[&_[data-col=modified]]:hidden', !shown.uploaded && '[&_[data-col=uploaded]]:hidden')}
+            style={{ minWidth: tableWidth }}
+          >
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">
@@ -795,10 +811,10 @@ export function FolderView({ path }: { path: string }) {
                   />
                 </TableHead>
                 {head('name')}
-                {head('type', 'hidden xl:table-cell')}
-                {head('size', 'hidden sm:table-cell')}
-                {head('modified', 'hidden md:table-cell')}
-                {head('uploaded', 'hidden min-[1100px]:table-cell')}
+                {head('type')}
+                {head('size')}
+                {head('modified')}
+                {head('uploaded')}
                 <TableHead style={{ width: columns.name === undefined ? actionsWidth : undefined }} />
               </TableRow>
             </TableHeader>

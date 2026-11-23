@@ -37,3 +37,14 @@ export function parseColumns(raw: string | null): ColumnWidths {
 export function tableMinWidth(widths: ColumnWidths, visible: Column[], fixed: number): number {
   return visible.reduce((sum, column) => sum + (widths[column] ?? (column === 'name' ? minWidth('name') : DEFAULT_WIDTHS[column])), fixed)
 }
+
+const FIT_ORDER: Column[] = ['size', 'modified', 'uploaded', 'type']
+
+export function fitColumns(available: number, widths: ColumnWidths, fixed: number): Record<Column, boolean> {
+  const shown: Column[] = ['name']
+  for (const column of FIT_ORDER) {
+    if (tableMinWidth(widths, [...shown, column], fixed) > available) break
+    shown.push(column)
+  }
+  return Object.fromEntries(COLUMNS.map((column) => [column, shown.includes(column)])) as Record<Column, boolean>
+}
