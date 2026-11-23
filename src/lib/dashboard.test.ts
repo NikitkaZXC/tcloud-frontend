@@ -102,9 +102,9 @@ describe('dashboard', () => {
   })
 
   it('uses account channel counters when the API has them', () => {
-    expect(channelUsage({ telegram_connected: true, premium: false, file_limit: 1, channels_used: 42, channels_limit: 500 }, 3)).toEqual({ used: 42, limit: 500, accountWide: true })
-    expect(channelUsage({ telegram_connected: true, premium: true, file_limit: 1, channels_used: null, channels_limit: 1000 }, 3)).toEqual({ used: 3, limit: 1000, accountWide: false })
-    expect(channelUsage({ telegram_connected: false, premium: null, file_limit: null, channels_used: null, channels_limit: null }, 4)).toEqual({ used: 4, limit: 500, accountWide: false })
+    expect(channelUsage({ telegram_connected: true, premium: false, file_limit: 1, channels_used: 42, channels_limit: 500, previews_enabled: true }, 3)).toEqual({ used: 42, limit: 500, accountWide: true })
+    expect(channelUsage({ telegram_connected: true, premium: true, file_limit: 1, channels_used: null, channels_limit: 1000, previews_enabled: true }, 3)).toEqual({ used: 3, limit: 1000, accountWide: false })
+    expect(channelUsage({ telegram_connected: false, premium: null, file_limit: null, channels_used: null, channels_limit: null, previews_enabled: true }, 4)).toEqual({ used: 4, limit: 500, accountWide: false })
     expect(channelUsage(undefined, 2)).toEqual({ used: 2, limit: 500, accountWide: false })
   })
 

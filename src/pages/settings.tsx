@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { RotateCcwIcon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -5,6 +6,7 @@ import { Confirm } from '@/components/confirm'
 import { PageTitle, PixelToggle, Section } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useMe } from '@/hooks/use-me'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
 import { t } from '@/lib/i18n'
@@ -177,6 +179,8 @@ function Webhook({ value }: { value: string | null }) {
 
 export function SettingsPage() {
   const settings = useSettings()
+  const { data: me } = useMe()
+  const queryClient = useQueryClient()
   const { uploads, archives } = settings
   const ui = settings.interface
   const setUi = (patch: Partial<Ui>) => save({ interface: patch })
@@ -237,6 +241,14 @@ export function SettingsPage() {
             checked={uploads.allow_unscannable}
             onChange={(allow_unscannable) => save({ uploads: { allow_unscannable } })}
           />
+          {me?.role === 'root' && (
+            <Toggle
+              label={t('settings.previews')}
+              hint={t('settings.previewsHint')}
+              checked={uploads.previews}
+              onChange={(previews) => updateSettings({ uploads: { previews } }).then(() => queryClient.invalidateQueries({ queryKey: ['account'] }), (error) => toast.error(settingsError(error)))}
+            />
+          )}
         </div>
       </Section>
 

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownIcon, ArrowUpIcon, CheckIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, XIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, GripVerticalIcon, LayoutGridIcon, RotateCcwIcon, Trash2Icon, XIcon } from 'lucide-react'
 import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Link, useBlocker } from 'react-router'
@@ -9,11 +9,12 @@ import { ActivityMap } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
 import { ChannelsRing, PageTitle, PixelToggle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
+import { useAction } from '@/hooks/use-action'
 import { useHealth } from '@/hooks/use-health'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
-import { api } from '@/lib/api'
+import { api, ApiError, errorMessage } from '@/lib/api'
 import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts, taskRings } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
@@ -226,6 +227,30 @@ function Checklist() {
   )
 }
 
+function PreviewsSection({ count, bytes, root }: { count: number; bytes: number; root: boolean }) {
+  const clear = useAction(() => api.del<{ cleared: number; bytes: number }>('/files/previews'), {
+    invalidate: [['storages'], ['account']],
+    onSuccess: (result) => toast.success(t('dashboard.previewsCleared', { n: result.cleared, size: formatBytes(result.bytes) })),
+    describe: (error) => (error instanceof ApiError && (error.status === 404 || error.status === 405) ? t('dashboard.previewsClearMissing') : errorMessage(error)),
+  })
+  return (
+    <section aria-label={t('dashboard.previews')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l">
+      <Stat label={t('dashboard.previews')} value={count} />
+      <Stat label={t('dashboard.previewsSize')} value={bytes} format={formatBytes} />
+      {root && (
+        <div className="col-span-2 grid place-items-center px-3 py-5 lg:col-span-1 lg:border-l">
+          <Confirm title={t('dashboard.previewsClearQ')} description={t('dashboard.previewsClearHint')} action={t('dashboard.previewsClear')} onConfirm={() => clear.mutate()}>
+            <Button size="sm" variant="outline" disabled={clear.isPending || !count}>
+              <Trash2Icon />
+              {t('dashboard.previewsClear')}
+            </Button>
+          </Confirm>
+        </div>
+      )}
+    </section>
+  )
+}
+
 const BLOCK_LABELS: Record<DashboardBlock, Key> = {
   summary: 'dashboard.summary',
   previews: 'dashboard.previews',
@@ -261,6 +286,7 @@ export function DashboardPage() {
   const storageList = useStorages().data ?? []
   const totals = storageTotals(storageList)
   const previews = previewTotals(storageList)
+  const account = useAccount()
   const counts = taskCounts(useTaskCounts().data)
   const active = counts.queued + counts.running + useSending().length
   const [draft, setDraft] = useState<Layout | null>(null)
@@ -282,12 +308,7 @@ export function DashboardPage() {
         <Stat label={t('dashboard.activeTasks')} value={active} />
       </section>
     ),
-    previews: previews && (
-      <section aria-label={t('dashboard.previews')} className="fx-dotted grid grid-cols-2 border-t lg:grid-cols-4 [&>*]:fx-dotted [&>*:nth-child(even)]:border-l">
-        <Stat label={t('dashboard.previews')} value={previews.count} />
-        <Stat label={t('dashboard.previewsSize')} value={previews.bytes} format={formatBytes} />
-      </section>
-    ),
+    previews: previews && account.data?.previews_enabled !== false && <PreviewsSection count={previews.count} bytes={previews.bytes} root={me?.role === 'root'} />,
     channels: <ChannelsSection />,
     storages: <StoragesSection />,
     tasks: <ActivitySection />,

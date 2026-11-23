@@ -212,6 +212,7 @@ export interface Account {
   file_limit: number | null
   channels_used: number | null
   channels_limit: number | null
+  previews_enabled: boolean
 }
 
 export interface TelegramLogin {
