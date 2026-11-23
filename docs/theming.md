@@ -72,7 +72,8 @@ flowchart LR
   шрифтов в проекте нет; в стеке только общий запасной `monospace`. Новых `font-family` не добавлять.
 - Шрифт свой: `public/fonts/DepartureMono-Regular.woff2` (v1.500, лицензия OFL — `DepartureMono-LICENSE.txt` рядом),
   `@font-face` с `font-display: swap` в начале `src/index.css`, `<link rel="preload" as="font" crossorigin>` в
-  `index.html`. Внешних запросов за шрифтами нет. `--font-sans` ставится на `html`; sonner задаёт свой шрифт и кегль
+  `index.html`, оба по адресу `?v=1`: nginx отдаёт `/fonts/` с `max-age=31536000, immutable`, поэтому при замене файла
+  `v` поднимается в обоих местах сразу (иначе preload не совпадёт с `@font-face`). Внешних запросов за шрифтами нет. `--font-sans` ставится на `html`; sonner задаёт свой шрифт и кегль
   вне слоёв, поэтому `[data-sonner-toaster]`/`[data-sonner-toast][data-styled=true]` переопределены отдельно.
 - **Только Regular.** На `html` стоит `font-synthesis: none` (браузер не рисует поддельный жирный/курсив), классов
   `font-medium/semibold/bold` нет. Акцент — кеглем, прописными с трекингом (`fx-label`, заголовки карточек и диалогов,

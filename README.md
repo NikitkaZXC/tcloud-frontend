@@ -44,7 +44,7 @@ docker run -p 8080:80 -e API_UPSTREAM=http://app:8000 tcloud-frontend
 nginx отдаёт сборку и проксирует `/api` на `API_UPSTREAM` без буферизации (большие загрузки и скачивания идут потоком,
 таймауты 1 ч, без лимита тела). Перед ним в проде нужен HTTPS: cookie авторизации — `Secure`.
 Образ двухэтапный (`Dockerfile`): `node` собирает `dist/`, `nginx` отдаёт его; шаблон
-`docker/nginx.conf.template` подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем),
+`docker/nginx.conf.template` подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем), `/fonts/` тоже (`immutable`; адрес шрифта несёт `?v=1` в `index.html` и `src/index.css` — поднять при смене файла),
 остальное — `no-cache` с откатом на `index.html` (маршруты SPA). Заголовки безопасности (`nosniff`, `X-Frame-Options`,
 `Referrer-Policy`) лежат в `docker/security-headers.conf` и подключаются `include` в `server` и в каждый `location` со
 своим `add_header` (иначе nginx их не наследует).
