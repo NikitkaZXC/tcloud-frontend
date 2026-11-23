@@ -117,6 +117,7 @@ export function FolderUploads({ path }: { path: string }) {
     setInFlight((list) => [...list, id])
     try {
       queryClient.setQueryData(['task', id], await api.post<Task>(`/tasks/${id}/cancel`))
+      queryClient.invalidateQueries({ queryKey: ['task', id] })
     } catch (e) {
       if (!(e instanceof ApiError && e.code === 'task_finished')) showError(e)
     } finally {

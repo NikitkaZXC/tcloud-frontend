@@ -52,8 +52,8 @@ describe('task folders', () => {
 describe('task polling', () => {
   it('polls queued tasks slower than running ones', () => {
     expect(pollInterval('queued')).toBe(5000)
-    expect(pollInterval('running')).toBe(1500)
-    expect(pollInterval(undefined)).toBe(1500)
+    expect(pollInterval('running')).toBe(1000)
+    expect(pollInterval(undefined)).toBe(1000)
   })
 })
 

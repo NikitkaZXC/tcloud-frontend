@@ -102,7 +102,7 @@ export function taskLoader(fetchMany: (ids: string[]) => Promise<Task[]>, wait =
     })
 }
 
-export const pollInterval = (status: string | undefined) => (status === 'queued' ? 5000 : 1500)
+export const pollInterval = (status: string | undefined) => (status === 'queued' ? 5000 : 1000)
 
 export const MAX_TASKS = 50
 

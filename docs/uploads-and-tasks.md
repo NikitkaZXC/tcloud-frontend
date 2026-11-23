@@ -67,7 +67,7 @@ sequenceDiagram
         alt 2xx
             B-->>U: Task
             U-->>D: task
-            D->>T: hintTask(id, {source: device, encrypt}), trackTask(task.id)
+            D->>T: hintTask(id, {source: device, encrypt}),<br/>setQueryData(['task', id], task), trackTask(task.id)<br/>(виджет сразу видит задачу, новый запрос — сразу при монтировании)
         else «Отменить» (cancelSending → abort → xhr.abort())
             U-->>D: AbortError — без уведомления
         else ошибка
@@ -82,7 +82,7 @@ sequenceDiagram
   (`startSending`/`sendingSignal`/`cancelSending` в `lib/upload.ts`). Пока список не пуст, `TaskWatcher` вешает
   `beforeunload`, чтобы браузер спросил перед закрытием.
 - Ссылки: `parseUrlLines` (строка `url` или `url | имя`) → `POST /api/uploads/batch {items}`; для каждого элемента с
-  `task` — `trackTask`, с `error` — уведомление.
+  `task` — `setQueryData(['task', id], task)` и `trackTask`, с `error` — уведомление.
 
 ## Отслеживание задач
 
@@ -95,7 +95,7 @@ sequenceDiagram
     participant W as TaskWatcher
     participant C as QueryClient
     T-->>Q: useTrackedTasks(): id[]
-    loop queued — раз в 5 с, running — раз в 1,5 с (pollInterval), пока не done/failed/cancelled
+    loop queued — раз в 5 с, running — раз в 1 с (pollInterval), пока не done/failed/cancelled
         Q->>Q: queryFn ['task', id] → loadTask(id) (taskLoader):<br/>id одного тика копятся (10 мс)
         Q->>B: GET /api/tasks?ids=a&ids=b… (до 100 id на запрос, больше — несколько)
         B-->>Q: {items, summary} — только видимые задачи
@@ -105,7 +105,7 @@ sequenceDiagram
         W->>T: forgetTasks(gone)
     else статус завершённый и id в pending (isPending)
         W->>T: reportTask(id, forget) — убрать из pending,<br/>done без архива — забыть совсем
-        W->>W: копит завершённые, таймер INVALIDATE_MS (1,5 с) с начала заново
+        W->>W: копит завершённые этого ответа
         W->>W: dispatch tcloud:task-finished (detail = status)
         alt done + archive
             W->>W: toast «архив готов» + кнопка «Скачать»<br/>markRead(path), location = /api/tasks/{id}/archive
@@ -115,8 +115,8 @@ sequenceDiagram
             W->>W: toast с errorText(task.error)
         end
     end
-    opt таймер истёк, среди задач есть не-архивы
-        W->>C: invalidate ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity — один раз на пачку
+    opt в этом ответе что-то завершилось
+        W->>C: invalidate task-counts; если есть не-архивы — ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity — сразу, один раз на ответ
     end
 ```
 
@@ -128,7 +128,8 @@ sequenceDiagram
 `MAX_TASKS` (50): `trackTask` сначала выкидывает самые старые уже объявленные задачи, потом самые старые вообще.
 Завершённые задачи в кэше не устаревают (`staleTime: Infinity`), их не перезапрашивают при монтировании.
 Другие вкладки подхватывают оба ключа по событию `storage`.
-Инвалидация идёт пачкой: завершения копятся и сбрасываются через `INVALIDATE_MS` после последнего; обновляются только
+Инвалидация идёт сразу, одна на ответ пачки (все задачи одного `GET /tasks?ids=` обрабатываются за один проход эффекта, опрос идущих —
+раз в 1 с, так что чаще раза в секунду листинги не дёргаются); обновляются только
 листинги родительской папки каждой задачи и её предков (у папок показан размер), архивы листинги не трогают.
 
 ### Жизнь элемента в браузере
@@ -142,9 +143,9 @@ stateDiagram-v2
     Aborted --> [*]: через 3 с
     [*] --> Tracked: batch / архив / повтор → trackTask
     Tracked --> Polling
-    Polling --> Polling: GET /tasks?ids=… каждые 5 с (queued) / 1,5 с
+    Polling --> Polling: GET /tasks?ids=… каждые 5 с (queued) / 1 с
     Polling --> Finished: done / failed / cancelled
-    Polling --> Polling: «Отменить» → POST /tasks/{id}/cancel (setQueryData)
+    Polling --> Polling: «Отменить» → POST /tasks/{id}/cancel (setQueryData + сразу перезапрос)
     Polling --> [*]: 404 → forgetTasks
     Finished --> Polling: «Повторить» (setQueryData queued)
     Finished --> [*]: done без архива — сразу после уведомления (reportTask)

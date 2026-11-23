@@ -67,7 +67,12 @@ export function TasksPage() {
 function TaskCard({ task }: { task: Task }) {
   const queryClient = useQueryClient()
   const update = (next: Task) => queryClient.setQueryData(['task', next.id], next)
-  const cancel = useAction(() => api.post<Task>(`/tasks/${task.id}/cancel`), { onSuccess: update })
+  const cancel = useAction(() => api.post<Task>(`/tasks/${task.id}/cancel`), {
+    onSuccess: (next) => {
+      update(next)
+      queryClient.invalidateQueries({ queryKey: ['task', next.id] })
+    },
+  })
   const priority = useAction((value: Priority) => api.post<Task>(`/tasks/${task.id}/priority`, { priority: value }), {
     onSuccess: update,
   })

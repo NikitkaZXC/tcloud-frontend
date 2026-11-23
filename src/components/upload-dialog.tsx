@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { LinkIcon, UploadIcon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,7 +12,7 @@ import { api, errorText, showError } from '@/lib/api'
 import type { Picked } from '@/lib/dir-upload'
 import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
-import type { BatchResponse, OnConflict, Priority, SendAs, UploadOptions } from '@/lib/types'
+import type { BatchResponse, OnConflict, Priority, SendAs, Task, UploadOptions } from '@/lib/types'
 import { uploadOptions, useSettings } from '@/lib/settings'
 import { finishSending, isAbort, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
 import { hintTask } from '@/lib/steps'
@@ -110,6 +111,7 @@ export function UploadDialog({
   files: Picked[]
   onClose: () => void
 }) {
+  const queryClient = useQueryClient()
   const [options, setOptions] = useOptions()
   const total = files.reduce((sum, item) => sum + item.file.size, 0)
 
@@ -122,6 +124,7 @@ export function UploadDialog({
       try {
         const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded), sendingSignal(id))
         hintTask(task.id, { source: 'device', encrypt: options.encrypt })
+        queryClient.setQueryData<Task>(['task', task.id], task)
         trackTask(task.id)
       } catch (e) {
         if (!isAbort(e)) showError(e, `${file.name}: `)
@@ -167,6 +170,7 @@ export function UploadDialog({
 }
 
 export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const queryClient = useQueryClient()
   const [options, setOptions] = useOptions()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -186,6 +190,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
       result.items.forEach((item) => {
         if (item.task) {
           hintTask(item.task.id, { source: 'url', encrypt: options.encrypt })
+          queryClient.setQueryData<Task>(['task', item.task.id], item.task)
           trackTask(item.task.id)
         }
         if (item.error) toast.error(`${item.path.split('/').pop()}: ${errorText(item.error)}`)

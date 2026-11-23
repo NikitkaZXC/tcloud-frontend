@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError, errorText } from '@/lib/api'
@@ -12,18 +12,12 @@ import { useSending } from '@/lib/upload'
 import { t } from '@/lib/i18n'
 import type { Task } from '@/lib/types'
 
-const INVALIDATE_MS = 1500
-
 export function TaskWatcher() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
   const queryClient = useQueryClient()
   const uploading = useSending().some((item) => !item.cancelled)
   const storages = useStorages()
-  const finished = useRef<Task[]>([])
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  useEffect(() => () => clearTimeout(timer.current), [])
 
   useEffect(() => {
     if (!uploading) return
@@ -35,21 +29,11 @@ export function TaskWatcher() {
   useEffect(() => {
     const gone = ids.filter((_, i) => results[i].error instanceof ApiError && results[i].error.status === 404)
     if (gone.length) forgetTasks(gone)
+    const finished: Task[] = []
     for (const { data: task } of results) {
       if (!task || !isFinished(task) || !isPending(task.id)) continue
       reportTask(task.id, task.status === 'done' && !task.archive)
-      finished.current.push(task)
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => {
-        const folders = taskFolders(finished.current)
-        finished.current = []
-        queryClient.invalidateQueries({ queryKey: ['task-counts'] })
-        if (!folders.length) return
-        folders.forEach((folder) => queryClient.invalidateQueries({ queryKey: ['folder', folder] }))
-        queryClient.invalidateQueries({ queryKey: ['storages'] })
-        queryClient.invalidateQueries({ queryKey: ['account'] })
-        queryClient.invalidateQueries({ queryKey: ['activity'] })
-      }, INVALIDATE_MS)
+      finished.push(task)
       window.dispatchEvent(new CustomEvent(TASK_EVENT, { detail: task.status }))
       const name = taskTitle(task, storages.data ?? []).name
       if (task.status === 'done' && task.archive) {
@@ -67,6 +51,14 @@ export function TaskWatcher() {
       } else if (task.status === 'done') toast.success(t('watcher.done', { name }))
       if (task.status === 'failed') toast.error(t('watcher.failed', { name, error: errorText(task.error) }))
     }
+    if (!finished.length) return
+    queryClient.invalidateQueries({ queryKey: ['task-counts'] })
+    const folders = taskFolders(finished)
+    if (!folders.length) return
+    folders.forEach((folder) => queryClient.invalidateQueries({ queryKey: ['folder', folder] }))
+    queryClient.invalidateQueries({ queryKey: ['storages'] })
+    queryClient.invalidateQueries({ queryKey: ['account'] })
+    queryClient.invalidateQueries({ queryKey: ['activity'] })
   }, [ids, results, queryClient, storages.data])
 
   return null

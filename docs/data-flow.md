@@ -12,7 +12,7 @@
 | `['me']` | `GET /users/me` | `hooks/use-me.ts` | `queryFn` вызывает `hydrateSettings(me.settings)` |
 | `['storages']` | `GET /storages` | `hooks/use-storages.ts` | |
 | `['folder', path]` | `GET /folders?path=` | `components/folder-view.tsx` | палитра читает кэш `getQueryData(['folder', folder])` |
-| `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1,5 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
+| `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
 | `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 с; `TaskWatcher` инвалидирует пачкой |
 | `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 мс, пока горит любая лампа, иначе 3 с (в фоне не опрашивается); `markRead` → `refetch` через 300 мс; сливается с локальными лампами `mergeIo`, после конца локальной операции её вид игнорируется до ответа позже конца + 1 с (`freshServerIo`) |
 | `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, страницы по `offset`; `lang` (язык интерфейса) входит в `apiQuery`, порядок по имени — от бэкенда |
@@ -79,7 +79,7 @@ flowchart LR
     tgStep --> kTelegram["telegram"]
     tgStep --> kHealth["health"]
     dev --> kDevices["telegram-devices"]
-    watcher --> kFolderT["folder, папка задачи + предки<br/>(пачкой через 1,5 с)"]
+    watcher --> kFolderT["folder, папка задачи + предки<br/>(сразу, один раз на ответ пачки)"]
     watcher --> kStorages
     watcher --> kAccount["account"]
     watcher --> kActivity["activity"]
@@ -89,7 +89,8 @@ flowchart LR
 Без инвалидации:
 
 - Действия на «Задачах» (`pages/tasks.tsx`: отмена, приоритет, повтор) и отмена в виджете загрузок (`FolderUploads`) кладут ответ прямо в кэш
-  `setQueryData(['task', id], task)`; повтор ещё и `trackTask`.
+  `setQueryData(['task', id], task)`; отмена сразу перезапрашивает задачу (`invalidateQueries(['task', id])`), повтор ещё и `trackTask`.
+- Загрузка с устройства (после XHR load) и по ссылкам кладут ответ-задачу в кэш (`setQueryData`) перед `trackTask`.
 - Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
 - Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, «Выйти везде» и завершение текущей сессии в
   `pages/account.tsx`).
