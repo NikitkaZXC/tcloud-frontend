@@ -115,6 +115,9 @@ flowchart LR
   (проверено Playwright: Chrome и WebKit).
 - Нативные части полей скрыты одинаково для Chrome и Safari: крестик `type=search` (свой есть), стрелки `type=number`,
   маркер `<summary>` (свой `▸`/`▾`); пустое поле даты — приглушённым цветом (Safari показывает в нём сегодняшнюю дату).
+- Прокрутка списка навигации в сайдбаре (`fx-scroll`): тонкая полоса 6 px без стрелок, бегунок `--border`, при наведении
+  `--muted-foreground`, дорожка прозрачная — через `::-webkit-scrollbar` (Chrome и Safari одинаково); где его нет —
+  `scrollbar-width: thin` и `scrollbar-color`.
 - Тосты sonner (`richColors`) берут цвета из токенов (`--success`, `--destructive`, `--warning`, `--read` на `--popover`).
 
 ## Логотип

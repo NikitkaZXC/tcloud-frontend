@@ -929,6 +929,31 @@ table tbody tr:nth-child(n+6), .fx-stagger > :nth-child(n+6) { animation-delay: 
   white-space: nowrap;
 }
 
+.fx-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fx-scroll::-webkit-scrollbar-track,
+.fx-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.fx-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.fx-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .fx-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
 .fx-pill {
   position: absolute;
   pointer-events: none;
