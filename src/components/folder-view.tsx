@@ -62,9 +62,9 @@ import { api, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
-import { listingEntries, listingKey, listingParams, nextSort, PAGE_SIZE, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel } from '@/lib/files'
+import { listingEntries, listingKey, listingParams, nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
-import { settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
+import { pageSizeOf, settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
 import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitColumns, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
 import { load, save } from '@/lib/prefs'
 import { markRead } from '@/lib/reads'
@@ -215,9 +215,10 @@ export function FolderView({ path }: { path: string }) {
   const [dragging, setDragging] = useState(false)
   const settings = useSettings()
   const sort = sortOf(settings.interface)
+  const limit = pageSizeOf(settings.interface)
   const listing = useInfiniteQuery({
-    queryKey: listingKey(path, sort, getLang()),
-    queryFn: ({ pageParam }) => api.get<FolderListing>('/folders', { path, ...listingParams(sort, getLang()), limit: PAGE_SIZE, cursor: pageParam || undefined }),
+    queryKey: listingKey(path, sort, getLang(), limit),
+    queryFn: ({ pageParam }) => api.get<FolderListing>('/folders', { path, ...listingParams(sort, getLang(), limit), cursor: pageParam || undefined }),
     initialPageParam: '',
     getNextPageParam: (last) => last.next_cursor ?? undefined,
     placeholderData: keepPreviousData,

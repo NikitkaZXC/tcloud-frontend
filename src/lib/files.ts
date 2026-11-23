@@ -21,13 +21,18 @@ export function typeLabel(entry: Entry): string {
   return extension(entry.item.name) || entry.item.kind
 }
 
-export const PAGE_SIZE = 20
+export const PAGE_SIZES = [20, 50, 100, 200] as const
+export type PageSize = (typeof PAGE_SIZES)[number]
 
-export function listingParams(sort: Sort, lang: Lang) {
-  return { sort_by: sort.key, sort_order: sort.desc ? 'desc' : 'asc', folders_first: sort.foldersFirst, lang } as const
+export function pageSize(value: unknown): PageSize {
+  return PAGE_SIZES.find((size) => size === Number(value)) ?? PAGE_SIZES[0]
 }
 
-export const listingKey = (path: string, sort: Sort, lang: Lang) => ['folder', path, listingParams(sort, lang)] as const
+export function listingParams(sort: Sort, lang: Lang, limit: PageSize) {
+  return { sort_by: sort.key, sort_order: sort.desc ? 'desc' : 'asc', folders_first: sort.foldersFirst, lang, limit } as const
+}
+
+export const listingKey = (path: string, sort: Sort, lang: Lang, limit: PageSize) => ['folder', path, listingParams(sort, lang, limit)] as const
 
 export function listingEntries(pages: FolderListing[]): Entry[] {
   const seen = new Set<string>()

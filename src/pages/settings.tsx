@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useMe } from '@/hooks/use-me'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
+import { PAGE_SIZES, pageSize } from '@/lib/files'
+import { save as saveLocal } from '@/lib/prefs'
+import { pageSizeOf, resetSettings, type Settings, settingsError, type SettingsPatch, updateSettings, useSettings } from '@/lib/settings'
 import { t } from '@/lib/i18n'
 import { type Theme, THEME_SWATCHES, THEMES } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -298,6 +300,17 @@ export function SettingsPage() {
               ['grid', t('folder.grid')],
             ]}
             onChange={(folder_view) => setUi({ folder_view })}
+          />
+          <Choice
+            label={t('settings.pageSize')}
+            hint={t('settings.pageSizeHint')}
+            value={String(pageSizeOf(ui))}
+            options={PAGE_SIZES.map((size) => [String(size), String(size)])}
+            onChange={(size) => {
+              const page_size = pageSize(size)
+              saveLocal('page_size', String(page_size))
+              setUi({ page_size })
+            }}
           />
           <Choice
             label={t('settings.tasksFilter')}

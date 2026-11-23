@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { api, ApiError, errorMessage } from './api'
-import { parseSort, type Sort } from './files'
+import { type PageSize, pageSize, parseSort, type Sort } from './files'
+import { load } from './prefs'
 import type { ArchiveFormat, OnConflict, Priority, SendAs, UploadOptions } from './types'
 import { t } from './i18n'
 import type { ColumnWidths } from './columns'
@@ -40,6 +41,7 @@ export interface Settings {
     dashboard_layout?: string[]
     dashboard_hidden?: string[]
     file_columns?: ColumnWidths
+    page_size?: PageSize
   }
   telegram: { chat_folder: boolean }
 }
@@ -218,6 +220,10 @@ export function migrateLegacy(): Promise<unknown> | null {
 
 export function sortOf(ui: Settings['interface']): Sort {
   return { key: ui.sort_by, desc: ui.sort_order === 'desc', foldersFirst: ui.folders_first }
+}
+
+export function pageSizeOf(ui: Settings['interface'], read: (key: string) => string | null = load): PageSize {
+  return pageSize(ui.page_size ?? read('page_size'))
 }
 
 export function sortPatch(sort: Sort): SettingsPatch {

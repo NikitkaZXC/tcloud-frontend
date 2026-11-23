@@ -429,6 +429,8 @@ export const ru = {
   'settings.soundsHint': 'Клик, готово, ошибка',
   'settings.startPage': 'Стартовая страница',
   'settings.startPageHint': 'Открывается после входа',
+  'settings.pageSize': 'Файлов за раз',
+  'settings.pageSizeHint': 'Остальные подгружаются при прокрутке',
   'settings.tasksFilter': 'Список задач',
   'settings.tasksFilterHint': 'На странице «Задачи» и в «Активности» дашборда',
   'settings.telegram': 'Telegram',

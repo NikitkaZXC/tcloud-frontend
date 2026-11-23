@@ -429,6 +429,8 @@ export const en: Record<Key, Entry> = {
   'settings.soundsHint': 'Click, done, error',
   'settings.startPage': 'Start page',
   'settings.startPageHint': 'Opens after sign-in',
+  'settings.pageSize': 'Files per page',
+  'settings.pageSizeHint': 'The rest load as you scroll',
   'settings.tasksFilter': 'Task list',
   'settings.tasksFilterHint': 'On the Tasks page and in the dashboard Activity',
   'settings.telegram': 'Telegram',

@@ -11,7 +11,7 @@
 |---|---|---|---|
 | `['me']` | `GET /users/me` | `hooks/use-me.ts` | `queryFn` вызывает `hydrateSettings(me.settings)` |
 | `['storages']` | `GET /storages` | `hooks/use-storages.ts` | |
-| `['folder', path, {sort_by, sort_order, folders_first, lang}]` (`listingKey`) | `GET /folders?path=&sort_by=&sort_order=&folders_first=&lang=&limit=20&cursor=` | `components/folder-view.tsx` (`useInfiniteQuery`) | страницы по 20 (`PAGE_SIZE`), следующая — по `next_cursor`, когда «часовой» под списком входит в `IntersectionObserver` с запасом 600 px (или кнопкой «Показать ещё»); порядок — от бэкенда, клиент не сортирует; смена сортировки/языка = новый ключ = снова с первой страницы (`placeholderData` держит старый список до ответа); инвалидация перезапрашивает загруженные страницы последовательно с первой (курсоры заново), прокрутка не сбрасывается; палитра читает кэш по `listingKey` текущей сортировки |
+| `['folder', path, {sort_by, sort_order, folders_first, lang, limit}]` (`listingKey`) | `GET /folders?path=&sort_by=&sort_order=&folders_first=&lang=&limit=&cursor=` | `components/folder-view.tsx` (`useInfiniteQuery`) | страницы по `limit` = `interface.page_size` (20/50/100/200, по умолчанию 20; `pageSizeOf`, пока сервер не отдаёт поле — копия `tcloud.page_size`), следующая — по `next_cursor`, когда «часовой» под списком входит в `IntersectionObserver` с запасом 600 px (или кнопкой «Показать ещё»); порядок — от бэкенда, клиент не сортирует; смена сортировки/языка/размера страницы = новый ключ = снова с первой страницы (`placeholderData` держит старый список до ответа); инвалидация перезапрашивает загруженные страницы последовательно с первой (курсоры заново), прокрутка не сбрасывается; палитра читает кэш по `listingKey` текущей сортировки |
 | `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
 | `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 с; `TaskWatcher` инвалидирует пачкой |
 | `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 мс, пока горит любая лампа, иначе 3 с (в фоне не опрашивается); `markRead` → `refetch` через 300 мс; сливается с локальными лампами `mergeIo`, после конца локальной операции её вид игнорируется до ответа позже конца + 1 с (`freshServerIo`) |
@@ -105,7 +105,7 @@ flowchart LR
         tasksLs["tcloud.tasks<br/>tcloud.tasks.pending"]
         mirror["tcloud.mirror"]
         layout["tcloud.dashboard.layout<br/>tcloud.dashboard.hidden"]
-        cols["tcloud.file_columns"]
+        cols["tcloud.file_columns<br/>tcloud.page_size"]
     end
     settings["lib/settings.ts<br/>useSettings"] -- "theme, language" --> mirror
     tasks["lib/tasks.ts<br/>useTrackedTasks: id[]"] <--> tasksLs
@@ -119,12 +119,12 @@ flowchart LR
     reads -- "onRead → refetch через 300 мс" --> srvIo
     settings --> lang
     settings -- "dashboard_layout, dashboard_hidden (копии)" --> layout
-    settings -- "file_columns (копия)" --> cols
+    settings -- "file_columns, page_size (копии)" --> cols
 ```
 
 Каждый стор — модульная переменная + `Set` слушателей + `useSyncExternalStore`. Прочие ключи `localStorage`
 (`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` / `tcloud.dashboard.hidden` — копии
-`interface.dashboard_layout` / `interface.dashboard_hidden`, `tcloud.file_columns` — копия `interface.file_columns`; обе читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
+`interface.dashboard_layout` / `interface.dashboard_hidden`, `tcloud.file_columns` / `tcloud.page_size` — копии `interface.file_columns` / `interface.page_size`; все читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
 `try/catch`.
 
 ## Настройки

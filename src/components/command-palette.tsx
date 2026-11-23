@@ -11,7 +11,7 @@ import { api } from '@/lib/api'
 import { parentPath } from '@/lib/format'
 import { getLang, t, tAll, type Key, type Params } from '@/lib/i18n'
 import { listingKey } from '@/lib/files'
-import { sortOf, useSettings } from '@/lib/settings'
+import { pageSizeOf, sortOf, useSettings } from '@/lib/settings'
 import { EMPTY_SEARCH, searchQuery, searchUrl } from '@/lib/search'
 import { FileDialog } from '@/components/file-dialog'
 import { useDebounced } from '@/hooks/use-search'
@@ -62,7 +62,7 @@ export function CommandPalette() {
   const folder = pathname === '/files' ? params.get('path') : null
   const go = (to: string) => () => navigate(to)
   const act = (action: FolderAction) => () => runFolderAction(action)
-  const listing = open && folder ? queryClient.getQueryData<InfiniteData<FolderListing>>(listingKey(folder, sortOf(settings.interface), getLang())) : undefined
+  const listing = open && folder ? queryClient.getQueryData<InfiniteData<FolderListing>>(listingKey(folder, sortOf(settings.interface), getLang(), pageSizeOf(settings.interface))) : undefined
 
   const fixed = (id: string, group: Key, label: Key, run: () => void, params?: Params, hint?: string): Command => ({
     id,

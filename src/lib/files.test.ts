@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query'
-import { DEFAULT_SORT, listingEntries, listingKey, listingParams, nextSort, parseSort, selectRange, type Sort } from './files'
+import { DEFAULT_SORT, listingEntries, listingKey, listingParams, nextSort, pageSize, parseSort, selectRange, type Sort } from './files'
 import type { Folder, FolderListing, TFile } from './types'
 
 const file = (name: string, size: number, updated_at: string, kind: TFile['kind'] = 'document', created_at = '2026-01-01T00:00:00Z') =>
@@ -21,9 +21,15 @@ describe('folder listing pages', () => {
     expect(listingEntries([])).toEqual([])
   })
 
-  it('puts every sort param and the language into the query key', () => {
-    expect(listingParams({ key: 'size', desc: true, foldersFirst: false }, 'en')).toEqual({ sort_by: 'size', sort_order: 'desc', folders_first: false, lang: 'en' })
-    expect(listingKey('tcloud/s', DEFAULT_SORT, 'ru')).toEqual(['folder', 'tcloud/s', { sort_by: 'name', sort_order: 'asc', folders_first: true, lang: 'ru' }])
+  it('puts every sort param, the language and the page size into the query key', () => {
+    expect(listingParams({ key: 'size', desc: true, foldersFirst: false }, 'en', 50)).toEqual({ sort_by: 'size', sort_order: 'desc', folders_first: false, lang: 'en', limit: 50 })
+    expect(listingKey('tcloud/s', DEFAULT_SORT, 'ru', 20)).toEqual(['folder', 'tcloud/s', { sort_by: 'name', sort_order: 'asc', folders_first: true, lang: 'ru', limit: 20 }])
+    expect(listingKey('tcloud/s', DEFAULT_SORT, 'ru', 100)).not.toEqual(listingKey('tcloud/s', DEFAULT_SORT, 'ru', 20))
+  })
+
+  it('accepts only the allowed page sizes', () => {
+    expect([20, 50, '100', 200].map(pageSize)).toEqual([20, 50, 100, 200])
+    expect([undefined, null, 30, 'x', 0].map(pageSize)).toEqual([20, 20, 20, 20, 20])
   })
 
   it('starts a new listing from the first page when the sort changes', async () => {
@@ -31,7 +37,7 @@ describe('folder listing pages', () => {
     const calls: (string | undefined)[] = []
     const observe = (sort: Sort) =>
       new InfiniteQueryObserver(client, {
-        queryKey: listingKey('tcloud/s', sort, 'ru'),
+        queryKey: listingKey('tcloud/s', sort, 'ru', 20),
         queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
           calls.push(pageParam)
           return page([fileItem(`${sort.key}-${pageParam ?? 0}`)], pageParam ? null : 'c1')

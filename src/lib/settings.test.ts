@@ -5,6 +5,7 @@ import {
   LEGACY_KEYS,
   mergeSettings,
   migrationPatch,
+  pageSizeOf,
   settingsError,
   sortOf,
   sortPatch,
@@ -74,6 +75,14 @@ describe('settings', () => {
     expect(sortPatch({ key: 'size', desc: true, foldersFirst: false })).toEqual({ interface: { sort_by: 'size', sort_order: 'desc', folders_first: false } })
     expect(uploadOptions(DEFAULT_SETTINGS.uploads)).toEqual({ send_as: 'file', on_conflict: 'error', priority: 'normal', allow_unscannable: false, encrypt: true })
     expect(uploadOptions({ ...DEFAULT_SETTINGS.uploads, send_as: 'media' }).encrypt).toBe(false)
+  })
+
+  it('reads the page size from settings, then the local copy, else 20', () => {
+    const ui = DEFAULT_SETTINGS.interface
+    expect(pageSizeOf(ui, legacy({}))).toBe(20)
+    expect(pageSizeOf(ui, legacy({ page_size: '100' }))).toBe(100)
+    expect(pageSizeOf({ ...ui, page_size: 50 }, legacy({ page_size: '100' }))).toBe(50)
+    expect(pageSizeOf(ui, legacy({ page_size: '7' }))).toBe(20)
   })
 
   it('explains webhook errors from the API', () => {
