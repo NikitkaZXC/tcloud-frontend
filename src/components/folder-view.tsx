@@ -247,12 +247,17 @@ export function FolderView({ path }: { path: string }) {
   useLayoutEffect(() => {
     const element = panel.current
     if (!element) return
-    const measure = () => setAvailable(element.clientWidth)
+    const name = element.querySelector('th[data-col=name]')
+    const measure = () => {
+      setAvailable(element.clientWidth)
+      if (name) setAutoName(name.getBoundingClientRect().width)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
+    if (name) observer.observe(name)
     return () => observer.disconnect()
-  }, [listed])
+  }, [listed, sm])
   const tableWidth = tableMinWidth(columns, COLUMNS.filter((column) => shown[column]), 32 + actionsWidth)
 
   const archive = useAction(
@@ -393,7 +398,6 @@ export function FolderView({ path }: { path: string }) {
             aria-valuemax={MAX_WIDTH}
             aria-valuenow={Math.round(width ?? autoName)}
             className="fx-col-handle"
-            onFocus={(e) => width === undefined && setAutoName(e.currentTarget.parentElement!.getBoundingClientRect().width)}
             onPointerDown={(e) => startResize(key, e)}
             onDoubleClick={(e) => autoFit(key, e.currentTarget)}
             onKeyDown={(e) => resizeByKey(key, e)}
