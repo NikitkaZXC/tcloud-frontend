@@ -123,8 +123,10 @@ export interface FolderListing {
   path: string
   size: number
   total_files: number
-  folders: Folder[]
-  files: TFile[]
+  total_folders: number
+  direct_files: number
+  items: ((Folder & { type: 'folder' }) | (TFile & { type: 'file' }))[]
+  next_cursor: string | null
 }
 
 export interface TaskWaiting {

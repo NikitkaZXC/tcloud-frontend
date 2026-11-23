@@ -1,5 +1,5 @@
-import type { Folder, TFile } from './types'
-import { getLang, type Key, t } from './i18n'
+import type { Folder, FolderListing, TFile } from './types'
+import { type Key, type Lang, t } from './i18n'
 
 export type SortKey = 'name' | 'modified' | 'uploaded' | 'type' | 'size'
 export interface Sort {
@@ -14,17 +14,6 @@ export const SORT_LABELS: Record<SortKey, Key> = { name: 'sort.name', modified: 
 
 export type Entry = { type: 'folder'; item: Folder } | { type: 'file'; item: TFile }
 
-const collators = new Map<string, Intl.Collator>()
-
-function collator(): Intl.Collator {
-  const lang = getLang()
-  let found = collators.get(lang)
-  if (!found) collators.set(lang, (found = new Intl.Collator(lang, { numeric: true, sensitivity: 'base' })))
-  return found
-}
-
-export const compareNames = (a: string, b: string) => collator().compare(a, b)
-
 const extension = (name: string) => (name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '')
 
 export function typeLabel(entry: Entry): string {
@@ -32,35 +21,23 @@ export function typeLabel(entry: Entry): string {
   return extension(entry.item.name) || entry.item.kind
 }
 
-function matches(name: string, query: string): boolean {
-  return name.toLowerCase().includes(query.trim().toLowerCase())
+export const PAGE_SIZE = 20
+
+export function listingParams(sort: Sort, lang: Lang) {
+  return { sort_by: sort.key, sort_order: sort.desc ? 'desc' : 'asc', folders_first: sort.foldersFirst, lang } as const
 }
 
-const time = (iso: string) => Date.parse(iso) || 0
+export const listingKey = (path: string, sort: Sort, lang: Lang) => ['folder', path, listingParams(sort, lang)] as const
 
-const size = (entry: Entry) => entry.item.size
-
-const COMPARE: Record<SortKey, (a: Entry, b: Entry) => number> = {
-  name: () => 0,
-  modified: (a, b) => time(a.item.updated_at) - time(b.item.updated_at),
-  uploaded: (a, b) => time(a.item.created_at) - time(b.item.created_at),
-  type: (a, b) => collator().compare(typeLabel(a), typeLabel(b)),
-  size: (a, b) => size(a) - size(b),
-}
-
-export function viewEntries(folders: Folder[], files: TFile[], query: string, sort: Sort): Entry[] {
-  const entries: Entry[] = [
-    ...folders.filter((f) => matches(f.name, query)).map((item) => ({ type: 'folder' as const, item })),
-    ...files.filter((f) => matches(f.name, query)).map((item) => ({ type: 'file' as const, item })),
-  ]
-  const sign = sort.desc ? -1 : 1
-  return entries
-    .map((entry, index) => ({ entry, index }))
-    .sort((a, b) => {
-      if (sort.foldersFirst && a.entry.type !== b.entry.type) return a.entry.type === 'folder' ? -1 : 1
-      return sign * (COMPARE[sort.key](a.entry, b.entry) || compareNames(a.entry.item.name, b.entry.item.name)) || a.index - b.index
+export function listingEntries(pages: FolderListing[]): Entry[] {
+  const seen = new Set<string>()
+  return pages
+    .flatMap((page) => page.items)
+    .filter((item) => {
+      const id = item.type === 'folder' ? `d:${item.path}` : `f:${item.uuid}`
+      return !seen.has(id) && !!seen.add(id)
     })
-    .map(({ entry }) => entry)
+    .map((item) => (item.type === 'folder' ? { type: 'folder' as const, item } : { type: 'file' as const, item }))
 }
 
 export function parseSort(raw: string | null): Sort {

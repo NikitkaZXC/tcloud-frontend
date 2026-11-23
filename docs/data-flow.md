@@ -11,7 +11,7 @@
 |---|---|---|---|
 | `['me']` | `GET /users/me` | `hooks/use-me.ts` | `queryFn` вызывает `hydrateSettings(me.settings)` |
 | `['storages']` | `GET /storages` | `hooks/use-storages.ts` | |
-| `['folder', path]` | `GET /folders?path=` | `components/folder-view.tsx` | палитра читает кэш `getQueryData(['folder', folder])` |
+| `['folder', path, {sort_by, sort_order, folders_first, lang}]` (`listingKey`) | `GET /folders?path=&sort_by=&sort_order=&folders_first=&lang=&limit=20&cursor=` | `components/folder-view.tsx` (`useInfiniteQuery`) | страницы по 20 (`PAGE_SIZE`), следующая — по `next_cursor`, когда «часовой» под списком входит в `IntersectionObserver` с запасом 600 px (или кнопкой «Показать ещё»); порядок — от бэкенда, клиент не сортирует; смена сортировки/языка = новый ключ = снова с первой страницы (`placeholderData` держит старый список до ответа); инвалидация перезапрашивает загруженные страницы последовательно с первой (курсоры заново), прокрутка не сбрасывается; палитра читает кэш по `listingKey` текущей сортировки |
 | `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
 | `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 с; `TaskWatcher` инвалидирует пачкой |
 | `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 мс, пока горит любая лампа, иначе 3 с (в фоне не опрашивается); `markRead` → `refetch` через 300 мс; сливается с локальными лампами `mergeIo`, после конца локальной операции её вид игнорируется до ответа позже конца + 1 с (`freshServerIo`) |
@@ -32,7 +32,7 @@
 ## Мутации и инвалидация
 
 Мутации — `useAction` (`hooks/use-action.ts`): `useMutation`, на успех `invalidateQueries` по каждому ключу из
-`invalidate` (префиксное совпадение: `['folder']` задевает все `['folder', path]`), `toast.success`, `onSuccess`; на
+`invalidate` (префиксное совпадение: `['folder']` задевает все `['folder', path, …]`, `['folder', path]` — все сортировки этой папки), `toast.success`, `onSuccess`; на
 ошибку `toast.error(describe ?? errorMessage)`.
 
 ```mermaid

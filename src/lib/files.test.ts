@@ -1,65 +1,63 @@
 import { describe, expect, it } from 'vitest'
-import { setLang } from './i18n'
-import { compareNames, DEFAULT_SORT, nextSort, parseSort, selectRange, type Sort, viewEntries } from './files'
-import type { Folder, TFile } from './types'
+import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query'
+import { DEFAULT_SORT, listingEntries, listingKey, listingParams, nextSort, parseSort, selectRange, type Sort } from './files'
+import type { Folder, FolderListing, TFile } from './types'
 
 const file = (name: string, size: number, updated_at: string, kind: TFile['kind'] = 'document', created_at = '2026-01-01T00:00:00Z') =>
   ({ uuid: name, name, size, updated_at, created_at, kind }) as TFile
 const folder = (name: string, updated_at = '2026-01-01T00:00:00Z', size?: number) => ({ name, updated_at, created_at: updated_at, size }) as Folder
-const names = (folders: Folder[], files: TFile[], sort: Partial<Sort>, query = '') => viewEntries(folders, files, query, { ...DEFAULT_SORT, ...sort }).map((e) => e.item.name)
+const page = (items: FolderListing['items'], next_cursor: string | null = null) => ({ items, next_cursor }) as FolderListing
+const fileItem = (name: string) => ({ ...file(name, 1, ''), type: 'file' as const })
+const folderItem = (name: string) => ({ ...folder(name), path: `tcloud/s/${name}`, type: 'folder' as const })
 
-describe('folder listing order', () => {
-  it('uses natural, case-insensitive order for Latin and Cyrillic', () => {
-    const files = [file('IMG10.jpg', 1, ''), file('img2.jpg', 1, ''), file('фото 10', 1, ''), file('Фото 9', 1, ''), file('file100', 1, ''), file('file2', 1, '')]
-    expect(names([], files, {})).toEqual(['Фото 9', 'фото 10', 'file2', 'file100', 'img2.jpg', 'IMG10.jpg'])
+describe('folder listing pages', () => {
+  it('merges pages in server order and drops repeats', () => {
+    const entries = listingEntries([page([folderItem('b'), fileItem('a.txt')], 'c1'), page([fileItem('a.txt'), fileItem('z.txt')])])
+    expect(entries.map((e) => [e.type, e.item.name])).toEqual([
+      ['folder', 'b'],
+      ['file', 'a.txt'],
+      ['file', 'z.txt'],
+    ])
+    expect(listingEntries([])).toEqual([])
   })
 
-  it('keeps folders first in both directions when the toggle is on', () => {
-    const folders = [folder('b'), folder('a10'), folder('a2')]
-    const files = [file('z.txt', 1, ''), file('a.txt', 1, '')]
-    expect(names(folders, files, {})).toEqual(['a2', 'a10', 'b', 'a.txt', 'z.txt'])
-    expect(names(folders, files, { desc: true })).toEqual(['b', 'a10', 'a2', 'z.txt', 'a.txt'])
+  it('puts every sort param and the language into the query key', () => {
+    expect(listingParams({ key: 'size', desc: true, foldersFirst: false }, 'en')).toEqual({ sort_by: 'size', sort_order: 'desc', folders_first: false, lang: 'en' })
+    expect(listingKey('tcloud/s', DEFAULT_SORT, 'ru')).toEqual(['folder', 'tcloud/s', { sort_by: 'name', sort_order: 'asc', folders_first: true, lang: 'ru' }])
   })
 
-  it('mixes folders with files like Finder when the toggle is off', () => {
-    const folders = [folder('b'), folder('d')]
-    const files = [file('c.txt', 1, ''), file('a.txt', 1, '')]
-    expect(names(folders, files, { foldersFirst: false })).toEqual(['a.txt', 'b', 'c.txt', 'd'])
-    expect(names(folders, files, { foldersFirst: false, desc: true })).toEqual(['d', 'c.txt', 'b', 'a.txt'])
+  it('starts a new listing from the first page when the sort changes', async () => {
+    const client = new QueryClient()
+    const calls: (string | undefined)[] = []
+    const observe = (sort: Sort) =>
+      new InfiniteQueryObserver(client, {
+        queryKey: listingKey('tcloud/s', sort, 'ru'),
+        queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+          calls.push(pageParam)
+          return page([fileItem(`${sort.key}-${pageParam ?? 0}`)], pageParam ? null : 'c1')
+        },
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: (last: FolderListing) => last.next_cursor ?? undefined,
+      })
+    const byName = observe(DEFAULT_SORT)
+    await byName.fetchNextPage()
+    await byName.fetchNextPage()
+    expect(byName.getCurrentResult().data?.pages).toHaveLength(2)
+    const bySize = observe({ ...DEFAULT_SORT, key: 'size' })
+    await bySize.refetch()
+    expect(bySize.getCurrentResult().data?.pages.map((p) => p.items[0].name)).toEqual(['size-0'])
+    expect(calls).toEqual([undefined, 'c1', undefined])
+    await client.invalidateQueries({ queryKey: ['folder', 'tcloud/s'] })
+    await byName.refetch()
+    expect(calls.slice(3, 5)).toEqual([undefined, 'c1'])
   })
 
-  it('sorts by size, dates and type with name as tie-breaker', () => {
-    const files = [
-      file('b.txt', 5, '2026-01-03T00:00:00Z', 'document', '2026-01-01T00:00:00Z'),
-      file('a.jpg', 50, '2026-01-01T00:00:00Z', 'photo', '2026-01-03T00:00:00Z'),
-      file('c.txt', 5, '2026-01-02T00:00:00Z', 'document', '2026-01-02T00:00:00Z'),
-    ]
-    const folders = [folder('big', '2026-01-01T00:00:00Z', 100), folder('small', '2026-01-01T00:00:00Z', 1)]
-    expect(names(folders, files, { key: 'size' })).toEqual(['small', 'big', 'b.txt', 'c.txt', 'a.jpg'])
-    expect(names([], files, { key: 'modified' })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
-    expect(names([], files, { key: 'uploaded', desc: true })).toEqual(['a.jpg', 'c.txt', 'b.txt'])
-    expect(names([], files, { key: 'type' })).toEqual(['a.jpg', 'b.txt', 'c.txt'])
-    expect(names(folders, files, { key: 'size', foldersFirst: false })).toEqual(['small', 'b.txt', 'c.txt', 'a.jpg', 'big'])
-  })
-
-  it('filters by name and cycles the header sort', () => {
-    expect(names([folder('Bar')], [file('b10.txt', 1, ''), file('a.txt', 1, '')], {}, 'b')).toEqual(['Bar', 'b10.txt'])
+  it('cycles the header sort and parses old values', () => {
     expect(nextSort(DEFAULT_SORT, 'name')).toEqual({ ...DEFAULT_SORT, desc: true })
     expect(nextSort({ ...DEFAULT_SORT, desc: true }, 'size')).toEqual({ ...DEFAULT_SORT, key: 'size' })
     expect(parseSort('{"key":"created","desc":true,"foldersFirst":false}')).toEqual({ key: 'uploaded', desc: true, foldersFirst: false })
     expect(parseSort('garbage')).toEqual(DEFAULT_SORT)
     expect(parseSort(null)).toEqual(DEFAULT_SORT)
-  })
-})
-
-describe('name collation', () => {
-  it('puts the interface language script first', () => {
-    const names = ['zebra', 'Яблоко', 'apple', 'банан']
-    setLang('ru')
-    expect([...names].sort(compareNames)).toEqual(['банан', 'Яблоко', 'apple', 'zebra'])
-    setLang('en')
-    expect([...names].sort(compareNames)).toEqual(['apple', 'zebra', 'банан', 'Яблоко'])
-    setLang('ru')
   })
 })
 

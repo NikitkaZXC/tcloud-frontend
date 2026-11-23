@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { type InfiniteData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
@@ -9,8 +9,9 @@ import { type Command, filterCommands, focusSearch, type FolderAction, OPEN_PALE
 import { foundLocation, storageName } from '@/lib/names'
 import { api } from '@/lib/api'
 import { parentPath } from '@/lib/format'
-import { t, tAll, type Key, type Params } from '@/lib/i18n'
-import { useSettings } from '@/lib/settings'
+import { getLang, t, tAll, type Key, type Params } from '@/lib/i18n'
+import { listingKey } from '@/lib/files'
+import { sortOf, useSettings } from '@/lib/settings'
 import { EMPTY_SEARCH, searchQuery, searchUrl } from '@/lib/search'
 import { FileDialog } from '@/components/file-dialog'
 import { useDebounced } from '@/hooks/use-search'
@@ -39,7 +40,8 @@ export function CommandPalette() {
     retry: false,
   })
   const storageList = storages.data ?? []
-  const archiveFormat = useSettings().archives.format
+  const settings = useSettings()
+  const archiveFormat = settings.archives.format
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
@@ -60,7 +62,7 @@ export function CommandPalette() {
   const folder = pathname === '/files' ? params.get('path') : null
   const go = (to: string) => () => navigate(to)
   const act = (action: FolderAction) => () => runFolderAction(action)
-  const listing = open && folder ? queryClient.getQueryData<FolderListing>(['folder', folder]) : undefined
+  const listing = open && folder ? queryClient.getQueryData<InfiniteData<FolderListing>>(listingKey(folder, sortOf(settings.interface), getLang())) : undefined
 
   const fixed = (id: string, group: Key, label: Key, run: () => void, params?: Params, hint?: string): Command => ({
     id,
@@ -80,7 +82,7 @@ export function CommandPalette() {
           ['archive', 'palette.archive'],
         ] as [FolderAction, Key][]).map(([action, label]) => fixed(`a:${action}`, 'palette.actions', label, act(action), { format: archiveFormat }))
       : []),
-    ...(listing?.folders ?? []).map((f) => ({ id: `f:${f.path}`, group: t('palette.folders'), keywords: tAll('palette.folders'), label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
+    ...(listing?.pages ?? []).flatMap((page) => page.items).filter((f) => f.type === 'folder').map((f) => ({ id: `f:${f.path}`, group: t('palette.folders'), keywords: tAll('palette.folders'), label: f.name, hint: f.path.split('/').slice(2).join('/'), run: go(folderLink(f.path)) })),
     fixed('a:search', 'palette.actions', 'palette.searchFiles', focusSearch, undefined, '/'),
     fixed('p:dashboard', 'palette.pages', 'nav.dashboard', go('/dashboard')),
     fixed('p:files', 'palette.pages', 'nav.storages', go('/files')),

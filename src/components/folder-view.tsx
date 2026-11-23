@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
   ArrowDownWideNarrowIcon,
@@ -62,7 +62,7 @@ import { api, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
-import { nextSort, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel, viewEntries } from '@/lib/files'
+import { listingEntries, listingKey, listingParams, nextSort, PAGE_SIZE, selectRange, SORT_LABELS, type Sort, type SortKey, typeLabel } from '@/lib/files'
 import { crumbs, downloadUrl, filesCount, formatBytes, formatDate, formatShortDate, joinPath, parentPath, storageIdOf } from '@/lib/format'
 import { settingsError, sortOf, sortPatch, updateSettings, useSettings } from '@/lib/settings'
 import { clampWidth, type Column, type ColumnWidths, COLUMN_STEP, COLUMN_STEP_BIG, COLUMNS, DEFAULT_WIDTHS, fitColumns, fitWidth, MAX_WIDTH, minWidth, parseColumns, tableMinWidth } from '@/lib/columns'
@@ -72,7 +72,7 @@ import { fileName, storageName } from '@/lib/names'
 import { trackTask } from '@/lib/tasks'
 import { archiveError, archiveName, selectionPayload } from '@/lib/archive'
 import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, TFile } from '@/lib/types'
-import { t } from '@/lib/i18n'
+import { getLang, t } from '@/lib/i18n'
 
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
 const DELETED = [['folder'], ['storages'], ['account'], ['activity'], ['search'], ['mimes']]
@@ -208,7 +208,6 @@ export function FolderView({ path }: { path: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const storages = useStorages()
-  const listing = useQuery({ queryKey: ['folder', path], queryFn: () => api.get<FolderListing>('/folders', { path }) })
   const [opened, setOpened] = useState<TFile | null>(null)
   const [files, setFiles] = useState<Picked[]>([])
   const [urlOpen, setUrlOpen] = useState(false)
@@ -216,6 +215,15 @@ export function FolderView({ path }: { path: string }) {
   const [dragging, setDragging] = useState(false)
   const settings = useSettings()
   const sort = sortOf(settings.interface)
+  const listing = useInfiniteQuery({
+    queryKey: listingKey(path, sort, getLang()),
+    queryFn: ({ pageParam }) => api.get<FolderListing>('/folders', { path, ...listingParams(sort, getLang()), limit: PAGE_SIZE, cursor: pageParam || undefined }),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    placeholderData: keepPreviousData,
+  })
+  const head0 = listing.data?.pages[0]
+  const total = head0 ? head0.total_folders + head0.direct_files : 0
   const view = settings.interface.folder_view
   const skipConfirm = !settings.interface.confirm_delete
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -228,10 +236,10 @@ export function FolderView({ path }: { path: string }) {
   const storageId = storageIdOf(path)
   const storage = storages.data?.find((s) => s.id === storageId)
   const isRoot = path.split('/').length <= 2
-  const entries = viewEntries(listing.data?.folders ?? [], listing.data?.files ?? [], '', sort)
+  const entries = listingEntries(listing.data?.pages ?? [])
   const order = entries.map((e) => (e.type === 'folder' ? folderKey(e.item.path) : fileKey(e.item.uuid)))
   const picked = order.filter((key) => selected.has(key))
-  const empty = !!listing.data && listing.data.folders.length + listing.data.files.length === 0
+  const empty = !!head0 && head0.items.length === 0
   const storedColumns = settings.interface.file_columns ?? parseColumns(load('file_columns'))
   const [draftColumns, setDraftColumns] = useState<ColumnWidths | null>(null)
   const [autoName, setAutoName] = useState(0)
@@ -239,7 +247,7 @@ export function FolderView({ path }: { path: string }) {
   const saveTimer = useRef(0)
   const sm = useMedia('(width >= 40rem)')
   const columns = sm ? (draftColumns ?? storedColumns) : {}
-  const actionsWidth = sm ? 128 : listing.data?.folders.length ? 72 : 44
+  const actionsWidth = sm ? 128 : head0?.total_folders ? 72 : 44
   const panel = useRef<HTMLDivElement>(null)
   const [available, setAvailable] = useState(0)
   const shown = fitColumns(sm ? available : 0, {}, 32 + actionsWidth)
@@ -641,9 +649,9 @@ export function FolderView({ path }: { path: string }) {
       )}
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <Crumbs path={path} name={storageName(storage)} />
-        {listing.data && (
+        {head0 && (
           <span className="text-sm text-muted-foreground tabular-nums">
-            {formatBytes(listing.data.size)} · {filesCount(listing.data.total_files)}
+            {formatBytes(head0.size)} · {filesCount(head0.total_files)}
           </span>
         )}
       </div>
@@ -704,7 +712,7 @@ export function FolderView({ path }: { path: string }) {
       <IoBanner path={path} />
       <FolderUploads path={path} />
 
-      {!empty && listing.data && (
+      {!empty && head0 && (
         <div className="flex flex-wrap items-center justify-end gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -756,7 +764,7 @@ export function FolderView({ path }: { path: string }) {
 
       {picked.length > 0 && (
         <div role="toolbar" aria-label={t('folder.selectedToolbar')} className="fx-glass sticky top-[calc(max(0.5rem,env(safe-area-inset-top))+4rem)] z-10 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs md:top-3">
-          <span className="px-1 tracking-[0.04em] text-primary uppercase tabular-nums">{t('folder.selectedCount', { n: picked.length })}</span>
+          <span className="px-1 tracking-[0.04em] text-primary uppercase tabular-nums">{t('folder.selectedOf', { n: picked.length, total })}</span>
           <ArchiveMenu label={t('folder.archiveSelection')} onArchive={(format) => archiveSelection.mutate(format)}>
             <Button size="sm" variant="outline" disabled={archiveSelection.isPending}>
               <ArchiveIcon /> {t('folder.downloadArchive')}
@@ -833,11 +841,38 @@ export function FolderView({ path }: { path: string }) {
           {entries.map((entry) => (entry.type === 'folder' ? folderTile(entry.item) : fileTile(entry.item)))}
         </ul>
       )}
+      {!empty && listing.hasNextPage && !listing.isPlaceholderData && <LoadMore loading={listing.isFetchingNextPage} onMore={() => listing.fetchNextPage()} left={total - order.length} />}
 
       <FileDialog file={opened} onClose={() => setOpened(null)} />
       <UploadDialog folder={path} files={files} onClose={() => setFiles([])} />
       <UrlUploadDialog folder={path} open={urlOpen} onOpenChange={setUrlOpen} />
       <NewFolderDialog parent={path} open={folderOpen} onOpenChange={setFolderOpen} />
+    </div>
+  )
+}
+
+function LoadMore({ loading, onMore, left }: { loading: boolean; onMore: () => void; left: number }) {
+  const sentinel = useRef<HTMLDivElement>(null)
+  const more = useRef(onMore)
+  useEffect(() => {
+    more.current = onMore
+  })
+  useEffect(() => {
+    const element = sentinel.current
+    if (loading || !element || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && more.current(), { rootMargin: '0px 0px 600px 0px' })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [loading])
+  return (
+    <div ref={sentinel} className="flex justify-center py-2" aria-live="polite">
+      {loading ? (
+        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+      ) : (
+        <Button variant="outline" onClick={onMore}>
+          {t('folder.showMore', { n: left })}
+        </Button>
+      )}
     </div>
   )
 }
