@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts, taskRings } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -73,6 +73,23 @@ describe('dashboard', () => {
     const tasks = [{ path: 'tcloud/u1/a.txt', status: 'running', bytes_done: 1, bytes_total: 2 }] as Task[]
     expect(storageActivity(storages, [{ id: 1, path: 'tcloud/u1/x/y.txt', loaded: 0, total: 0, rate: null, at: 0 }], tasks).u1.count).toBe(2)
     expect(storageActivity([{ id: 'u1', path: 'tcloud/u1/' }] as Storage[], [], tasks).u1.count).toBe(1)
+  })
+
+  it('drops the done ring and cancelled tasks when only active and failed tasks are shown', () => {
+    const counts = { queued: 1, running: 2, done: 5, failed: 1, cancelled: 3 }
+    expect(taskRings(counts, 1, 'all')).toEqual({
+      rings: [
+        { label: 'dashboard.running', count: 3, tone: 'busy' },
+        { label: 'status.queued', count: 1, tone: 'idle' },
+        { label: 'status.done', count: 5, tone: 'ok' },
+        { label: 'dashboard.errors', count: 4, tone: 'fail' },
+      ],
+      total: 13,
+    })
+    const active = taskRings(counts, 0, 'active_and_failed')
+    expect(active.rings.map((ring) => [ring.label, ring.count])).toEqual([['dashboard.running', 2], ['status.queued', 1], ['dashboard.errors', 1]])
+    expect(active.total).toBe(4)
+    expect(taskRings(taskCounts(undefined), 0, 'all').total).toBe(1)
   })
 
   it('lays out the activity map by weeks starting on monday', () => {

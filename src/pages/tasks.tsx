@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { DownloadIcon, RotateCcwIcon, XIcon } from 'lucide-react'
-import { useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router'
 import { PageTitle } from '@/components/fx'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +18,7 @@ import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
 import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks, waitingText, warningText } from '@/lib/tasks'
 import { isMeasured, stepLabel } from '@/lib/steps'
-import { type TasksFilter, useSettings, visibleTasks } from '@/lib/settings'
+import { settingsError, type TasksFilter, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
 
 const FILTERS: [TasksFilter, Key][] = [
@@ -30,9 +30,8 @@ export function TasksPage() {
   const ids = useTrackedTasks()
   const results = useTasks(ids)
   const all = results.map((r) => r.data).filter((t): t is Task => !!t)
-  const saved = useSettings().interface.tasks_filter
-  const [picked, setFilter] = useState<TasksFilter | null>(null)
-  const filter = picked ?? saved
+  const filter = useSettings().interface.tasks_filter
+  const setFilter = (tasks_filter: TasksFilter) => updateSettings({ interface: { tasks_filter } }).catch((error) => toast.error(settingsError(error)))
   const tasks = visibleTasks(all, filter)
   const finished = all.filter(isFinished).map((t) => t.id)
 

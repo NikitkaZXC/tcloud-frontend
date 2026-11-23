@@ -14,7 +14,7 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts } from '@/lib/dashboard'
+import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts, taskRings } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
@@ -90,22 +90,15 @@ function ActivitySection() {
   const tasks = visibleTasks(useTrackedData(), filter)
   const storages = useStorages().data ?? []
   const server = useTaskCounts().data
-  const counts = taskCounts(server)
-  const total = Math.max((server?.total ?? 0) + sending.length, 1)
+  const { rings: statuses, total } = taskRings(taskCounts(server), sending.length, filter)
   const running = tasks.filter((task) => task.status === 'running' || task.status === 'queued')
-  const statuses: [string, number, 'busy' | 'idle' | 'ok' | 'fail'][] = [
-    [t('dashboard.running'), counts.running + sending.length, 'busy'],
-    [t('status.queued'), counts.queued, 'idle'],
-    [t('status.done'), counts.done, 'ok'],
-    [t('dashboard.errors'), counts.failed + counts.cancelled, 'fail'],
-  ].filter(([, , tone]) => filter === 'all' || tone !== 'ok') as [string, number, 'busy' | 'idle' | 'ok' | 'fail'][]
 
   return (
     <Section label={t('dashboard.activity')}>
       <ul className={rings}>
-        {statuses.map(([label, count, tone]) => (
+        {statuses.map(({ label, count, tone }) => (
           <li key={label}>
-            <Ring value={count / total} center={count} label={label} tone={count ? tone : undefined} />
+            <Ring value={count / total} center={count} label={t(label)} tone={count ? tone : undefined} />
           </li>
         ))}
       </ul>

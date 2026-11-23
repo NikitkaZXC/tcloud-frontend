@@ -84,6 +84,23 @@ export function taskCounts(counts: TaskCounts | undefined): Record<TaskStatus, n
   return { queued: 0, running: 0, done: 0, failed: 0, cancelled: 0, ...counts?.by_status }
 }
 
+export interface TaskRing {
+  label: Key
+  count: number
+  tone: 'busy' | 'idle' | 'ok' | 'fail'
+}
+
+export function taskRings(counts: Record<TaskStatus, number>, sending: number, filter: 'all' | 'active_and_failed'): { rings: TaskRing[]; total: number } {
+  const all = filter === 'all'
+  const rings: TaskRing[] = [
+    { label: 'dashboard.running', count: counts.running + sending, tone: 'busy' },
+    { label: 'status.queued', count: counts.queued, tone: 'idle' },
+    ...(all ? [{ label: 'status.done', count: counts.done, tone: 'ok' } as TaskRing] : []),
+    { label: 'dashboard.errors', count: counts.failed + (all ? counts.cancelled : 0), tone: 'fail' },
+  ]
+  return { rings, total: Math.max(rings.reduce((sum, ring) => sum + ring.count, 0), 1) }
+}
+
 export interface Activity {
   count: number
   percent: number | null
