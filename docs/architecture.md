@@ -114,9 +114,11 @@ flowchart LR
 ### Клиент API
 
 `src/lib/api.ts`: `request(method, url, {query, json, body, retry})` добавляет префикс `/api`, сериализует `json`,
-`204` → `undefined`, ошибка → `ApiError(status, body.error)` (`code`, `message`, `details` из ответа бэкенда; без
-тела — `http_error`). Обёртки `api.get/post/put/patch/del`. Тексты ошибок: `errorMessage` (по `error.<code>` из
-словаря, иначе `message (code)`, `TypeError` → «нет сети»), `errorText` для тела ошибки задачи.
+`204` → `undefined`, ошибка → `ApiError(status, errorBody(...))` (`code`, `message`, `details` из `{"error": …}`
+бэкенда; голый FastAPI `detail` — строка → `http_error`, список → `validation_error`; без тела — `http_error` со
+статусом; то же в XHR-загрузке). Обёртки `api.get/post/put/patch/del`. Тексты ошибок: `errorMessage` (`validation_error`
+→ «Поле «loc»: msg» из первого `details`, иначе «Проверьте введённые данные»; `http_error` → `message` бэкенда; прочие —
+по `error.<code>` из словаря, иначе `message (code)`; `TypeError` → «нет сети»), `errorText` для тела ошибки задачи.
 
 ### 429 rate_limited
 

@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, api, queryRetry, queryRetryDelay, RATE_LIMIT_TOAST, retryAfter, showError, withQuery } from './api'
+import { ApiError, api, errorMessage, queryRetry, queryRetryDelay, RATE_LIMIT_TOAST, retryAfter, showError, withQuery } from './api'
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
@@ -26,6 +26,18 @@ describe('api', () => {
     const error = await api.del('/files/x').catch((e) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect([error.status, error.code]).toEqual([409, 'file_changed'])
+  })
+
+  it('shows the backend message and field for 422 instead of the status line', async () => {
+    const body = { error: { code: 'validation_error', message: 'invalid request', details: [{ type: 'missing', loc: ['body', 'uploads', 'priority'], msg: 'Field required' }] } }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(422, body)))
+    expect(errorMessage(await api.patch('/account/settings', {}).catch((e) => e))).toBe('Поле «uploads.priority»: Field required')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(422, { detail: [{ loc: ['query', 'limit'], msg: 'Input should be 20' }] })))
+    expect(errorMessage(await api.get('/folders').catch((e) => e))).toBe('Поле «limit»: Input should be 20')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(422, { error: { code: 'http_error', message: 'Bad path' } })))
+    expect(errorMessage(await api.get('/folders').catch((e) => e))).toBe('Bad path')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(422, { error: { code: 'validation_error', message: 'invalid request', details: [] } })))
+    expect(errorMessage(await api.get('/folders').catch((e) => e))).toBe('Проверьте введённые данные')
   })
 
   it('does not refresh for auth calls', async () => {

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { ApiError, notifyRateLimit, refreshSession, retryAfter, withQuery } from './api'
+import { ApiError, errorBody, notifyRateLimit, refreshSession, retryAfter, withQuery } from './api'
 import type { SendAs, Task, UploadOptions } from './types'
 
 export interface Sending {
@@ -96,14 +96,14 @@ function send(file: File, options: UploadOptions, onProgress: (loaded: number) =
 export async function uploadFile(file: File, options: UploadOptions, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
   let xhr = await send(file, options, onProgress, signal)
   if (xhr.status === 401 && (await refreshSession())) xhr = await send(file, options, onProgress, signal)
-  let body: { error?: ApiError['body'] } | null = null
+  let body: unknown = null
   try {
     body = JSON.parse(xhr.responseText)
   } catch {
     body = null
   }
   if (xhr.status >= 200 && xhr.status < 300) return body as Task
-  const error = new ApiError(xhr.status, body?.error ?? { code: 'http_error', message: `${xhr.status}` })
+  const error = new ApiError(xhr.status, errorBody(xhr.status, xhr.statusText, body))
   if (xhr.status === 429) {
     error.body.retry_after ??= Number(xhr.getResponseHeader('Retry-After')) || 1
     notifyRateLimit(retryAfter(error)!)

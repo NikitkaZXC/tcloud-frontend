@@ -27,9 +27,17 @@ export function withQuery(url: string, query?: Query): string {
   return qs ? `${url}?${qs}` : url
 }
 
+export function errorBody(status: number, statusText: string, body: unknown): ApiErrorBody {
+  const json = body as { error?: ApiErrorBody; detail?: unknown } | null
+  if (json?.error?.code) return json.error
+  if (typeof json?.detail === 'string') return { code: 'http_error', message: json.detail }
+  if (Array.isArray(json?.detail)) return { code: 'validation_error', message: 'invalid request', details: json.detail }
+  return { code: 'http_error', message: `${status} ${statusText}`.trim() }
+}
+
 export async function toError(response: Response): Promise<ApiError> {
   const body = await response.json().catch(() => null)
-  const error: ApiErrorBody = body?.error ?? { code: 'http_error', message: `${response.status} ${response.statusText}` }
+  const error = errorBody(response.status, response.statusText, body)
   if (response.status === 429) error.retry_after ??= Number(response.headers.get('Retry-After')) || 1
   return new ApiError(response.status, error)
 }
@@ -101,8 +109,16 @@ export const api = {
   del: <T = void>(url: string, query?: Query) => request<T>('DELETE', url, { query }),
 }
 
+function invalidField(body: ApiErrorBody): string | null {
+  const detail = (Array.isArray(body.details) ? body.details : [])[0] as { loc?: unknown[]; msg?: unknown } | undefined
+  const field = detail?.loc?.filter((part) => part !== 'body' && part !== 'query' && part !== 'path').join('.')
+  return field ? t('error.invalidField', { field, message: String(detail?.msg ?? body.message) }) : null
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'validation_error') return invalidField(error.body) ?? t('error.validation_error')
+    if (error.code === 'http_error') return error.message
     const key = `error.${error.code}`
     return key in DICTIONARIES.ru ? t(key as Key) : `${error.message} (${error.code})`
   }

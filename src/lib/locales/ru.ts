@@ -166,6 +166,7 @@ export const ru = {
   'error.user_exists': 'Такой логин уже занят',
   'error.user_not_found': 'Пользователь не найден',
   'error.user_session_not_found': 'Сессия не найдена',
+  'error.invalidField': 'Поле «{field}»: {message}',
   'error.validation_error': 'Проверьте введённые данные',
   'file.dimensions': 'Размеры',
   'file.duration': 'Длительность',

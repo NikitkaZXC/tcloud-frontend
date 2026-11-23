@@ -166,6 +166,7 @@ export const en: Record<Key, Entry> = {
   'error.user_exists': 'This login is already taken',
   'error.user_not_found': 'User not found',
   'error.user_session_not_found': 'Session not found',
+  'error.invalidField': 'Field «{field}»: {message}',
   'error.validation_error': 'Check the entered data',
   'file.dimensions': 'Dimensions',
   'file.duration': 'Duration',
