@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { infiniteQueryOptions, keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
   ArrowDownWideNarrowIcon,
@@ -17,7 +17,7 @@ import {
   UploadIcon,
   XIcon,
 } from 'lucide-react'
-import { type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type DragEvent, type FocusEvent as ReactFocusEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
@@ -75,6 +75,7 @@ import type { ArchiveFormat, Folder, FolderDeleteResponse, FolderListing, Task, 
 import { getLang, t } from '@/lib/i18n'
 
 const ARCHIVE_FORMATS: ArchiveFormat[] = ['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz']
+const PREFETCH_STALE_MS = 10_000
 const DELETED = [['folder'], ['storages'], ['account'], ['activity'], ['search'], ['mimes']]
 
 const link = (path: string) => `/files?path=${encodeURIComponent(path)}`
@@ -216,12 +217,17 @@ export function FolderView({ path }: { path: string }) {
   const settings = useSettings()
   const sort = sortOf(settings.interface)
   const limit = pageSizeOf(settings.interface)
-  const listing = useInfiniteQuery({
-    queryKey: listingKey(path, sort, getLang(), limit),
-    queryFn: ({ pageParam }) => api.get<FolderListing>('/folders', { path, ...listingParams(sort, getLang(), limit), cursor: pageParam || undefined }),
-    initialPageParam: '',
-    getNextPageParam: (last) => last.next_cursor ?? undefined,
-    placeholderData: keepPreviousData,
+  const listingOf = (target: string) =>
+    infiniteQueryOptions({
+      queryKey: listingKey(target, sort, getLang(), limit),
+      queryFn: ({ pageParam }) => api.get<FolderListing>('/folders', { path: target, ...listingParams(sort, getLang(), limit), cursor: pageParam || undefined }),
+      initialPageParam: '',
+      getNextPageParam: (last: FolderListing) => last.next_cursor ?? undefined,
+    })
+  const listing = useInfiniteQuery({ ...listingOf(path), placeholderData: keepPreviousData })
+  const prefetch = (target: string) => ({
+    onPointerEnter: (event: ReactPointerEvent) => event.pointerType === 'mouse' && void queryClient.prefetchInfiniteQuery({ ...listingOf(target), staleTime: PREFETCH_STALE_MS }),
+    onFocus: (event: ReactFocusEvent) => event.currentTarget.matches(':focus-visible') && void queryClient.prefetchInfiniteQuery({ ...listingOf(target), staleTime: PREFETCH_STALE_MS }),
   })
   const head0 = listing.data?.pages[0]
   const totals = listingTotals(listing.data?.pages ?? [])
@@ -530,7 +536,7 @@ export function FolderView({ path }: { path: string }) {
                 <TableRow key={folder.id} data-state={selected.has(folderKey(folder.path)) ? 'selected' : undefined}>
                   <TableCell>{check(folderKey(folder.path), folder.name)}</TableCell>
                   <TableCell data-col="name">
-                    <Link to={link(folder.path)} className="flex items-center gap-2 text-base hover:underline" title={folder.name}>
+                    <Link to={link(folder.path)} {...prefetch(folder.path)} className="flex items-center gap-2 text-base hover:underline" title={folder.name}>
                       <span className="fx-mini">
                         <FolderIcon className="size-4 text-primary" />
                       </span>
@@ -579,7 +585,7 @@ export function FolderView({ path }: { path: string }) {
                 <div className="fx-tile-check">{check(folderKey(folder.path), folder.name)}</div>
               </div>
               <div className="grid min-w-0 flex-1 content-between gap-1">
-                <Link to={link(folder.path)} className="truncate text-base hover:underline pointer-coarse:py-2.5" title={folder.name}>
+                <Link to={link(folder.path)} {...prefetch(folder.path)} className="truncate text-base hover:underline pointer-coarse:py-2.5" title={folder.name}>
                   {folder.name}
                 </Link>
                 <span className="truncate text-xs text-muted-foreground tabular-nums">
