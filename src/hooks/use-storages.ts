@@ -8,10 +8,11 @@ import { useTrackedTasks } from '@/lib/tasks'
 import type { Account, Storage, StorageActivity, Task } from '@/lib/types'
 import { useSending } from '@/lib/upload'
 
+export const STORAGES_STALE_MS = 5_000
 export const ACCOUNT_STALE_MS = 60_000
 
 export function useStorages() {
-  return useQuery({ queryKey: ['storages'], queryFn: () => api.get<Storage[]>('/storages') })
+  return useQuery({ queryKey: ['storages'], queryFn: () => api.get<Storage[]>('/storages'), staleTime: STORAGES_STALE_MS })
 }
 
 export function useAccount() {
