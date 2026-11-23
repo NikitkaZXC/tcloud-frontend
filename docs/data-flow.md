@@ -17,7 +17,7 @@
 | `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 мс, пока горит любая лампа, иначе 3 с (в фоне не опрашивается); `markRead` → `refetch` через 300 мс; сливается с локальными лампами `mergeIo`, после конца локальной операции её вид игнорируется до ответа позже конца + 1 с (`freshServerIo`) |
 | `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, страницы по `offset`; `lang` (язык интерфейса) входит в `apiQuery`, порядок по имени — от бэкенда |
 | `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
-| `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `staleTime` 60 с, `retry: false` |
+| `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `retry: false`; без `staleTime`, чтобы фасеты форматов сразу видели новые/удалённые файлы |
 | `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется, если блок `activity_map` скрыт (`interface.dashboard_hidden`) |
 | `['account']` | `GET /account` | `pages/dashboard.tsx`, `components/storages.tsx`, `pages/telegram.tsx` | всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
 | `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
@@ -94,8 +94,8 @@ flowchart LR
 - Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
 - Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, «Выйти везде» и завершение текущей сессии в
   `pages/account.tsx`).
-- `search`/`mimes` инвалидируют только удаления (`DELETED` в `folder-view.tsx`); иначе они перезапрашиваются при смене
-  ключа (новый запрос) или монтировании.
+- `search`/`mimes` инвалидируют удаления (`DELETED` в `folder-view.tsx`, удаление хранилища) и `TaskWatcher` при
+  завершении задач с папкой (загрузки); иначе они перезапрашиваются при смене ключа (новый запрос) или монтировании.
 
 ## Сторы вне TanStack Query
 

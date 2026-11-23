@@ -193,7 +193,7 @@ function StorageForm({ storage }: { storage?: Storage }) {
 function DeleteStorage({ storage }: { storage: Storage }) {
   const [keepChannel, setKeepChannel] = useState(false)
   const remove = useAction(() => api.del(`/storages/${storage.id}`, { keep_channel: keepChannel }), {
-    invalidate: [['storages']],
+    invalidate: [['storages'], ['search'], ['mimes']],
     success: t('storages.deleted'),
   })
 

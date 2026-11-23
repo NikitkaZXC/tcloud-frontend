@@ -116,7 +116,7 @@ sequenceDiagram
         end
     end
     opt в этом ответе что-то завершилось
-        W->>C: invalidate task-counts; если есть не-архивы — ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity — сразу, один раз на ответ
+        W->>C: invalidate task-counts; если есть не-архивы — ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity, search, mimes — сразу, один раз на ответ
     end
 ```
 

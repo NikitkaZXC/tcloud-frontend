@@ -30,6 +30,5 @@ export function useMimes(path: string | undefined) {
     queryKey: ['mimes', path ?? ''],
     queryFn: () => api.get<MimeCount[]>('/files/search/mimes', path ? { path } : undefined),
     retry: false,
-    staleTime: 60000,
   })
 }

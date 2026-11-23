@@ -59,6 +59,8 @@ export function TaskWatcher() {
     queryClient.invalidateQueries({ queryKey: ['storages'] })
     queryClient.invalidateQueries({ queryKey: ['account'] })
     queryClient.invalidateQueries({ queryKey: ['activity'] })
+    queryClient.invalidateQueries({ queryKey: ['search'] })
+    queryClient.invalidateQueries({ queryKey: ['mimes'] })
   }, [ids, results, queryClient, storages.data])
 
   return null
