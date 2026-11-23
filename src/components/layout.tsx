@@ -231,7 +231,7 @@ function Sidebar({
             </>
           )}
         </Button>
-        <div ref={list} className="relative -mx-1 grid min-h-0 flex-1 content-start gap-1 overflow-y-auto px-1">
+        <div ref={list} className="relative -mx-1 grid min-h-0 flex-1 content-start gap-1 overflow-x-hidden overflow-y-auto px-1">
           <div ref={pill} className="fx-pill opacity-0" data-collapsed={collapsed} aria-hidden />
           <Item to="/dashboard" label={t('nav.dashboard')} icon={GaugeIcon} collapsed={collapsed} onNavigate={onNavigate} />
           <Link
