@@ -213,7 +213,7 @@ flowchart LR
 
 | Потребитель | Что показывает |
 |---|---|
-| `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed/cancelled` внутри текущей папки — шаг, полоса, цепочка этапов, отмена по одному и «Отменить всё», спидометр |
+| `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed/cancelled` внутри текущей папки — шаг, полоса, цепочка этапов, отмена по одному и «Отменить всё» |
 | `pages/tasks.tsx` | все отслеживаемые задачи, подпись шага (`stepLabel`, у failed/cancelled — где остановилась), фильтр `visibleTasks(tasks_filter)`, отмена/приоритет/повтор/забыть |
 | `pages/dashboard.tsx` | «Активность»: кольца по статусам из `GET /api/tasks/counts` (`useTaskCounts`, свои задачи за 7 дней, опрос 5 с), прогресс идущих отслеживаемых, чек-лист первого запуска (`lib/onboarding.ts`) |
 | `hooks/use-storages.ts` `useStorageIo` | лампы чтения/записи хранилищ: отправки + задачи загрузки = запись, `archiving` + `markRead` = чтение, плюс `GET /api/storages/activity` (кто угодно, 5 с; опрос 2,5 с при видимой вкладке, `serverIo`/`mergeIo`), удержание `IO_HOLD_MS` (`lingerIo`) |

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Link, useBlocker } from 'react-router'
 import { Confirm } from '@/components/confirm'
 import { HealthRack } from '@/components/health'
-import { ActivityMap, Speedometer } from '@/components/meters'
+import { ActivityMap } from '@/components/meters'
 import { StorageCard } from '@/components/storages'
 import { ChannelsRing, PageTitle, PixelToggle, Ring, Section, Stat, StatusChip, WireCubes } from '@/components/fx'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,7 @@ import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
 import { useTaskCounts, useTasks } from '@/hooks/use-tasks'
 import { api } from '@/lib/api'
-import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts, transferStats } from '@/lib/dashboard'
+import { blockOrder, channelUsage, DASHBOARD_BLOCKS, type DashboardBlock, hiddenBlocks, moveBlock, parseLayout, visibleBlocks, previewTotals, storageTotals, taskCounts } from '@/lib/dashboard'
 import { formatBytes } from '@/lib/format'
 import { fileName, humanPath, taskTitle } from '@/lib/names'
 import { checklist, dismiss, isDismissed } from '@/lib/onboarding'
@@ -111,7 +111,6 @@ function ActivitySection() {
       </ul>
       {sending.length + running.length > 0 && (
         <div className="fx-dotted flex flex-wrap items-center justify-center gap-8 border-t pt-5 sm:justify-start">
-          <Speedometer transfer={transferStats(sending, tasks)} />
             <ul className={`fx-stagger ${rings} flex-1`} aria-label={t('dashboard.inProgress')}>
           {sending.slice(0, 8).map((item) => (
             <li key={`s${item.id}`} className="w-28">

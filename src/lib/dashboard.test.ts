@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, transferStats, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
+import { activityGrid, blockOrder, channelUsage, DASHBOARD_BLOCKS, moveBlock, parseLayout, healthRows, hiddenBlocks, visibleBlocks, IO_HOLD_MS, lingerIo, mergeIo, previewTotals, serverIo, storageActivity, storageIo, storageTotals, taskCounts } from './dashboard'
 import type { Health, Storage, Task } from './types'
 
 describe('dashboard', () => {
@@ -73,18 +73,6 @@ describe('dashboard', () => {
     const tasks = [{ path: 'tcloud/u1/a.txt', status: 'running', bytes_done: 1, bytes_total: 2 }] as Task[]
     expect(storageActivity(storages, [{ id: 1, path: 'tcloud/u1/x/y.txt', loaded: 0, total: 0, rate: null, at: 0 }], tasks).u1.count).toBe(2)
     expect(storageActivity([{ id: 'u1', path: 'tcloud/u1/' }] as Storage[], [], tasks).u1.count).toBe(1)
-  })
-
-  it('sums upload speed of measured steps only and takes the longest eta', () => {
-    const sending = [{ id: 1, path: 'a', loaded: 100, total: 1100, rate: 100, at: 0 }]
-    const tasks = [
-      { status: 'running', step: 'sending', speed: 400, eta: 3 },
-      { status: 'running', step: 'queued_for_telegram', speed: 50, eta: 50 },
-      { status: 'running', step: null, speed: 70, eta: 70 },
-      { status: 'queued', step: 'sending', speed: 999, eta: 999 },
-    ] as Task[]
-    expect(transferStats(sending, tasks)).toEqual({ speed: 500, eta: 10 })
-    expect(transferStats([], [])).toEqual({ speed: 0, eta: null })
   })
 
   it('lays out the activity map by weeks starting on monday', () => {

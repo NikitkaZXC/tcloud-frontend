@@ -9,8 +9,6 @@ import { useTasks } from '@/hooks/use-tasks'
 import { formatBytes, formatDuration } from '@/lib/format'
 import { ApiError, api, errorText, showError } from '@/lib/api'
 import { IoTag } from '@/components/fx'
-import { Speedometer } from '@/components/meters'
-import { transferStats } from '@/lib/dashboard'
 import { useStorageIo, useStorages } from '@/hooks/use-storages'
 import { storageIdOf } from '@/lib/format'
 import { fileName, taskTitle } from '@/lib/names'
@@ -184,7 +182,6 @@ export function FolderUploads({ path }: { path: string }) {
         )
       })}
     </ul>
-    {(openSending.length > 0 || tasks.some((task) => task.status === 'running')) && <Speedometer transfer={transferStats(openSending, tasks)} />}
     </div>
     </div>
   )

@@ -1,7 +1,6 @@
 import type { Account, Health, HealthDetail, Storage, StorageActivity, Task, TaskCounts, TaskStatus } from './types'
 import { type Key, t } from './i18n'
 import type { Sending } from './upload'
-import { isMeasured } from './steps'
 
 export type HealthGroup = 'telegram' | 'workers' | 'infra'
 
@@ -181,21 +180,6 @@ export function lingerIo(current: Record<string, Io>, seen: IoSeen, now: number,
     for (const at of [write, read]) if (at != null && at <= now) wake = Math.min(wake ?? Infinity, at + hold)
   }
   return { io, seen: next, wake }
-}
-
-export interface Transfer {
-  speed: number
-  eta: number | null
-}
-
-export function transferStats(sending: Sending[], tasks: Task[]): Transfer {
-  const running = tasks.filter(isMeasured)
-  const speed = sending.reduce((sum, item) => sum + (item.rate ?? 0), 0) + running.reduce((sum, task) => sum + (task.speed ?? 0), 0)
-  const etas = [
-    ...sending.filter((item) => item.rate).map((item) => (item.total - item.loaded) / item.rate!),
-    ...running.filter((task) => task.eta != null).map((task) => task.eta!),
-  ]
-  return { speed, eta: etas.length ? Math.max(...etas) : null }
 }
 
 export interface ActivityDay {

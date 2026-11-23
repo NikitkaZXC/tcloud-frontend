@@ -300,8 +300,6 @@ export const en: Record<Key, Entry> = {
   'map.less': 'less',
   'map.more': 'more',
   'map.summary': '{files} uploaded in {days} days, {size}',
-  'meter.mbps': '{value} megabytes per second',
-  'meter.scale': 'scale up to {max} MB/s',
   'names.storage': 'storage',
   'nav.account': 'Account',
   'nav.admin': 'Administration',

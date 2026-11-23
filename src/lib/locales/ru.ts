@@ -300,8 +300,6 @@ export const ru = {
   'map.less': 'меньше',
   'map.more': 'больше',
   'map.summary': 'за {days} дн. загружено {files}, {size}',
-  'meter.mbps': '{value} мегабайт в секунду',
-  'meter.scale': 'шкала до {max} MB/s',
   'names.storage': 'хранилище',
   'nav.account': 'Аккаунт',
   'nav.admin': 'Администрирование',

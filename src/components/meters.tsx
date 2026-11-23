@@ -1,61 +1,8 @@
 import { useState } from 'react'
 import { useFileActivity } from '@/hooks/use-activity'
-import { activityGrid, type Transfer } from '@/lib/dashboard'
-import { filesCount, formatBytes, formatDuration } from '@/lib/format'
+import { activityGrid } from '@/lib/dashboard'
+import { filesCount, formatBytes } from '@/lib/format'
 import { t } from '@/lib/i18n'
-
-const SCALES = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-const MB = 1024 * 1024
-
-function Flap({ text, label }: { text: string; label: string }) {
-  return (
-    <span className="fx-flaps" aria-label={label} role="text">
-      {[...text].map((char, i) => (
-        <span key={`${i}-${char}`} className="fx-flap" aria-hidden>
-          {char}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-export function Speedometer({ transfer }: { transfer: Transfer }) {
-  const mbps = transfer.speed / MB
-  const max = SCALES.find((scale) => scale >= mbps) ?? SCALES.at(-1)!
-  const angle = Math.min(mbps / max, 1) * 180
-  const ticks = Array.from({ length: 11 }, (_, i) => (i / 10) * Math.PI)
-  const value = mbps >= 100 ? mbps.toFixed(0) : mbps.toFixed(1)
-
-  return (
-    <figure className="fx-speedo">
-      <svg viewBox="0 0 120 68" aria-hidden>
-        {ticks.map((t, i) => (
-          <rect
-            key={i}
-            x={Math.round(60 - Math.cos(t) * 50) - (i % 5 ? 1 : 2)}
-            y={Math.round(62 - Math.sin(t) * 50) - (i % 5 ? 1 : 2)}
-            width={i % 5 ? 2 : 4}
-            height={i % 5 ? 2 : 4}
-            className={i / 10 <= mbps / max && mbps > 0 ? 'fx-speedo-on' : 'fx-speedo-off'}
-          />
-        ))}
-        <g className="fx-speedo-needle" style={{ rotate: `${angle}deg` }}>
-          <rect x="18" y="61" width="42" height="2" />
-        </g>
-        <rect x="56" y="58" width="8" height="8" className="fx-speedo-hub" />
-      </svg>
-      <figcaption className="grid justify-items-center gap-1">
-        <span className="flex items-baseline gap-1.5">
-          <Flap text={value} label={t('meter.mbps', { value })} />
-          <span className="fx-label">MB/s</span>
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {t('meter.scale', { max })}{transfer.eta != null && ` · ${t('tasks.eta', { time: formatDuration(Math.ceil(transfer.eta)) })}`}
-        </span>
-      </figcaption>
-    </figure>
-  )
-}
 
 export function ActivityMap() {
   const activity = useFileActivity()
