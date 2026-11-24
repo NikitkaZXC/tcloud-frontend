@@ -526,6 +526,8 @@ export const ru = {
   'storages.none': 'Хранилищ пока нет.',
   'storages.photo': 'Фото канала',
   'storages.photoDeleted': 'Фото удалено',
+  'storages.photoFailed': 'Хранилище сохранено, но фото не загрузилось: {error}',
+  'storages.photoTooBig': 'Фото больше {limit}',
   'storages.size': 'объём',
   'storages.totals': 'Итоги',
   'tasks.cancel': 'Отменить',

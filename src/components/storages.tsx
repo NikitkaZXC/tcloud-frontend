@@ -1,6 +1,7 @@
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
+import { toast } from 'sonner'
 import { ChannelsRing, IoTag, PageTitle, Section, Stat, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Confirm } from '@/components/confirm'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useAccount, useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { api, request } from '@/lib/api'
+import { api, errorMessage, request } from '@/lib/api'
 import { type Activity, channelUsage, type Io, storageChangeKeys, storageTotals } from '@/lib/dashboard'
 import { filesCount, formatBytes } from '@/lib/format'
 import { isUnavailable, storageName } from '@/lib/names'
@@ -117,22 +118,51 @@ export function StorageList() {
   )
 }
 
-function StorageForm({ storage }: { storage?: Storage }) {
+const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif'
+const PHOTO_MAX = 10 * 1024 * 1024
+
+export function StorageForm({ storage }: { storage?: Storage }) {
   const [open, setOpen] = useState(false)
-  const [name, setName] = useState(storage?.name ?? '')
-  const [description, setDescription] = useState(storage?.description ?? '')
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
 
+  function openChange(next: boolean) {
+    if (next) {
+      setName(storage?.name ?? '')
+      setDescription(storage?.description ?? '')
+      setPhoto(null)
+    }
+    setOpen(next)
+  }
+
+  const uploadPhoto = useAction(({ id, file }: { id: string; file: File }) => request('PUT', `/storages/${id}/photo`, { body: file }), {
+    invalidate: [['storages']],
+    describe: (error) => t('storages.photoFailed', { error: errorMessage(error) }),
+  })
   const save = useAction(
-    async () => {
-      const body = { name, description: description || null }
-      const saved = storage
-        ? await api.patch<Storage>(`/storages/${storage.id}`, body)
-        : await api.post<Storage>('/storages', body)
-      if (photo) await request('PUT', `/storages/${saved.id}/photo`, { body: photo })
+    () => {
+      const body = { name, description }
+      return storage ? api.patch<Storage>(`/storages/${storage.id}`, body) : api.post<Storage>('/storages', body)
     },
-    { invalidate: storageChangeKeys(storage ? 'updated' : 'created'), success: t(storage ? 'common.saved' : 'storages.created'), onSuccess: () => setOpen(false) },
+    {
+      invalidate: storageChangeKeys(storage ? 'updated' : 'created'),
+      success: t(storage ? 'common.saved' : 'storages.created'),
+      onSuccess: (saved) => {
+        setOpen(false)
+        if (photo) uploadPhoto.mutate({ id: saved.id, file: photo })
+      },
+    },
   )
+
+  function pick(input: HTMLInputElement) {
+    const file = input.files?.[0] ?? null
+    if (file && file.size > PHOTO_MAX) {
+      toast.error(t('storages.photoTooBig', { limit: formatBytes(PHOTO_MAX) }))
+      input.value = ''
+      setPhoto(null)
+    } else setPhoto(file)
+  }
   const removePhoto = useAction(() => api.del(`/storages/${storage!.id}/photo`), {
     invalidate: [['storages']],
     success: t('storages.photoDeleted'),
@@ -144,7 +174,7 @@ function StorageForm({ storage }: { storage?: Storage }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={openChange}>
       <DialogTrigger asChild>
         {storage ? (
           <Button variant="ghost" size="icon-sm" aria-label={t('common.edit')}>
@@ -171,7 +201,7 @@ function StorageForm({ storage }: { storage?: Storage }) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="storage-photo">{t('storages.photo')}</Label>
-            <Input id="storage-photo" type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+            <Input id="storage-photo" type="file" accept={PHOTO_TYPES} onChange={(e) => pick(e.target)} />
             {storage?.has_photo && (
               <Button type="button" variant="link" className="justify-self-start px-0" onClick={() => removePhoto.mutate()}>
                 {t('storages.deletePhoto')}

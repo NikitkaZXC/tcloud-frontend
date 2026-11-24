@@ -526,6 +526,8 @@ export const en: Record<Key, Entry> = {
   'storages.none': 'No storages yet.',
   'storages.photo': 'Channel photo',
   'storages.photoDeleted': 'Photo deleted',
+  'storages.photoFailed': 'Storage saved, but the photo was not uploaded: {error}',
+  'storages.photoTooBig': 'Photo is larger than {limit}',
   'storages.size': 'size',
   'storages.totals': 'Totals',
   'tasks.cancel': 'Cancel',
