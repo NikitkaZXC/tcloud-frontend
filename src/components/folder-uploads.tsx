@@ -191,8 +191,8 @@ export function FolderUploads({ path }: { path: string }) {
         <Row
           key={item.id}
           name={name(item.path)}
-          label={item.cancelled ? t('uploads.cancelled') : item.loaded ? t('step.uploading') : t('uploads.waiting')}
-          fraction={item.cancelled ? undefined : item.loaded ? item.loaded / Math.max(item.total, 1) : null}
+          label={item.cancelled ? t('uploads.cancelled') : item.conflict ? t('uploads.conflict') : item.loaded ? t('step.uploading') : t('uploads.waiting')}
+          fraction={item.cancelled || item.conflict ? undefined : item.loaded ? item.loaded / Math.max(item.total, 1) : null}
           meta={item.cancelled || !item.loaded ? undefined : [`${formatBytes(item.loaded)} / ${formatBytes(item.total)}`, speedText(item.rate, item.rate ? (item.total - item.loaded) / item.rate : null)].filter(Boolean).join(' · ')}
           steps={trail(taskPhases({ step: null, archive: null }, { source: 'device', encrypt: !!item.encrypt }), 'upload', item.cancelled ? 'cancelled' : 'running')}
           muted={item.cancelled}

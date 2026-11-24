@@ -68,6 +68,13 @@ sequenceDiagram
             B-->>U: Task
             U-->>D: task
             D->>T: hintTask(id, {source: device, encrypt}),<br/>setQueryData(['task', id], task), trackTask(task.id)<br/>(виджет сразу видит задачу, новый запрос — сразу при монтировании)
+        else 409 conflict (без «Применить ко всем» в этой пачке)
+            U->>U: askConflict: элемент «файл уже есть — ждёт решения», вопрос в очередь ConflictDialog
+            alt «Заменить» / «Оставить оба»
+                U->>B: тот же запрос с on_conflict=replace / keep_both (один раз)
+            else «Отмена» / крестик у элемента
+                U-->>D: ничего не отправлять, элемент убрать
+            end
         else «Отменить» (cancelSending → abort → xhr.abort())
             U-->>D: AbortError — без уведомления
         else ошибка
@@ -83,6 +90,17 @@ sequenceDiagram
   `beforeunload`, чтобы браузер спросил перед закрытием.
 - Ссылки: `parseUrlLines` (строка `url` или `url | имя`) → `POST /api/uploads/batch {items}`; для каждого элемента с
   `task` — `setQueryData(['task', id], task)` и `trackTask`, с `error` — уведомление.
+- Конфликт имени: `UploadDialog` шлёт `on_conflict` из настроек/диалога; только если это `error` и путь занят, сервер
+  отвечает `409 conflict` с `suggested_name` (у `POST /api/uploads` и у создания сессии одинаково). `sendTracked` с
+  `Batch` (одна на «Загрузить») ставит вопрос в очередь (`askConflict`, `useConflicts`); `ConflictDialog` (в `Layout`,
+  `components/upload-dialog.tsx`) показывает первый: «Заменить» (повтор с `replace`; права на удаление фронт не знает —
+  кнопка есть всегда, `403` придёт обычной ошибкой), «Оставить оба» (повтор с `keep_both`, подпись «скорее всего получит
+  имя `suggested_name`»), «Отмена» (и Esc) — ничего не отправлять, элемент сразу пропадает. Флажок «Применить ко всем»
+  (если в пачке больше одного файла) отвечает сразу на все ждущие вопросы этой пачки и запоминается в `Batch.choice`
+  для следующих. Пока вопрос открыт, остальные файлы пачки ждут (отправка последовательная), элемент виден в
+  `FolderUploads` как «файл уже есть — ждёт решения»; крестик у него или «Отменить всё» снимают вопрос. Повтор
+  спрашивает не больше одного раза; `409 upload_in_progress` — по-прежнему уведомление. Продолжение сессии
+  (`resumeUpload`) не спрашивает: конфликт проверен при её создании.
 - После ответа (обычного или сессии) `sendTracked` делает `hintTask`, `setQueryData`, `trackTask`, а ошибку показывает
   уведомлением «имя: ошибка» (отмена — молча). `413 too_large` и `chunk_too_large` показывают `limit` размером
   (`errorParams` в `lib/api.ts`).
@@ -102,7 +120,9 @@ sequenceDiagram
     U->>B: POST /api/uploads/sessions?size=N&path=…&опции
     alt 200 Task (on_conflict=skip)
         B-->>U: задача done, сессии нет
-    else 409 conflict / 413 too_large / 429 / 507
+    else 409 conflict
+        B-->>U: вопрос ConflictDialog, как у POST /api/uploads, повтор с replace / keep_both
+    else 413 too_large / 429 / 507 / upload_in_progress
         B-->>U: ошибка → toast, как у POST /api/uploads
     else 201 UploadSession
         U->>L: tcloud.uploads.sessions += {session_id, path, size, name, lastModified, expires_at, encrypt}
@@ -185,6 +205,9 @@ stateDiagram-v2
     [*] --> Sending: startSending
     Sending --> Tracked: uploadFile ok → trackTask
     Sending --> [*]: ошибка отправки → toast
+    Sending --> Conflict: 409 conflict
+    Conflict --> Sending: «Заменить» / «Оставить оба» (или Batch.choice)
+    Conflict --> [*]: «Отмена» сразу, крестик — через 3 с
     Sending --> Aborted: «Отменить» → xhr.abort(), у сессии ещё DELETE
     Sending --> Paused: сессия, повторы сети кончились
     [*] --> Paused: перезагрузка с незаконченной сессией

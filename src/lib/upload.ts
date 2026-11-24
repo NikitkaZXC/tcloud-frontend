@@ -14,6 +14,7 @@ export interface Sending {
   at: number
   encrypt?: boolean
   cancelled?: boolean
+  conflict?: boolean
 }
 
 export function nextRate(item: Pick<Sending, 'loaded' | 'rate' | 'at'>, loaded: number, now: number): number | null {
@@ -281,18 +282,87 @@ async function sendChunks(entry: StoredSession, file: File, session: UploadSessi
   }
 }
 
+export type Resolution = 'replace' | 'keep_both'
+
+export interface Batch {
+  size: number
+  choice?: Resolution | null
+}
+
+export interface Conflict {
+  id: number
+  batch: Batch
+  path: string
+  suggested: string | null
+  resolve: (choice: Resolution | null) => void
+}
+
+let conflicts: Conflict[] = []
+
+function setConflicts(next: Conflict[]) {
+  conflicts = next
+  listeners.forEach((listener) => listener())
+}
+
+export const getConflicts = () => conflicts
+
+export function useConflicts(): Conflict[] {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getConflicts,
+  )
+}
+
+function markConflict(id: number, conflict: boolean) {
+  setSending(sending.map((item) => (item.id === id ? { ...item, conflict, loaded: 0 } : item)))
+}
+
+export function askConflict(id: number, batch: Batch, path: string, suggested: string | null): Promise<Resolution | null> {
+  if (batch.choice !== undefined) return Promise.resolve(batch.choice)
+  markConflict(id, true)
+  return new Promise((resolve) => {
+    const conflict = { id, batch, path, suggested, resolve }
+    sendingSignal(id)?.addEventListener('abort', () => answerConflict(conflict, null), { once: true })
+    setConflicts([...conflicts, conflict])
+  })
+}
+
+export function answerConflict(conflict: Conflict, choice: Resolution | null, all = false) {
+  if (all) conflict.batch.choice = choice
+  const done = conflicts.filter((item) => item === conflict || (all && item.batch === conflict.batch))
+  setConflicts(conflicts.filter((item) => !done.includes(item)))
+  done.forEach((item) => item.resolve(choice))
+}
+
 export async function sendTracked(
   queryClient: QueryClient,
   id: number,
   name: string,
   encrypt: boolean,
-  run: (onProgress: (loaded: number) => void, signal?: AbortSignal) => Promise<Task>,
+  run: (onProgress: (loaded: number) => void, signal?: AbortSignal, onConflict?: Resolution) => Promise<Task>,
+  batch?: Batch,
 ) {
+  let resolution: Resolution | undefined
   try {
-    const task = await run((loaded) => updateSending(id, loaded), sendingSignal(id))
-    hintTask(task.id, { source: 'device', encrypt })
-    queryClient.setQueryData<Task>(['task', task.id], task)
-    trackTask(task.id)
+    for (;;) {
+      try {
+        const task = await run((loaded) => updateSending(id, loaded), sendingSignal(id), resolution)
+        hintTask(task.id, { source: 'device', encrypt })
+        queryClient.setQueryData<Task>(['task', task.id], task)
+        trackTask(task.id)
+        return
+      } catch (e) {
+        if (!batch || resolution || !(e instanceof ApiError && e.code === 'conflict')) throw e
+        const suggested = typeof e.body.suggested_name === 'string' ? e.body.suggested_name : null
+        const choice = await askConflict(id, batch, getSending().find((item) => item.id === id)?.path ?? name, suggested)
+        if (!choice) return
+        resolution = choice
+        markConflict(id, false)
+      }
+    }
   } catch (e) {
     if (!isAbort(e)) showError(e, `${name}: `)
   } finally {

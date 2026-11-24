@@ -24,6 +24,7 @@ import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, Logo, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
 import { Extras, Tip } from '@/components/extras'
 import { TaskWatcher } from '@/components/task-watcher'
+import { ConflictDialog } from '@/components/upload-dialog'
 import { Button } from '@/components/ui/button'
 import { isAdmin, useMe } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
@@ -357,6 +358,7 @@ export function Layout() {
       </DialogPrimitive.Root>
       <div className="min-w-0 flex-1">
         <TaskWatcher />
+        <ConflictDialog />
         <Extras />
         <CommandPalette />
         <CornerHint />

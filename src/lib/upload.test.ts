@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
-import type { UploadOptions } from './types'
-import { CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
+import type { QueryClient } from '@tanstack/react-query'
+import type { Task, UploadOptions } from './types'
+import { answerConflict, type Batch, getConflicts, type Resolution, sendTracked, CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
 
 describe('sending', () => {
   afterEach(() => vi.useRealTimers())
@@ -170,5 +171,105 @@ describe('chunked upload', () => {
     expect(sameFile(entry, new File(['abc'], 'a.txt', { lastModified: 5 }))).toBe(true)
     expect(sameFile(entry, new File(['abc'], 'a.txt', { lastModified: 6 }))).toBe(false)
     expect(sameFile(entry, new File(['ab'], 'a.txt', { lastModified: 5 }))).toBe(false)
+  })
+})
+
+describe('upload conflicts', () => {
+  const queryClient = { setQueryData: vi.fn() } as unknown as QueryClient
+  const conflict = new ApiError(409, { code: 'conflict', message: 'x', suggested_name: 'a-2.txt' })
+  const tick = () => new Promise((resolve) => setTimeout(resolve))
+
+  function runner(fails = 1) {
+    const calls: (Resolution | undefined)[] = []
+    const run = async (_: unknown, __: unknown, onConflict?: Resolution) => {
+      calls.push(onConflict)
+      if (calls.length <= fails) throw conflict
+      return { id: `t${calls.length}`, status: 'queued' } as Task
+    }
+    return { calls, run }
+  }
+
+  it('waits for a choice and retries with it', async () => {
+    const id = startSending('tcloud/s/a.txt', 10)
+    const { calls, run } = runner()
+    const done = sendTracked(queryClient, id, 'a.txt', false, run, { size: 1 })
+    await tick()
+    expect(getConflicts()).toMatchObject([{ id, path: 'tcloud/s/a.txt', suggested: 'a-2.txt' }])
+    expect(getSending()).toMatchObject([{ id, conflict: true }])
+    answerConflict(getConflicts()[0], 'keep_both')
+    await done
+    expect(calls).toEqual([undefined, 'keep_both'])
+    expect(getConflicts()).toEqual([])
+    expect(getSending()).toEqual([])
+  })
+
+  it('cancel sends nothing more and drops the upload', async () => {
+    const id = startSending('tcloud/s/b.txt', 10)
+    const { calls, run } = runner()
+    const done = sendTracked(queryClient, id, 'b.txt', false, run, { size: 1 })
+    await tick()
+    answerConflict(getConflicts()[0], null)
+    await done
+    expect(calls).toEqual([undefined])
+    expect(getSending()).toEqual([])
+  })
+
+  it('aborting the upload answers its question', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    const id = startSending('tcloud/s/c.txt', 10)
+    const { calls, run } = runner()
+    const done = sendTracked(queryClient, id, 'c.txt', false, run, { size: 1 })
+    await Promise.resolve()
+    await Promise.resolve()
+    cancelSending(id)
+    await done
+    expect(calls).toEqual([undefined])
+    expect(getConflicts()).toEqual([])
+    vi.advanceTimersByTime(CANCELLED_HOLD_MS)
+    vi.useRealTimers()
+  })
+
+  it('queues questions one by one and applies a choice to the rest of the batch', async () => {
+    const batch: Batch = { size: 3 }
+    const other: Batch = { size: 2 }
+    const a = runner()
+    const b = runner()
+    const c = runner()
+    const first = sendTracked(queryClient, startSending('tcloud/s/1', 1), '1', false, a.run, batch)
+    const second = sendTracked(queryClient, startSending('tcloud/s/2', 1), '2', false, b.run, other)
+    await tick()
+    expect(getConflicts().map((item) => item.path)).toEqual(['tcloud/s/1', 'tcloud/s/2'])
+    answerConflict(getConflicts()[0], 'replace', true)
+    await first
+    expect(getConflicts().map((item) => item.path)).toEqual(['tcloud/s/2'])
+    await sendTracked(queryClient, startSending('tcloud/s/3', 1), '3', false, c.run, batch)
+    expect(a.calls).toEqual([undefined, 'replace'])
+    expect(c.calls).toEqual([undefined, 'replace'])
+    answerConflict(getConflicts()[0], null)
+    await second
+    expect(b.calls).toEqual([undefined])
+  })
+
+  it('asks only once and never without a batch', async () => {
+    const twice = runner(2)
+    const id = startSending('tcloud/s/d', 1)
+    const done = sendTracked(queryClient, id, 'd', false, twice.run, { size: 1 })
+    await tick()
+    answerConflict(getConflicts()[0], 'replace')
+    await done
+    expect(twice.calls).toEqual([undefined, 'replace'])
+    const resumed = runner()
+    await sendTracked(queryClient, startSending('tcloud/s/e', 1), 'e', false, resumed.run)
+    expect(resumed.calls).toEqual([undefined])
+    expect(getConflicts()).toEqual([])
+  })
+
+  it('treats upload_in_progress as a plain error', async () => {
+    const run = vi.fn(async () => {
+      throw new ApiError(409, { code: 'upload_in_progress', message: 'x' })
+    })
+    await sendTracked(queryClient, startSending('tcloud/s/f', 1), 'f', false, run, { size: 1 })
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(getConflicts()).toEqual([])
   })
 })

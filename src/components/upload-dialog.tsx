@@ -4,7 +4,7 @@ import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,7 +14,8 @@ import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, Task, UploadOptions } from '@/lib/types'
 import { uploadOptions, useSettings } from '@/lib/settings'
-import { sendTracked, startSending, uploadFile, withSendAs } from '@/lib/upload'
+import { answerConflict, type Batch, type Conflict, type Resolution, sendTracked, startSending, uploadFile, useConflicts, withSendAs } from '@/lib/upload'
+import { fileName } from '@/lib/names'
 import { hintTask } from '@/lib/steps'
 import { t } from '@/lib/i18n'
 
@@ -120,8 +121,9 @@ export function UploadDialog({
     onClose()
     setOptions(null)
     toast.success(t('upload.queuedSend', { n: queue.length }))
+    const batch: Batch = { size: queue.length }
     for (const { file, path, id } of queue) {
-      await sendTracked(queryClient, id, file.name, options.encrypt, (onProgress, signal) => uploadFile(file, { ...options, path }, onProgress, signal))
+      await sendTracked(queryClient, id, file.name, options.encrypt, (onProgress, signal, onConflict) => uploadFile(file, { ...options, path, on_conflict: onConflict ?? options.on_conflict }, onProgress, signal), batch)
     }
   }
 
@@ -154,6 +156,38 @@ export function UploadDialog({
           <Button onClick={start}>
             <UploadIcon /> {t('folder.upload')}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function ConflictDialog() {
+  const conflict = useConflicts()[0]
+  return conflict ? <ConflictPrompt key={conflict.id} conflict={conflict} /> : null
+}
+
+function ConflictPrompt({ conflict }: { conflict: Conflict }) {
+  const [all, setAll] = useState(false)
+  const answer = (choice: Resolution | null) => answerConflict(conflict, choice, all)
+  return (
+    <Dialog open onOpenChange={(open) => !open && answer(null)}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t('uploads.conflictTitle')}</DialogTitle>
+          <DialogDescription>{t('uploads.conflictText', { name: fileName(conflict.path) })}</DialogDescription>
+        </DialogHeader>
+        {conflict.suggested && <p className="text-xs text-muted-foreground">{t('uploads.conflictKeepBothHint', { name: conflict.suggested })}</p>}
+        {conflict.batch.size > 1 && (
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={all} onCheckedChange={(v) => setAll(v === true)} />
+            {t('uploads.conflictAll')}
+          </label>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => answer(null)}>{t('common.cancel')}</Button>
+          <Button variant="outline" onClick={() => answer('keep_both')}>{t('uploads.conflictKeepBoth')}</Button>
+          <Button variant="destructive" onClick={() => answer('replace')}>{t('uploads.conflictReplace')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
