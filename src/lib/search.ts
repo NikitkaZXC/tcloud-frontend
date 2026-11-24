@@ -1,5 +1,5 @@
 import { storageIdOf } from './format'
-import type { TFile } from './types'
+import type { FoundFile, SearchResult, TFile } from './types'
 import { getLang, type Key } from './i18n'
 
 export type Scope = 'folder' | 'storage' | 'all'
@@ -149,4 +149,9 @@ export function searchQuery(state: SearchState, offset = 0, limit = 50): string 
   params.set('limit', String(limit))
   params.set('offset', String(offset))
   return params.toString()
+}
+
+export function foundFiles(pages: SearchResult[]): FoundFile[] {
+  const seen = new Set<string>()
+  return pages.flatMap((page) => page.items).filter((file) => !seen.has(file.uuid) && !!seen.add(file.uuid))
 }

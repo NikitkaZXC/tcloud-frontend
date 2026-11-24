@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { foundLocation } from './names'
 import { getLang } from './i18n'
-import { defaultScope, isDesc, EMPTY_SEARCH, hasCriteria, parseSearch, searchQuery, searchUrl, scopePath } from './search'
+import type { FoundFile, SearchResult } from './types'
+import { defaultScope, foundFiles, isDesc, EMPTY_SEARCH, hasCriteria, parseSearch, searchQuery, searchUrl, scopePath } from './search'
 
 const sid = '0190a2b4-0000-7000-8000-000000000000'
 const folder = `tcloud/${sid}/trip/day 1`
@@ -66,4 +67,9 @@ describe('found location', () => {
     expect(foundLocation(`tcloud/${sid}`, { storage_id: sid, storage_name: null }, [{ id: sid, name: 'Архив' }])).toBe('Архив')
     expect(foundLocation(folder, { storage_id: sid, storage_name: null })).toBe('хранилище › trip › day 1')
   })
+})
+
+it('drops files repeated across offset pages', () => {
+  const page = (...ids: string[]) => ({ items: ids.map((uuid) => ({ uuid }) as FoundFile) }) as SearchResult
+  expect(foundFiles([page('a', 'b'), page('b', 'c')]).map((f) => f.uuid)).toEqual(['a', 'b', 'c'])
 })

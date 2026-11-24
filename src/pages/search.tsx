@@ -15,7 +15,7 @@ import { useStorages } from '@/hooks/use-storages'
 import { ApiError, errorMessage } from '@/lib/api'
 import { filesCount, formatBytes, formatDate, formatShortDate, parentPath } from '@/lib/format'
 import { foundLocation } from '@/lib/names'
-import { hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
+import { foundFiles, hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
 import type { FoundFile } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
@@ -179,7 +179,7 @@ export function SearchPage() {
 
   const update = (patch: Partial<SearchState>, replace = false) => navigate(searchUrl({ ...state, ...patch }), { replace })
   const pages = search.data?.pages ?? []
-  const files = pages.flatMap((page) => page.items)
+  const files = foundFiles(pages)
   const folders = pages[0]?.folders ?? []
   const total = pages[0]?.total ?? 0
 
