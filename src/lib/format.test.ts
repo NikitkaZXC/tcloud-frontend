@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crumbs, filesCount, formatBytes, formatCount, formatDuration, formatShortDate, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
+import { crumbs, filesCount, formatBytes, formatCount, formatDuration, formatShortDate, formatSpan, joinPath, parentPath, parseUrlLines, storageIdOf } from './format'
 import { setLang } from './i18n'
 
 const root = 'tcloud/0190a2b4-0000-7000-8000-000000000000'
@@ -77,5 +77,14 @@ describe('formatCount', () => {
     expect(formatCount(1222205)).toBe('1.2M')
     setLang('ru')
     expect(formatCount(12345)).toBe('12,3 тыс.')
+  })
+})
+
+describe('formatSpan', () => {
+  it('writes quota windows and waits in words, at most two units', () => {
+    expect([86400, 30, 300, 90, 3725, 0.4, 90061].map(formatSpan)).toEqual(['1 д', '30 с', '5 мин', '1 мин 30 с', '1 ч 2 мин', '0 с', '1 д 1 ч'])
+    setLang('en')
+    expect(formatSpan(86400)).toBe('1 d')
+    setLang('ru')
   })
 })

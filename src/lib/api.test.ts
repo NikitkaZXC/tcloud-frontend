@@ -75,7 +75,7 @@ describe('quota errors', () => {
 
   it('formats counts, bytes and durations from the error body', () => {
     const send = new ApiError(429, { code: 'send_quota_exceeded', message: 'x', retry_after: 42, limit: 30, window: 60 })
-    expect(errorMessage(send)).toBe('Лимит отправок в Telegram: 30 за 1:00 — повторите через 0:42')
+    expect(errorMessage(send)).toBe('Лимит отправок в Telegram: 30 за 1 мин — повторите через 42 с')
     expect(errorMessage(new ApiError(429, { code: 'too_many_upload_sessions', message: 'x', limit: 10 }))).toBe('Слишком много незаконченных загрузок (не больше 10) — завершите или отмените часть')
     expect(errorMessage(new ApiError(507, { code: 'temp_quota_exceeded', message: 'x', limit: 1024 ** 3, used: 512 * 1024 ** 2 }))).toBe('Ваше место для временных файлов занято: 512,0 MB из 1,0 GB — дождитесь окончания загрузок')
     expect(errorMessage(new ApiError(413, { code: 'body_too_large', message: 'x', limit: 1048576 }))).toBe('Запрос слишком большой для сервера')
@@ -89,7 +89,7 @@ describe('quota errors', () => {
     expect(retryAfter(error)).toBeNull()
     expect(queryRetry(0, error)).toBe(false)
     showError(error)
-    expect(toast.error).toHaveBeenCalledWith('Лимит отправок в Telegram: 30 за 1:00 — повторите через 0:42')
+    expect(toast.error).toHaveBeenCalledWith('Лимит отправок в Telegram: 30 за 1 мин — повторите через 42 с')
   })
 
   it('reads a proxy 413 without a JSON body as body_too_large', async () => {

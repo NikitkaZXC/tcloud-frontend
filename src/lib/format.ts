@@ -1,4 +1,4 @@
-import { getLang, t } from './i18n'
+import { getLang, type Key, t } from './i18n'
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB']
 
 export function formatBytes(bytes: number | null | undefined): string {
@@ -38,6 +38,23 @@ export function formatDuration(seconds: number | null | undefined): string {
   const m = Math.floor((s % 3600) / 60)
   const rest = String(s % 60).padStart(2, '0')
   return h ? `${h}:${String(m).padStart(2, '0')}:${rest}` : `${m}:${rest}`
+}
+
+const SPANS: [number, Key][] = [
+  [86400, 'duration.d'],
+  [3600, 'duration.h'],
+  [60, 'duration.min'],
+  [1, 'duration.s'],
+]
+
+export function formatSpan(seconds: number): string {
+  let rest = Math.max(Math.round(seconds), 0)
+  const parts = SPANS.flatMap(([size, key]) => {
+    const n = Math.floor(rest / size)
+    rest %= size
+    return n ? [t(key, { n })] : []
+  })
+  return parts.slice(0, 2).join(' ') || t('duration.s', { n: 0 })
 }
 
 export function joinPath(base: string, name: string): string {

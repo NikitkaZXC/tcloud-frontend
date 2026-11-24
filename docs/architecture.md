@@ -164,7 +164,7 @@ flowchart LR
 `429 too_many_upload_sessions` (`limit`) `retryAfter` не считает (`QUOTA_CODES`): общего тоста и повторов нет, ошибка
 показывается обычным `showError`/`useAction` своей фразой. `errorParams` подставляет в фразы `limit` (числом для
 `send_quota_exceeded`/`too_many_upload_sessions`/`too_many_items`, иначе размером), `used` (размер), `window` и
-`retry` (`formatDuration`): так же `507 temp_quota_exceeded` (`limit`, `used`). `413` без JSON-тела (nginx режет
+`retry` (`formatSpan`: словами, не больше двух единиц — «1 д», «1 мин 30 с»): так же `507 temp_quota_exceeded` (`limit`, `used`). `413` без JSON-тела (nginx режет
 `/api/` на 1 МиБ) читается как `body_too_large`, как и ответ API на тело больше `APP_MAX_BODY_SIZE`.
 
 ```mermaid

@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { formatBytes, formatDuration } from './format'
+import { formatBytes, formatSpan } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody } from './types'
 
@@ -141,8 +141,8 @@ function errorParams(body: ApiErrorBody): Record<string, string> {
   const params: Record<string, string> = {}
   if (typeof body.limit === 'number') params.limit = COUNT_LIMITS.has(body.code) ? String(body.limit) : formatBytes(body.limit)
   if (typeof body.used === 'number') params.used = formatBytes(body.used)
-  if (typeof body.window === 'number') params.window = formatDuration(body.window)
-  if (typeof body.retry_after === 'number') params.retry = formatDuration(body.retry_after)
+  if (typeof body.window === 'number') params.window = formatSpan(body.window)
+  if (typeof body.retry_after === 'number') params.retry = formatSpan(body.retry_after)
   return params
 }
 
