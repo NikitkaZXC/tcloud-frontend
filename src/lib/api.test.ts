@@ -47,6 +47,23 @@ describe('api', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('refreshes and repeats other /auth/* calls on 401', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json(401, { error: { code: 'token_expired', message: 'x' } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(json(200, []))
+    vi.stubGlobal('fetch', fetch)
+    await expect(api.get('/auth/sessions')).resolves.toEqual([])
+    expect(fetch.mock.calls.map((c) => c[0])).toEqual(['/api/auth/sessions', '/api/auth/refresh', '/api/auth/sessions'])
+    for (const url of ['/auth/refresh', '/auth/logout']) {
+      const once = vi.fn().mockResolvedValue(json(401, { error: { code: 'token_expired', message: 'x' } }))
+      vi.stubGlobal('fetch', once)
+      await expect(api.post(url)).rejects.toMatchObject({ status: 401 })
+      expect(once).toHaveBeenCalledTimes(1)
+    }
+  })
+
   it('drops undefined query values', () => {
     expect(withQuery('/a', { path: 'tcloud/x y', b: undefined, c: false })).toBe('/a?path=tcloud%2Fx+y&c=false')
   })
@@ -105,6 +122,8 @@ describe('rate limit', () => {
     vi.mocked(toast.error).mockClear()
     await api.post('/auth/signin', {}).catch(() => null)
     expect(toast.error).not.toHaveBeenCalled()
+    await api.post('/auth/password', {}).catch(() => null)
+    expect(toast.error).toHaveBeenCalledWith('Слишком много запросов — повторите через 12 с', { id: RATE_LIMIT_TOAST })
   })
 
   it('retries a 429 query only after retry_after seconds', () => {

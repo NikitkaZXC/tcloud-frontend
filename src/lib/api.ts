@@ -67,6 +67,8 @@ export function queryRetry(count: number, error: unknown): boolean {
 
 export const queryRetryDelay = (count: number, error: unknown) => (retryAfter(error) ?? Math.min(2 ** count, 30)) * 1000
 
+const NO_REFRESH = new Set(['/auth/signin', '/auth/refresh', '/auth/logout'])
+
 let refreshing: Promise<boolean> | null = null
 
 export function refreshSession(): Promise<boolean> {
@@ -93,13 +95,13 @@ export async function request<T = void>(
   }
   const full = withQuery(`/api${url}`, options.query)
   let response = await fetch(full, init)
-  if (response.status === 401 && options.retry !== false && !url.startsWith('/auth/')) {
+  if (response.status === 401 && options.retry !== false && !NO_REFRESH.has(url)) {
     if (await refreshSession()) response = await fetch(full, init)
   }
   if (!response.ok) {
     const error = await toError(response)
     const wait = retryAfter(error)
-    if (wait != null && !url.startsWith('/auth/')) notifyRateLimit(wait)
+    if (wait != null && url !== '/auth/signin') notifyRateLimit(wait)
     throw error
   }
   if (response.status === 204) return undefined as T

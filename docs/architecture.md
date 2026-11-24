@@ -148,8 +148,8 @@ flowchart LR
 заголовком `Retry-After: N`. `toError` кладёт в `body.retry_after` значение из тела, иначе из заголовка (минимум 1 с);
 `retryAfter(error)` отдаёт N только для 429. Уведомление одно на всё приложение: `notifyRateLimit` — `toast.error` с
 фиксированным `id` (`RATE_LIMIT_TOAST`), повторные 429 обновляют тот же тост, а не добавляют новые. Обычные
-уведомления об ошибке (`showError`, `useAction`) 429 пропускают. Пути `/auth/*` тост не показывают: вход сам выводит
-`rate_limited` с обратным отсчётом. Отправка файла (XHR в `lib/upload.ts`) показывает тот же тост.
+уведомления об ошибке (`showError`, `useAction`) 429 пропускают. Только `/auth/signin` тост не показывает: вход сам выводит
+`rate_limited` с обратным отсчётом; остальные `/auth/*` (пароль, сессии) показывают общий тост. Отправка файла (XHR в `lib/upload.ts`) показывает тот же тост.
 
 Квоты — не rate limit: `429 send_quota_exceeded` (`retry_after`, `limit`, `window`; квота отправок в Telegram) и
 `429 too_many_upload_sessions` (`limit`) `retryAfter` не считает (`QUOTA_CODES`): общего тоста и повторов нет, ошибка
@@ -191,7 +191,7 @@ sequenceDiagram
     C->>R: api.get('/users/me')
     R->>B: GET /api/users/me (cookie access)
     B-->>R: 401
-    alt url не начинается с /auth/ и retry !== false
+    alt url не /auth/signin, /auth/refresh, /auth/logout и retry !== false
         R->>F: refreshSession()
         Note over F: параллельные 401 ждут один и тот же<br/>промис refreshing
         F->>B: POST /api/auth/refresh (cookie refresh)
