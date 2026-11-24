@@ -849,7 +849,7 @@ export function FolderView({ path }: { path: string }) {
           {entries.map((entry) => (entry.type === 'folder' ? folderTile(entry.item) : fileTile(entry.item)))}
         </ul>
       )}
-      {!empty && listing.hasNextPage && !listing.isPlaceholderData && <LoadMore loading={listing.isFetchingNextPage} onMore={() => listing.fetchNextPage()} left={total - order.length} />}
+      {!empty && listing.hasNextPage && !listing.isPlaceholderData && <LoadMore loading={listing.isFetchingNextPage} failed={listing.isFetchNextPageError} onMore={() => listing.fetchNextPage()} left={total - order.length} />}
 
       <FileDialog file={opened} onClose={() => setOpened(null)} />
       <UploadDialog folder={path} files={files} onClose={() => setFiles([])} />
@@ -859,7 +859,7 @@ export function FolderView({ path }: { path: string }) {
   )
 }
 
-function LoadMore({ loading, onMore, left }: { loading: boolean; onMore: () => void; left: number }) {
+export function LoadMore({ loading, failed, onMore, left }: { loading: boolean; failed: boolean; onMore: () => void; left: number }) {
   const sentinel = useRef<HTMLDivElement>(null)
   const more = useRef(onMore)
   useEffect(() => {
@@ -867,11 +867,11 @@ function LoadMore({ loading, onMore, left }: { loading: boolean; onMore: () => v
   })
   useEffect(() => {
     const element = sentinel.current
-    if (loading || !element || typeof IntersectionObserver === 'undefined') return
+    if (loading || failed || !element || typeof IntersectionObserver === 'undefined') return
     const observer = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && more.current(), { rootMargin: '0px 0px 600px 0px' })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [loading])
+  }, [loading, failed])
   return (
     <div ref={sentinel} className="flex justify-center py-2" aria-live="polite">
       {loading ? (
