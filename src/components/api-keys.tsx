@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
-import { toast } from 'sonner'
+import { copy } from '@/lib/clipboard'
 import { Confirm } from '@/components/confirm'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,7 +56,7 @@ export function ApiKeys({ userId }: { userId: string }) {
                 size="icon-sm"
                 variant="outline"
                 aria-label={t('common.copy')}
-                onClick={() => navigator.clipboard.writeText(issued).then(() => toast.success(t('common.copied')))}
+                onClick={() => copy(issued, t('keys.copied'))}
               >
                 <CopyIcon />
               </Button>
