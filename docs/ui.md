@@ -22,7 +22,7 @@
 
 ## Вход
 
-`/login` (`pages/login.tsx`): автофокус на логине, показать/скрыть пароль, предупреждение о Caps Lock, кнопка выключена
+`/login` (`pages/login.tsx`): автофокус на логине (`maxLength` 64, как у бэкенда), показать/скрыть пароль, предупреждение о Caps Lock, кнопка выключена
 во время запроса. Ошибки `POST /api/auth/signin` переводятся по `code` (`describeError` в `src/lib/auth.ts`):
 `invalid_credentials`, `account_locked` (после `JWT_MAX_FAILED_LOGINS` неверных паролей), `rate_limited` (лимит
 попыток с IP), `user_blocked`. У `account_locked`/`rate_limited` бэкенд отдаёт `retry_after` (с): обратный отсчёт,

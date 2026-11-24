@@ -80,6 +80,7 @@ flowchart LR
     key --> kKeys["api-keys, id"]
     upSess --> kUpSess["upload-sessions, id"]
     pwd --> kSessions["sessions"]
+    pwd --> kKeys
     sess --> kSessions
     tgStep --> kTelegram["telegram"]
     tgStep --> kHealth["health"]

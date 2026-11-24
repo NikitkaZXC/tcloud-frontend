@@ -24,6 +24,7 @@ describe('selection archive', () => {
     expect(archiveError(new ApiError(500, { code: 'boom', message: 'x' }))).toBe('x (boom)')
     expect(archiveError(new ApiError(413, { code: 'too_large', message: 'x', limit: 10 * 1024 ** 3 }))).toBe('Архив больше лимита сервера (10,0 GB) — выберите меньше')
     expect(archiveError(new ApiError(413, { code: 'body_too_large', message: 'x', limit: 1048576 }))).toBe('Выбрано слишком много длинных путей — выберите меньше папок за раз')
+    expect(archiveError(new ApiError(507, { code: 'temp_quota_exceeded', message: 'x', limit: 1024 ** 3, used: 1024 ** 3 }))).toContain('1,0 GB из 1,0 GB')
     expect(archiveError(new ApiError(409, { code: 'archive_in_progress', message: 'x' }))).toBe('Архив уже собирается — дождитесь его, потом начните следующий')
   })
 })

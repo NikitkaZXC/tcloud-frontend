@@ -65,7 +65,7 @@ export function LoginPage() {
             <form onSubmit={submit} className="grid gap-4" aria-busy={busy}>
               <div className="grid gap-2">
                 <Label htmlFor="login">{t('login.login')}</Label>
-                <Input id="login" autoComplete="username" autoFocus value={login} onChange={(e) => setLogin(e.target.value)} required />
+                <Input id="login" autoComplete="username" maxLength={64} autoFocus value={login} onChange={(e) => setLogin(e.target.value)} required />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">{t('login.password')}</Label>

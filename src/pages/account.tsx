@@ -50,7 +50,7 @@ function PasswordCard() {
   const [next, setNext] = useState('')
   const change = useAction(() => api.post('/auth/password', { current_password: current, new_password: next }), {
     success: t('account.passwordChanged'),
-    invalidate: [['sessions']],
+    invalidate: [['sessions'], ['api-keys']],
     onSuccess: () => {
       setCurrent('')
       setNext('')
@@ -77,6 +77,7 @@ function PasswordCard() {
             <Label htmlFor="new-password">{t('account.new')}</Label>
             <Input id="new-password" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
           </div>
+          <p className="text-xs text-muted-foreground">{t('account.passwordNote')}</p>
           <Button type="submit" className="justify-self-start" disabled={change.isPending}>
             {t('account.change')}
           </Button>
