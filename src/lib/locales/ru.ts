@@ -179,6 +179,8 @@ export const ru = {
   'error.user_session_not_found': 'Сессия не найдена',
   'error.invalidField': 'Поле «{field}»: {message}',
   'error.validation_error': 'Проверьте введённые данные',
+  'error.crashed': 'Что-то пошло не так. Обновите страницу.',
+  'error.reload': 'Обновить страницу',
   'file.dimensions': 'Размеры',
   'file.duration': 'Длительность',
   'file.encryption': 'Шифрование',

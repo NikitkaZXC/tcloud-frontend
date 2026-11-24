@@ -179,6 +179,8 @@ export const en: Record<Key, Entry> = {
   'error.user_session_not_found': 'Session not found',
   'error.invalidField': 'Field «{field}»: {message}',
   'error.validation_error': 'Check the entered data',
+  'error.crashed': 'Something went wrong. Reload the page.',
+  'error.reload': 'Reload page',
   'file.dimensions': 'Dimensions',
   'file.duration': 'Duration',
   'file.encryption': 'Encryption',

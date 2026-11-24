@@ -203,6 +203,10 @@ export interface Health {
   details?: Record<string, HealthDetail>
 }
 
+export interface PublicHealth {
+  status: 'ok' | 'degraded'
+}
+
 export interface HealthDetail {
   latency_ms: number | null
   last_seen_s: number | null

@@ -52,6 +52,18 @@ export function Tip() {
   return <p className="fx-dotted mt-10 border-t pt-4 text-xs text-muted-foreground">{t('tip.prefix', { tip: t(tip) })}</p>
 }
 
+export function RouteError() {
+  return (
+    <div role="alert" className="fx-page grid justify-items-start gap-5 p-8">
+      <StorageIcon scale={3} off />
+      <p className="text-sm text-muted-foreground">{t('error.crashed')}</p>
+      <Button variant="outline" onClick={() => location.reload()}>
+        {t('error.reload')}
+      </Button>
+    </div>
+  )
+}
+
 export function NotFound() {
   return (
     <div className="fx-page grid justify-items-start gap-5 py-10">

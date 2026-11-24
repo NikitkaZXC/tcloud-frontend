@@ -26,7 +26,9 @@ flowchart TD
 - `QueryClient` (`src/main.tsx`): ретраи только для сетевых ошибок и `5xx` (не больше двух), `ApiError` со статусом
   `< 500` не повторяется; `refetchOnWindowFocus: false`.
 - Роутер — data router (`createBrowserRouter`) с одним маршрутом `*`, внутри которого `<Routes>` из `App`: он нужен
-  для `useBlocker` (дашборд спрашивает подтверждение перед уходом с несохранённым порядком блоков).
+  для `useBlocker` (дашборд спрашивает подтверждение перед уходом с несохранённым порядком блоков). У маршрута есть
+  `errorElement` (`RouteError` из `components/extras.tsx`): ошибка рендера показывает «Что-то пошло не так» и кнопку
+  перезагрузки вместо стандартной страницы React Router.
 - `App` (`src/App.tsx`) монтирует `AppRoutes` с `key={useLang()}`: смена языка пересоздаёт всё дерево маршрутов.
 - Отдельного провайдера темы и i18n нет: оба — модульные сторы на `useSyncExternalStore` (`lib/theme.ts`,
   `lib/i18n.ts`, `lib/settings.ts`).
@@ -228,6 +230,9 @@ sequenceDiagram
 
 - Только `401` от `/users/me` уводит на `/login` (через `Layout`); другие запросы после неудачного refresh просто
   показывают ошибку.
+- `GET /api/health` без действующего access cookie отвечает публичным `{status}` (200, без `workers`): `fetchHealth`
+  (`hooks/use-health.ts`) тогда делает `refreshSession()` и повторяет запрос один раз, а если ответ снова публичный,
+  бросает `ApiError(401, token_expired)`.
 - Загрузка файла через XHR (`uploadFile`, `lib/upload.ts`) делает тот же один `refreshSession()` и повтор.
 - Скачивания и превью — обычные ссылки `/api/files/{id}/download`, `/api/tasks/{id}/archive`, `/api/files/{id}/thumb`:
   cookie уходят сами, refresh для них не делается.
