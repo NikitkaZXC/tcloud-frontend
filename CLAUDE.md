@@ -10,7 +10,8 @@ Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + R
 
 ```bash
 npm run dev     # :5173, proxies /api to API_URL or http://127.0.0.1:8000
-npm test        # vitest (src/**/*.test.ts)
+npm test        # vitest (src/**/*.test.ts, component tests *.test.tsx with jsdom + Testing Library)
+npm run test:cov  # with v8 coverage (coverage/)
 npm run build   # tsc -b && vite build
 npm run lint    # oxlint
 docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env

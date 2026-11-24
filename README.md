@@ -47,6 +47,7 @@ flowchart LR
 npm install
 npm run dev        # http://localhost:5173, /api → http://127.0.0.1:8000 (API_URL=... чтобы сменить)
 npm test           # vitest
+npm run test:cov   # vitest + покрытие (coverage/)
 npm run build      # tsc + сборка в dist/
 npm run lint       # oxlint
 
