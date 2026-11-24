@@ -30,7 +30,8 @@ const listeners = new Set<() => void>()
 
 function read(key: string): string[] {
   try {
-    return JSON.parse(localStorage.getItem(key) ?? '[]')
+    const list = JSON.parse(localStorage.getItem(key) ?? '[]')
+    return Array.isArray(list) ? list.filter((id) => typeof id === 'string') : []
   } catch {
     return []
   }

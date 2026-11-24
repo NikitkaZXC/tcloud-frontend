@@ -93,3 +93,16 @@ describe('task loader', () => {
     await expect(load('a')).rejects.toThrow('down')
   })
 })
+
+describe('stored task ids', () => {
+  it('ignores non-array or mixed JSON in localStorage', async () => {
+    localStorage.setItem('tcloud.tasks', '{"a":1}')
+    localStorage.setItem('tcloud.tasks.pending', '[1,"p",null]')
+    vi.resetModules()
+    const tasks = await import('./tasks')
+    tasks.trackTask('n')
+    expect(JSON.parse(localStorage.getItem('tcloud.tasks')!)).toEqual(['n'])
+    expect(tasks.isPending('n')).toBe(true)
+    localStorage.clear()
+  })
+})
