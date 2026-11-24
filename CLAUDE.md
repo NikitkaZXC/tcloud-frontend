@@ -17,7 +17,7 @@ npm run lint    # oxlint
 docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ```
 
-CI: `.github/workflows/ci.yml` (push to `main` + PR, concurrency cancels older runs: `npm ci`, lint, test, build on Node 26, same as `Dockerfile`; bump both together). Dependabot: `.github/dependabot.yml` (monthly npm, docker, github-actions; each ecosystem in one grouped PR, `open-pull-requests-limit: 2`).
+CI: `.github/workflows/ci.yml` (push to `main` + PR, concurrency cancels older runs: `npm ci`, `npm audit --omit=dev --audit-level=high`, lint, test, build on Node 26, same as `Dockerfile`; bump both together). Dependabot: `.github/dependabot.yml` (monthly npm, docker, github-actions; each ecosystem in one grouped PR, `open-pull-requests-limit: 2`).
 
 ## Architecture
 
