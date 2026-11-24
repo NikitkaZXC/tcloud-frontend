@@ -194,7 +194,7 @@ export function FolderUploads({ path }: { path: string }) {
           label={item.cancelled ? t('uploads.cancelled') : item.conflict ? t('uploads.conflict') : item.loaded ? t('step.uploading') : t('uploads.waiting')}
           fraction={item.cancelled || item.conflict ? undefined : item.loaded ? item.loaded / Math.max(item.total, 1) : null}
           meta={item.cancelled || !item.loaded ? undefined : [`${formatBytes(item.loaded)} / ${formatBytes(item.total)}`, speedText(item.rate, item.rate ? (item.total - item.loaded) / item.rate : null)].filter(Boolean).join(' · ')}
-          steps={trail(taskPhases({ step: null, archive: null }, { source: 'device', encrypt: !!item.encrypt }), 'upload', item.cancelled ? 'cancelled' : 'running')}
+          steps={trail(taskPhases({ step: null, archive: null, source: 'device' }, { encrypt: !!item.encrypt }), 'upload', item.cancelled ? 'cancelled' : 'running')}
           muted={item.cancelled}
           onCancel={item.cancelled ? undefined : () => cancelSending(item.id)}
         />
@@ -205,7 +205,7 @@ export function FolderUploads({ path }: { path: string }) {
           name={name(entry.path)}
           label={t('uploads.paused')}
           meta={formatBytes(entry.size)}
-          steps={trail(taskPhases({ step: null, archive: null }, { source: 'device', encrypt: entry.encrypt }), 'upload', 'cancelled')}
+          steps={trail(taskPhases({ step: null, archive: null, source: 'device' }, { encrypt: entry.encrypt }), 'upload', 'cancelled')}
           muted
           actions={<PickFile onPick={(file) => resume(entry, file)} />}
           onCancel={() => discardSession(entry.session_id)}

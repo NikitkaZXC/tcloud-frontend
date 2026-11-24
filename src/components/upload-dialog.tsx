@@ -216,7 +216,7 @@ export function UrlUploadDialog({ folder, open, onOpenChange }: { folder: string
       const result = await api.post<BatchResponse>('/uploads/batch', { items })
       result.items.forEach((item) => {
         if (item.task) {
-          hintTask(item.task.id, { source: 'url', encrypt: options.encrypt })
+          hintTask(item.task.id, { encrypt: options.encrypt })
           queryClient.setQueryData<Task>(['task', item.task.id], item.task)
           trackTask(item.task.id)
         }

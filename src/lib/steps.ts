@@ -30,7 +30,6 @@ export const stepLabel = (step: string) => (`step.${step}` in DICTIONARIES.ru ? 
 export const phaseLabel = (phase: Phase) => t(`phase.${phase}`)
 
 export interface Hint {
-  source: 'device' | 'url'
   encrypt: boolean
 }
 
@@ -44,12 +43,12 @@ export const taskHint = (id: string) => hints.get(id)
 
 export const clearHints = () => hints.clear()
 
-export function taskPhases(task: Pick<Task, 'step' | 'archive'>, hint?: Hint): Phase[] {
-  if (task.archive) return ['archive']
+export function taskPhases(task: Pick<Task, 'step' | 'archive' | 'source'>, hint?: Hint): Phase[] {
+  if (task.archive || task.source === 'archive') return ['archive']
   const current = task.step ? PHASE_OF[task.step] : null
-  const url = hint ? hint.source === 'url' : current === 'download'
+  const url = task.source ? task.source === 'url' : current === 'download'
   const encrypt = hint ? hint.encrypt : current === 'encrypt'
-  const phases: (Phase | false)[] = [hint?.source === 'device' && 'upload', url && 'download', 'check', encrypt && 'encrypt', 'send']
+  const phases: (Phase | false)[] = [task.source === 'device' && 'upload', url && 'download', 'check', encrypt && 'encrypt', 'send']
   return phases.filter((phase): phase is Phase => !!phase)
 }
 

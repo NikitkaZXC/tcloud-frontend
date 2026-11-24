@@ -27,7 +27,7 @@ beforeEach(() => {
   localStorage.setItem('tcloud.sidebar', 'expanded')
   localStorage.setItem('tcloud.uploads.sessions', JSON.stringify([{ session_id: 's', expires_at: new Date(Date.now() + 60000).toISOString() }]))
   trackTask('t1')
-  hintTask('t1', { source: 'url', encrypt: false })
+  hintTask('t1', { encrypt: false })
 })
 
 afterEach(() => {

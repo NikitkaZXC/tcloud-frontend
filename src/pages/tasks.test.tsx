@@ -1,7 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { hintTask } from '@/lib/steps'
 import type { Me, Task } from '@/lib/types'
 import { json, renderApp } from '@/test-utils'
 import { TaskCard } from './tasks'
@@ -22,13 +21,11 @@ beforeEach(() => {
 })
 
 describe('TaskCard', () => {
-  it('offers retry only for URL tasks', () => {
-    hintTask('u1', { source: 'url', encrypt: false })
-    hintTask('d1', { source: 'device', encrypt: false })
-    show(task('u1'))
+  it('offers retry only when the backend says the task is retryable', () => {
+    show(task('u1', { source: 'url', retryable: true }))
     expect(screen.getAllByRole('button', { name: 'Повторить' })).toHaveLength(1)
-    show(task('d1'))
-    show(task('x1', { status: 'cancelled' }))
+    show(task('d1', { source: 'device', retryable: false }))
+    show(task('x1', { status: 'cancelled', source: 'url', retryable: false }))
     expect(screen.getAllByRole('button', { name: 'Повторить' })).toHaveLength(1)
   })
 

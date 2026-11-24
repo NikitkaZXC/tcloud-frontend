@@ -164,6 +164,8 @@ export interface Task {
   warnings: string[]
   warning_details: TaskWarning[]
   file: TFile | null
+  source: 'device' | 'url' | 'archive' | null
+  retryable: boolean
   archive: { name: string; format: ArchiveFormat; files: number; size: number | null; expires_at: string | null } | null
   created_at: string
   updated_at: string

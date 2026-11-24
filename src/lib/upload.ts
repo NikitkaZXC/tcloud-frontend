@@ -360,7 +360,7 @@ export async function sendTracked(
     for (;;) {
       try {
         const task = await run((loaded) => updateSending(id, loaded), sendingSignal(id), resolution)
-        hintTask(task.id, { source: 'device', encrypt })
+        hintTask(task.id, { encrypt })
         queryClient.setQueryData<Task>(['task', task.id], task)
         trackTask(task.id)
         return
