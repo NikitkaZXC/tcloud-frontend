@@ -122,7 +122,6 @@ export const ru = {
   'error.api_key_not_found': 'Ключ не найден',
   'error.archive_expired': 'Срок хранения архива истёк',
   'error.archive_not_ready': 'Архив ещё собирается',
-  'error.blocked_file_type': 'Такой тип файла запрещён',
   'error.channel_unusable': 'Канал недоступен для записи',
   'error.channels_limit': 'Достигнут лимит каналов Telegram',
   'error.conflict': 'Такой путь уже занят',

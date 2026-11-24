@@ -122,7 +122,6 @@ export const en: Record<Key, Entry> = {
   'error.api_key_not_found': 'Key not found',
   'error.archive_expired': 'The archive has expired',
   'error.archive_not_ready': 'The archive is still being built',
-  'error.blocked_file_type': 'This file type is not allowed',
   'error.channel_unusable': 'The channel cannot be written to',
   'error.channels_limit': 'The Telegram channel limit is reached',
   'error.conflict': 'This path is already taken',
