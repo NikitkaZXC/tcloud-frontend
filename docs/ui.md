@@ -137,7 +137,10 @@ QR рисуется локально (`qrcode.react`): токен входа н�
 
 `/settings` (`pages/settings.tsx`, стор `src/lib/settings.ts`, механика — [data-flow.md](data-flow.md#настройки)).
 Каждое изменение сохраняется сразу (без кнопки «Сохранить»), кроме адреса вебхука: он сохраняется кнопкой, ошибки
-(`422 unsafe_url`, `validation_error` с `loc` `webhook_url`) — под полем (`settingsError`). «Сбросить по умолчанию» —
+(`422 unsafe_url`, `validation_error` с `loc` `webhook_url`) — под полем (`settingsError`). Под адресом — «Показать
+ключ подписи» (`GET /api/account/webhook-secret` → `{user_id, secret}`, 64 hex; держится только в состоянии компонента,
+«Скрыть» и уход со страницы его забывают) с копированием и пояснением: `X-Tcloud-Signature: sha256=HMAC-SHA256(ключ,
+сырое тело)`, владелец — `X-Tcloud-User`. «Сбросить по умолчанию» —
 `DELETE` с подтверждением.
 
 Группы:

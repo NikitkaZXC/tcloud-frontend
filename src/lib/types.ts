@@ -217,6 +217,11 @@ export interface Account {
   previews_enabled: boolean
 }
 
+export interface WebhookSecret {
+  user_id: string
+  secret: string
+}
+
 export interface TelegramLogin {
   step: 'starting' | 'qr' | 'code' | 'password' | 'expired' | 'failed'
   expires_at: string | null

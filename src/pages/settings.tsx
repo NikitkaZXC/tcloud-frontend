@@ -1,12 +1,16 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { RotateCcwIcon } from 'lucide-react'
+import { CopyIcon, RotateCcwIcon } from 'lucide-react'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
 import { PageTitle, PixelToggle, Section } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe } from '@/hooks/use-me'
+import { api } from '@/lib/api'
+import { copy } from '@/lib/clipboard'
+import type { WebhookSecret as WebhookSecretBody } from '@/lib/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PAGE_SIZES, pageSize } from '@/lib/files'
 import { save as saveLocal } from '@/lib/prefs'
@@ -221,7 +225,33 @@ function Webhook({ value }: { value: string | null }) {
           {error}
         </p>
       )}
+      <WebhookSecret />
     </form>
+  )
+}
+
+function WebhookSecret() {
+  const [secret, setSecret] = useState<WebhookSecretBody | null>(null)
+  const reveal = useAction(() => api.get<WebhookSecretBody>('/account/webhook-secret'), { onSuccess: setSecret })
+  return (
+    <div className="grid gap-2 border-t pt-2">
+      <p className="max-w-xl text-xs text-muted-foreground">{t('settings.webhookSignature')}</p>
+      {secret ? (
+        <div className="flex flex-wrap gap-2">
+          <Input readOnly value={secret.secret} aria-label={t('settings.webhookSecret')} className="min-w-0 flex-1 basis-64" onFocus={(e) => e.target.select()} />
+          <Button type="button" variant="outline" onClick={() => copy(secret.secret, t('settings.webhookSecret'))}>
+            <CopyIcon /> {t('common.copy')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => setSecret(null)}>
+            {t('settings.webhookSecretHide')}
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" variant="outline" className="justify-self-start" disabled={reveal.isPending} onClick={() => reveal.mutate()}>
+          {t('settings.webhookSecretShow')}
+        </Button>
+      )}
+    </div>
   )
 }
 
