@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftIcon, Trash2Icon, XIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { PageTitle, PixelToggle } from '@/components/fx'
@@ -17,9 +17,9 @@ import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
 import { api } from '@/lib/api'
-import { storageName } from '@/lib/names'
-import { formatShortDate } from '@/lib/format'
-import type { Grant, Role, User } from '@/lib/types'
+import { humanPath, storageName } from '@/lib/names'
+import { formatBytes, formatShortDate } from '@/lib/format'
+import type { Grant, Role, UploadSession, User } from '@/lib/types'
 import { t } from '@/lib/i18n'
 
 export function UserPage() {
@@ -108,6 +108,7 @@ export function UserPage() {
         )}
         {u.role === 'user' && <Grants userId={id} />}
         <ApiKeys userId={id} />
+        {managed && (me?.role === 'root' || u.role === 'user') && <UploadSessions userId={id} />}
       </div>
     </div>
   )
@@ -176,6 +177,43 @@ function Grants({ userId }: { userId: string }) {
             {t('user.grant')}
           </Button>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function UploadSessions({ userId }: { userId: string }) {
+  const key = ['upload-sessions', userId]
+  const sessions = useQuery({ queryKey: key, queryFn: () => api.get<UploadSession[]>('/uploads/sessions', { user_id: userId }) })
+  const storages = useStorages()
+  const cancel = useAction((session: UploadSession) => api.del(`/uploads/sessions/${session.session_id}`), {
+    invalidate: [key],
+    success: t('user.uploadCancelled'),
+  })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('user.uploads')}</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {sessions.error && <p className="text-sm text-destructive">{sessions.error.message}</p>}
+        {sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('user.uploadsNone')}</p>}
+        {sessions.data?.map((session) => (
+          <div key={session.session_id} className="flex items-center gap-2 text-sm">
+            <div className="grid min-w-0 flex-1">
+              <span className="truncate">{humanPath(session.path, storages.data ?? [])}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatBytes(session.offset)} / {formatBytes(session.size)} · {t('user.uploadExpires', { date: formatShortDate(session.expires_at) })}
+              </span>
+            </div>
+            <Confirm title={t('user.uploadCancelQ')} description={t('user.uploadCancelHint')} onConfirm={() => cancel.mutate(session)}>
+              <Button variant="ghost" size="icon-sm" aria-label={t('common.cancel')}>
+                <XIcon />
+              </Button>
+            </Confirm>
+          </div>
+        ))}
       </CardContent>
     </Card>
   )

@@ -255,6 +255,7 @@ export interface UploadOptions {
 
 export interface UploadSession {
   session_id: string
+  user_id: string
   path: string
   size: number
   offset: number

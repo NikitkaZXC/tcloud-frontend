@@ -27,6 +27,7 @@
 | `['user', id]` | `GET /users/{id}` | `pages/user.tsx` | |
 | `['grants', userId]` | `GET /users/{id}/grants` | `pages/user.tsx` | |
 | `['api-keys', userId]` | `GET /users/{id}/api-keys` | `components/api-keys.tsx` | |
+| `['upload-sessions', userId]` | `GET /uploads/sessions?user_id=` | `pages/user.tsx` | карточка «Незаконченные загрузки» (root — любой, admin — роль `user`), крестик — `DELETE /uploads/sessions/{id}` |
 | `['sessions']` | `GET /auth/sessions` | `pages/account.tsx` | |
 
 ## Мутации и инвалидация
@@ -55,6 +56,7 @@ flowchart LR
         uDel["DELETE /users/{id}"]
         grant["PUT/DELETE grants"]
         key["POST/DELETE api-keys"]
+        upSess["DELETE /uploads/sessions/{id}"]
     end
     subgraph acc["Аккаунт и Telegram"]
         pwd["POST /auth/password"]
@@ -76,6 +78,7 @@ flowchart LR
     uDel --> kUsers
     grant --> kGrants["grants, id"]
     key --> kKeys["api-keys, id"]
+    upSess --> kUpSess["upload-sessions, id"]
     pwd --> kSessions["sessions"]
     sess --> kSessions
     tgStep --> kTelegram["telegram"]

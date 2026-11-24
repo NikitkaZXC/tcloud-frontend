@@ -108,7 +108,7 @@ describe('chunked upload', () => {
   }
 
   const big = { name: 'big.bin', size: CHUNK_SIZE + 10, lastModified: 1, slice: () => new Blob(['x']) } as unknown as File
-  const session = (offset: number) => ({ session_id: 's1', path: 'tcloud/s/big.bin', size: big.size, offset, chunk_size: CHUNK_SIZE, expires_at: '2999-01-01T00:00:00Z' })
+  const session = (offset: number) => ({ session_id: 's1', user_id: 'u1', path: 'tcloud/s/big.bin', size: big.size, offset, chunk_size: CHUNK_SIZE, expires_at: '2999-01-01T00:00:00Z' })
   const options = { path: 'tcloud/s/big.bin', send_as: 'file', on_conflict: 'error', priority: 'normal', allow_unscannable: false, encrypt: true } as UploadOptions
 
   it('sends parts from the server offset and returns the queued task', async () => {
