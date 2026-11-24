@@ -62,6 +62,7 @@ describe('task codes', () => {
     setLang('en')
     expect(warningText({ code: 'archive_file_gone', params: { name: 'a/b.txt' }, message: 'x' })).toBe('a/b.txt: no longer in Telegram, left out of the archive')
     expect(warningText({ code: 'archive_files_deleted', params: { count: 2 }, message: 'x' })).toBe('2 selected files were deleted before the archive was built')
+    expect(warningText({ code: 'too_big_to_scan', params: { limit: 2 * 1024 ** 3 }, message: 'x' })).toBe('The file exceeds the antivirus limit (2.0 GB) — accepted without a virus scan')
     expect(warningText({ code: 'other', params: {}, message: 'legacy text' })).toBe('legacy text')
     expect(warningText({ code: 'brand_new', params: {}, message: 'new text' })).toBe('new text')
     expect(waitingText({ code: 'queue', params: { queue: 'uploads.telegram' }, reason: 'queue:uploads.telegram', seconds: null })).toBe('Telegram upload queue')

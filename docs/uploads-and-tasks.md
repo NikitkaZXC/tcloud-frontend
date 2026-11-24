@@ -250,7 +250,7 @@ stateDiagram-v2
 
 Ожидание и предупреждения переводятся по кодам бэкенда (`waitingText`, `warningText` в `lib/tasks.ts`):
 `task.waiting.code` → ключ `taskWaiting.<code>` (для `queue` — `taskWaiting.queue.<params.queue>`), каждый
-`task.warning_details[]` → `taskWarning.<code>` с `params` (`count` идёт в плюрал как `n`). Неизвестный код (и `other`)
+`task.warning_details[]` → `taskWarning.<code>` с `params` (`count` идёт в плюрал как `n`, `limit` в байтах форматируется `formatBytes`, напр. `too_big_to_scan`). Неизвестный код (и `other`)
 показывается английским текстом бэкенда (`reason` / `message`). Таблица кодов — `tcloud-backend/docs/flows/uploads.md`.
 
 ### Шаги и отмена в виджете загрузок

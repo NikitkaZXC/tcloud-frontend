@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { ApiError } from './api'
-import { parentPath } from './format'
+import { formatBytes, parentPath } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { Task, TaskWaiting, TaskWarning } from './types'
 
@@ -60,7 +60,8 @@ function write(next: string[], nextPending = pending) {
 }
 
 function codeText(key: string, params: TaskWarning['params'], fallback: string): string {
-  return key in DICTIONARIES.ru ? t(key as Key, 'count' in params ? { ...params, n: params.count } : params) : fallback
+  if (!(key in DICTIONARIES.ru)) return fallback
+  return t(key as Key, { ...params, ...('count' in params && { n: params.count }), ...(typeof params.limit === 'number' && { limit: formatBytes(params.limit) }) })
 }
 
 export const warningText = (warning: TaskWarning) => codeText(`taskWarning.${warning.code}`, warning.params, warning.message)
