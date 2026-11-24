@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useAction } from '@/hooks/use-action'
-import { api } from '@/lib/api'
+import { api, errorMessage } from '@/lib/api'
 import { formatDate, formatShortDate } from '@/lib/format'
 import type { ApiKey } from '@/lib/types'
 import { t } from '@/lib/i18n'
@@ -63,7 +63,7 @@ export function ApiKeys({ userId }: { userId: string }) {
             </div>
           </div>
         )}
-        {keys.error && <p className="text-sm text-destructive">{keys.error.message}</p>}
+        {keys.error && <p className="text-sm text-destructive">{errorMessage(keys.error)}</p>}
         {keys.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('keys.none')}</p>}
         <ul className="grid divide-y">
           {keys.data?.map((k) => (

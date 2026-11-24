@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useMimes, useSearch } from '@/hooks/use-search'
 import { useStorages } from '@/hooks/use-storages'
-import { ApiError } from '@/lib/api'
+import { ApiError, errorMessage } from '@/lib/api'
 import { filesCount, formatBytes, formatDate, formatShortDate, parentPath } from '@/lib/format'
 import { foundLocation } from '@/lib/names'
 import { hasCriteria, hasFilters, isDesc, KINDS, MIMES_MAX, parseSearch, SEARCH_SORTS, type SearchSort, type SearchState, scopePath, searchUrl, SIZE_UNITS } from '@/lib/search'
@@ -22,11 +22,11 @@ import { t } from '@/lib/i18n'
 const folderLink = (path: string) => `/files?path=${encodeURIComponent(path)}`
 
 function describe(error: unknown): string {
-  if (!(error instanceof ApiError)) return String(error)
+  if (!(error instanceof ApiError)) return errorMessage(error)
   if (error.code === 'validation_error') return t('search.validation')
   if (error.code === 'forbidden') return t('search.forbidden')
   if (error.code === 'folder_not_found' || error.code === 'storage_not_found') return t('search.gone')
-  return error.message
+  return errorMessage(error)
 }
 
 function SizeFilter({ state, update }: { state: SearchState; update: (patch: Partial<SearchState>, replace?: boolean) => void }) {

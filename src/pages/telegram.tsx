@@ -15,7 +15,7 @@ import { useHealth } from '@/hooks/use-health'
 import { useAccount } from '@/hooks/use-storages'
 import { useAction } from '@/hooks/use-action'
 import { useCountdown, useNow } from '@/hooks/use-countdown'
-import { api } from '@/lib/api'
+import { api, errorMessage } from '@/lib/api'
 import { activeSession, describeError, qrExpired, retryAfterOf, SESSION_ORDER } from '@/lib/auth'
 import { formatBytes, formatDuration, formatShortDate } from '@/lib/format'
 import { t, type Key } from '@/lib/i18n'
@@ -44,7 +44,7 @@ export function TelegramPage() {
   return (
     <div className="grid gap-4">
       <PageTitle text="Telegram" />
-      {status.error && <p className="text-destructive">{status.error.message}</p>}
+      {status.error && <p className="text-destructive">{errorMessage(status.error)}</p>}
       {status.data && (
         <Card>
           <CardHeader>
@@ -295,7 +295,7 @@ function SystemCard() {
         <CardTitle>{t('dashboard.system')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 text-sm">
-        {health.error && <p className="text-destructive">{health.error.message}</p>}
+        {health.error && <p className="text-destructive">{errorMessage(health.error)}</p>}
         {health.data && <HealthRack health={health.data} />}
         {account.data?.telegram_connected && (
           <p className="text-muted-foreground">
@@ -320,7 +320,7 @@ function DevicesCard() {
         <CardTitle>{t('telegram.devices')}</CardTitle>
       </CardHeader>
       <CardContent>
-        {devices.error && <p className="text-sm text-muted-foreground">{devices.error.message}</p>}
+        {devices.error && <p className="text-sm text-muted-foreground">{errorMessage(devices.error)}</p>}
         <ul className="grid divide-y">
           {devices.data?.map((device) => (
             <li key={device.id} className="flex items-center gap-2 py-2 text-sm">

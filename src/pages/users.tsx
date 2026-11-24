@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
-import { api } from '@/lib/api'
+import { api, errorMessage } from '@/lib/api'
 import { formatDate, formatShortDate } from '@/lib/format'
 import type { Role, User } from '@/lib/types'
 import { t } from '@/lib/i18n'
@@ -26,7 +26,7 @@ export function UsersPage() {
         <PageTitle text={t('nav.users')} />
         <CreateUser />
       </div>
-      {users.error && <p className="text-destructive">{users.error.message}</p>}
+      {users.error && <p className="text-destructive">{errorMessage(users.error)}</p>}
       {users.data && (
         <div className="overflow-hidden rounded-xl border">
           <Table className="table-fixed">

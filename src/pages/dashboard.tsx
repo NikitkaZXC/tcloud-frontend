@@ -44,7 +44,7 @@ function SystemSection() {
   return (
     <Section label={t('dashboard.system')}>
       {health.isPending && <StatusChip status="wait" label={t('dashboard.checking')} />}
-      {health.error && <p className="text-sm text-destructive">{health.error.message}</p>}
+      {health.error && <p className="text-sm text-destructive">{errorMessage(health.error)}</p>}
       {health.data && <HealthRack health={health.data} />}
     </Section>
   )
@@ -58,7 +58,7 @@ function ChannelsSection() {
   return (
     <Section label={t('dashboard.channels')}>
       {account.data?.telegram_connected === false && <p className="text-sm text-muted-foreground">{t('dashboard.telegramOff')}</p>}
-      {account.error && <p className="text-sm text-destructive">{account.error.message}</p>}
+      {account.error && <p className="text-sm text-destructive">{errorMessage(account.error)}</p>}
       <div className="flex flex-wrap items-center justify-center gap-8 sm:justify-start">
         <ChannelsRing usage={usage} />
         <div className={rings}>
@@ -142,7 +142,7 @@ function StoragesSection() {
   return (
     <Section label={t('nav.storages')}>
       {storages.isPending && <StatusChip status="wait" label={t('dashboard.loading')} />}
-      {storages.error && <p className="text-sm text-destructive">{storages.error.message}</p>}
+      {storages.error && <p className="text-sm text-destructive">{errorMessage(storages.error)}</p>}
       {storages.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('dashboard.noStorages')}</p>}
       <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
         {storages.data?.map((storage) => (
@@ -168,7 +168,7 @@ function UsersSection() {
 
   return (
     <Section label={t('nav.users')}>
-      {users.error && <p className="text-sm text-destructive">{users.error.message}</p>}
+      {users.error && <p className="text-sm text-destructive">{errorMessage(users.error)}</p>}
       <ul className={`fx-stagger ${rings}`}>
         {rows.map(([label, count]) => (
           <li key={label}>

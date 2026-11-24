@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAction } from '@/hooks/use-action'
 import { useMe } from '@/hooks/use-me'
 import { useStorages } from '@/hooks/use-storages'
-import { api } from '@/lib/api'
+import { api, errorMessage } from '@/lib/api'
 import { humanPath, storageName } from '@/lib/names'
 import { formatBytes, formatShortDate } from '@/lib/format'
 import type { Grant, Role, UploadSession, User } from '@/lib/types'
@@ -40,7 +40,7 @@ export function UserPage() {
   })
   const [password, setPassword] = useState('')
 
-  if (user.error) return <p className="text-destructive">{user.error.message}</p>
+  if (user.error) return <p className="text-destructive">{errorMessage(user.error)}</p>
   if (!user.data) return null
   const u = user.data
   const managed = u.role !== 'root'
@@ -149,7 +149,7 @@ function Grants({ userId }: { userId: string }) {
         <CardTitle>{t('user.folderAccess')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {grants.error && <p className="text-sm text-destructive">{grants.error.message}</p>}
+        {grants.error && <p className="text-sm text-destructive">{errorMessage(grants.error)}</p>}
         {grants.data && <GrantList grants={grants.data} onRevoke={(grant) => revoke.mutate(grant)} />}
         <form onSubmit={submit} className="grid gap-3 border-t pt-4">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -197,7 +197,7 @@ function UploadSessions({ userId }: { userId: string }) {
         <CardTitle>{t('user.uploads')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2">
-        {sessions.error && <p className="text-sm text-destructive">{sessions.error.message}</p>}
+        {sessions.error && <p className="text-sm text-destructive">{errorMessage(sessions.error)}</p>}
         {sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('user.uploadsNone')}</p>}
         {sessions.data?.map((session) => (
           <div key={session.session_id} className="flex items-center gap-2 text-sm">

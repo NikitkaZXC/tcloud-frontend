@@ -92,7 +92,7 @@ export function StorageList() {
       </Section>
       <Section label={t('storages.list')}>
         {storages.isPending && <p className="text-muted-foreground">{t('common.loading')}</p>}
-        {storages.error && <p className="text-destructive">{storages.error.message}</p>}
+        {storages.error && <p className="text-destructive">{errorMessage(storages.error)}</p>}
         {storages.data?.length === 0 && <p className="text-muted-foreground">{t('storages.none')}</p>}
         <ul className="fx-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>li]:min-w-0">
           {storages.data?.map((storage) => (

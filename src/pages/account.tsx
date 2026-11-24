@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, useMe, useSignedOut } from '@/hooks/use-me'
-import { api } from '@/lib/api'
+import { api, errorMessage } from '@/lib/api'
 import { formatShortDate } from '@/lib/format'
 import type { UserSession } from '@/lib/types'
 import { t } from '@/lib/i18n'
@@ -105,7 +105,7 @@ function Sessions() {
         </Confirm>
       </CardHeader>
       <CardContent>
-        {sessions.error && <p className="text-sm text-destructive">{sessions.error.message}</p>}
+        {sessions.error && <p className="text-sm text-destructive">{errorMessage(sessions.error)}</p>}
         <ul className="grid divide-y">
           {sessions.data?.map((session) => (
             <li key={session.id} className="flex items-center gap-2 py-2 text-sm">

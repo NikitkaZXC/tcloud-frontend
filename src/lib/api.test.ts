@@ -164,3 +164,9 @@ describe('leaveOn401', () => {
     }
   })
 })
+
+it('translates every backend error code the UI can meet', () => {
+  for (const code of ['token_expired', 'token_invalid', 'invalid_cursor', 'previews_disabled', 'cross_site_request', 'internal', 'interrupted', 'lost', 'client_disconnected']) {
+    expect(errorMessage(new ApiError(400, { code, message: 'raw' })), code).not.toContain('raw')
+  }
+})

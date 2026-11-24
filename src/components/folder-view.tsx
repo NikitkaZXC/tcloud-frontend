@@ -58,7 +58,7 @@ import { useAction } from '@/hooks/use-action'
 import { useMedia } from '@/hooks/use-media'
 import { cn } from '@/lib/utils'
 import { useStorages } from '@/hooks/use-storages'
-import { api, showError } from '@/lib/api'
+import { api, errorMessage, showError } from '@/lib/api'
 import { absoluteUrl, copy } from '@/lib/clipboard'
 import { FOLDER_ACTION, type FolderAction, isTyping } from '@/lib/commands'
 import { fromFiles, type Picked, readEntries } from '@/lib/dir-upload'
@@ -797,7 +797,7 @@ export function FolderView({ path }: { path: string }) {
       )}
 
       {listing.isPending && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
-      {listing.error && <p className="text-destructive">{listing.error.message}</p>}
+      {listing.error && <p className="text-destructive">{errorMessage(listing.error)}</p>}
       {empty && (
         <div className="fx-panel grid justify-items-center gap-3 p-10 text-center">
           {eggs ? <StorageIcon scale={3} /> : <UploadIcon className="size-8 text-primary" />}

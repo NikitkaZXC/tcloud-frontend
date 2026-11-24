@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button'
 import { useAction } from '@/hooks/use-action'
 import { isAdmin, logout, useMe, useSignedOut } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { ApiError, showError } from '@/lib/api'
+import { ApiError, errorMessage, showError } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
 import { isUnavailable, storageName } from '@/lib/names'
@@ -307,7 +307,7 @@ export function Layout() {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
   if (me.isPending) return <div className="p-8 text-sm text-muted-foreground">{t('common.loading')}</div>
-  if (me.error) return <div className="p-8 text-destructive">{me.error.message}</div>
+  if (me.error) return <div className="p-8 text-destructive">{errorMessage(me.error)}</div>
 
   const close = () => setOpen(false)
   const toggle = () => {
