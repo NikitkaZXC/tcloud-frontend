@@ -88,7 +88,7 @@ sequenceDiagram
 - Прогресс отправки живёт только в памяти вкладки (`useSending`); у каждого элемента свой `AbortController`
   (`startSending`/`sendingSignal`/`cancelSending` в `lib/upload.ts`). Пока список не пуст, `TaskWatcher` вешает
   `beforeunload`, чтобы браузер спросил перед закрытием.
-- Ссылки: `parseUrlLines` (строка `url` или `url | имя`) → `POST /api/uploads/batch {items}`; для каждого элемента с
+- Ссылки: `parseUrlLines` (строка `url` или `url | имя`; делится по первому « | » с пробелами, поэтому `|` внутри ссылки и « | » в имени не мешают; имя по умолчанию — последний сегмент пути, битые `%`-последовательности остаются как есть) → `POST /api/uploads/batch {items}`; для каждого элемента с
   `task` — `setQueryData(['task', id], task)` и `trackTask`, с `error` — уведомление.
 - Конфликт имени: `UploadDialog` шлёт `on_conflict` из настроек/диалога; только если это `error` и путь занят, сервер
   отвечает `409 conflict` с `suggested_name` (у `POST /api/uploads` и у создания сессии одинаково). `sendTracked` с

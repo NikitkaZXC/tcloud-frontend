@@ -61,14 +61,22 @@ export function downloadUrl(file: { uuid: string }): string {
   return `/api/files/${file.uuid}/download`
 }
 
+function decoded(part: string): string {
+  try {
+    return decodeURIComponent(part)
+  } catch {
+    return part
+  }
+}
+
 export function parseUrlLines(text: string, folder: string) {
   return text
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const [url, name] = line.split('|').map((part) => part.trim())
-      const fallback = decodeURIComponent(new URL(url).pathname.split('/').filter(Boolean).pop() ?? '') || 'file'
+      const [, url, name] = line.match(/^(.*?)\s+\|\s+(.*)$/s) ?? [line, line, '']
+      const fallback = decoded(new URL(url).pathname.split('/').filter(Boolean).pop() ?? '') || 'file'
       return { url, path: joinPath(folder, name || fallback) }
     })
 }

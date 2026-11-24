@@ -29,6 +29,12 @@ describe('parseUrlLines', () => {
     expect(parseUrlLines('https://e.com/', root)[0].path).toBe(`${root}/file`)
   })
 
+  it('keeps pipes inside the url and in the name, and survives broken escapes', () => {
+    expect(parseUrlLines('https://e.com/a?x=1|2 | my | name.txt', root)).toEqual([{ url: 'https://e.com/a?x=1|2', path: `${root}/my | name.txt` }])
+    expect(parseUrlLines('https://e.com/a|b.jpg', root)[0]).toEqual({ url: 'https://e.com/a|b.jpg', path: `${root}/a|b.jpg` })
+    expect(parseUrlLines('https://e.com/100%25%zz.bin', root)[0].path).toBe(`${root}/100%25%zz.bin`)
+  })
+
   it('throws on a broken url', () => {
     expect(() => parseUrlLines('not a url', root)).toThrow()
   })
