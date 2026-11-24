@@ -248,7 +248,9 @@ stateDiagram-v2
 
 Шаги — `task.step`, см. ниже «Шаги и отмена». Стадии — подписи `TASK_STAGE` (запасные, когда `step` ещё `null`) (`downloading`, `scanning`, `uploading_tg`, `archiving`, `done`); порядок стадий и
 правила повторов задаёт бэкенд (`tcloud-backend/docs/flows/uploads.md`, `docs/background-tasks.md`). Повтор
-возвращает ту же задачу (тот же id) в `queued`. `task.progress` — проценты 0–100, во фронте только через
+возвращает ту же задачу (тот же id) в `queued`. Кнопка «Повторить» есть только у задач по ссылке: `source` в ответе
+задачи пока нет, поэтому берётся `taskHint(id)?.source === 'url'` (подсказка в памяти вкладки, после перезагрузки
+кнопки нет). `task.progress` — проценты 0–100, во фронте только через
 `taskFraction` (0–1).
 
 Ожидание и предупреждения переводятся по кодам бэкенда (`waitingText`, `warningText` в `lib/tasks.ts`):

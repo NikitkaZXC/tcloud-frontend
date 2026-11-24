@@ -18,7 +18,7 @@ import { markRead } from '@/lib/reads'
 import { useStorages } from '@/hooks/use-storages'
 import { taskTitle } from '@/lib/names'
 import { forgetTask, forgetTasks, stageLabel, statusLabel, TASK_STATUS, taskFraction, trackTask, useTrackedTasks, waitingText, warningText } from '@/lib/tasks'
-import { isMeasured, stepLabel } from '@/lib/steps'
+import { isMeasured, stepLabel, taskHint } from '@/lib/steps'
 import { settingsError, type TasksFilter, updateSettings, useSettings, visibleTasks } from '@/lib/settings'
 import type { Priority, Task } from '@/lib/types'
 
@@ -65,7 +65,7 @@ export function TasksPage() {
   )
 }
 
-function TaskCard({ task }: { task: Task }) {
+export function TaskCard({ task }: { task: Task }) {
   const queryClient = useQueryClient()
   const update = (next: Task) => queryClient.setQueryData(['task', next.id], next)
   const cancel = useAction(() => api.post<Task>(`/tasks/${task.id}/cancel`), {
@@ -122,7 +122,7 @@ function TaskCard({ task }: { task: Task }) {
                 </a>
               </Button>
             )}
-            {(task.status === 'failed' || task.status === 'cancelled') && task.archive == null && (
+            {(task.status === 'failed' || task.status === 'cancelled') && taskHint(task.id)?.source === 'url' && (
               <Button size="sm" variant="outline" onClick={() => retry.mutate()} disabled={retry.isPending}>
                 <RotateCcwIcon /> {t('tasks.retry')}
               </Button>
