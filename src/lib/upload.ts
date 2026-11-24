@@ -110,7 +110,8 @@ async function call<T>(method: string, url: string, body: Blob | null, onProgres
   const error = new ApiError(xhr.status, errorBody(xhr.status, xhr.statusText, parsed))
   if (xhr.status === 429) {
     error.body.retry_after ??= Number(xhr.getResponseHeader('Retry-After')) || 1
-    notifyRateLimit(retryAfter(error)!)
+    const wait = retryAfter(error)
+    if (wait != null) notifyRateLimit(wait)
   }
   throw error
 }
@@ -195,7 +196,7 @@ const sessionUrl = (id: string) => `/api/uploads/sessions/${id}`
 export const CHUNK_RETRIES = 5
 
 const transient = (error: unknown) =>
-  !isAbort(error) && (!(error instanceof ApiError) || error.code === 'upload_session_busy' || error.status === 429 || (error.status >= 500 && error.status !== 507))
+  !isAbort(error) && (!(error instanceof ApiError) || error.code === 'upload_session_busy' || retryAfter(error) != null || (error.status >= 500 && error.status !== 507))
 
 export function chunkRetryDelay(error: unknown, failures: number): number | null {
   if (failures > CHUNK_RETRIES || !transient(error)) return null

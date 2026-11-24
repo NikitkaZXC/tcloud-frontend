@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { formatBytes } from './format'
+import { formatBytes, formatDuration } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody } from './types'
 
@@ -33,6 +33,7 @@ export function errorBody(status: number, statusText: string, body: unknown): Ap
   if (json?.error?.code) return json.error
   if (typeof json?.detail === 'string') return { code: 'http_error', message: json.detail }
   if (Array.isArray(json?.detail)) return { code: 'validation_error', message: 'invalid request', details: json.detail }
+  if (status === 413) return { code: 'body_too_large', message: `${status} ${statusText}`.trim() }
   return { code: 'http_error', message: `${status} ${statusText}`.trim() }
 }
 
@@ -43,8 +44,10 @@ export async function toError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, error)
 }
 
+const QUOTA_CODES = new Set(['send_quota_exceeded', 'too_many_upload_sessions'])
+
 export function retryAfter(error: unknown): number | null {
-  if (!(error instanceof ApiError) || error.status !== 429) return null
+  if (!(error instanceof ApiError) || error.status !== 429 || QUOTA_CODES.has(error.code)) return null
   const value = Number(error.body.retry_after)
   return Number.isFinite(value) && value > 0 ? value : 1
 }
@@ -95,7 +98,8 @@ export async function request<T = void>(
   }
   if (!response.ok) {
     const error = await toError(response)
-    if (error.status === 429 && !url.startsWith('/auth/')) notifyRateLimit(retryAfter(error)!)
+    const wait = retryAfter(error)
+    if (wait != null && !url.startsWith('/auth/')) notifyRateLimit(wait)
     throw error
   }
   if (response.status === 204) return undefined as T
@@ -116,7 +120,16 @@ function invalidField(body: ApiErrorBody): string | null {
   return field ? t('error.invalidField', { field, message: String(detail?.msg ?? body.message) }) : null
 }
 
-const errorParams = (body: ApiErrorBody) => (typeof body.limit === 'number' ? { limit: formatBytes(body.limit) } : undefined)
+const COUNT_LIMITS = new Set(['send_quota_exceeded', 'too_many_upload_sessions', 'too_many_items'])
+
+function errorParams(body: ApiErrorBody): Record<string, string> {
+  const params: Record<string, string> = {}
+  if (typeof body.limit === 'number') params.limit = COUNT_LIMITS.has(body.code) ? String(body.limit) : formatBytes(body.limit)
+  if (typeof body.used === 'number') params.used = formatBytes(body.used)
+  if (typeof body.window === 'number') params.window = formatDuration(body.window)
+  if (typeof body.retry_after === 'number') params.retry = formatDuration(body.retry_after)
+  return params
+}
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {

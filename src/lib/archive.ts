@@ -1,4 +1,5 @@
 import { ApiError, errorMessage } from './api'
+import { formatBytes } from './format'
 import { type Key, t } from './i18n'
 import type { ArchiveFormat, Priority } from './types'
 
@@ -34,10 +35,12 @@ const MESSAGES: Record<string, Key> = {
   storage_not_found: 'error.storage_not_found',
   telegram_unauthorized: 'archive.telegramUnauthorized',
   insufficient_storage: 'archive.insufficientStorage',
+  body_too_large: 'archive.bodyTooLarge',
 }
 
 export function archiveError(error: unknown): string {
   if (!(error instanceof ApiError)) return errorMessage(error)
   if (error.code === 'too_many_items') return t('archive.tooMany', { limit: Number(error.body.limit ?? 1000) })
+  if (error.code === 'too_large' && typeof error.body.limit === 'number') return t('archive.tooLarge', { limit: formatBytes(error.body.limit) })
   return MESSAGES[error.code] ? t(MESSAGES[error.code]) : errorMessage(error)
 }

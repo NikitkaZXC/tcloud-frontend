@@ -120,8 +120,10 @@ QR рисуется локально (`qrcode.react`): токен входа н�
   выбранного — `POST /api/folders/archive/selection` (`{files: [uuid], folders: [путь], format, priority}`,
   `selectionPayload` в `src/lib/archive.ts`), всё из одного хранилища. Zip по умолчанию, остальные форматы в подменю.
   По готовности задачи `TaskWatcher` показывает уведомление с кнопкой «Скачать» (`/api/tasks/{id}/archive`). Ошибки
-  (`empty_selection`, `too_many_items` с `limit`, `storage_mismatch`, `forbidden`, `*_not_found`,
-  `telegram_unauthorized`, `insufficient_storage`) — понятными фразами (`archiveError`). В корне хранилища фронт
+  (`empty_selection`, `too_many_items` с `limit` — элементов выбора или файлов после раскрытия папок, `too_large` с
+  `limit` в байтах, `storage_mismatch`, `forbidden`, `*_not_found`, `telegram_unauthorized`, `insufficient_storage`,
+  `body_too_large` — тело выбора больше 1 МиБ, тысячи длинных путей; `archive_in_progress` — у пользователя уже
+  собирается архив) — понятными фразами (`archiveError`). В корне хранилища фронт
   передаёт `name` «<хранилище>-выбранное» (`archiveName`), иначе бэкенд назвал бы архив uuid; `taskTitle` везде
   заменяет uuid хранилища в имени архива на название.
 - **Клавиши**: `/` — поиск, `Ctrl/Cmd+A` — выбрать всё, `Esc` — снять выбор, `Del`/`Backspace` — удалить выбранное (с

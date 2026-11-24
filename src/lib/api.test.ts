@@ -52,6 +52,34 @@ describe('api', () => {
   })
 })
 
+describe('quota errors', () => {
+  afterEach(() => vi.mocked(toast.error).mockClear())
+
+  it('formats counts, bytes and durations from the error body', () => {
+    const send = new ApiError(429, { code: 'send_quota_exceeded', message: 'x', retry_after: 42, limit: 30, window: 60 })
+    expect(errorMessage(send)).toBe('Лимит отправок в Telegram: 30 за 1:00 — повторите через 0:42')
+    expect(errorMessage(new ApiError(429, { code: 'too_many_upload_sessions', message: 'x', limit: 10 }))).toBe('Слишком много незаконченных загрузок (не больше 10) — завершите или отмените часть')
+    expect(errorMessage(new ApiError(507, { code: 'temp_quota_exceeded', message: 'x', limit: 1024 ** 3, used: 512 * 1024 ** 2 }))).toBe('Ваше место для временных файлов занято: 512,0 MB из 1,0 GB — дождитесь окончания загрузок')
+    expect(errorMessage(new ApiError(413, { code: 'body_too_large', message: 'x', limit: 1048576 }))).toBe('Запрос слишком большой для сервера')
+  })
+
+  it('shows quota 429s as their own error, not the shared rate limit toast', async () => {
+    const body = { error: { code: 'send_quota_exceeded', message: 'x', retry_after: 42, limit: 30, window: 60 } }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 429, headers: { 'Retry-After': '42' } })))
+    const error = await api.post('/uploads/from-url', {}).catch((e) => e)
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(retryAfter(error)).toBeNull()
+    expect(queryRetry(0, error)).toBe(false)
+    showError(error)
+    expect(toast.error).toHaveBeenCalledWith('Лимит отправок в Telegram: 30 за 1:00 — повторите через 0:42')
+  })
+
+  it('reads a proxy 413 without a JSON body as body_too_large', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>413</html>', { status: 413, statusText: 'Request Entity Too Large' })))
+    expect((await api.post('/folders/archive/selection', {}).catch((e) => e)).code).toBe('body_too_large')
+  })
+})
+
 describe('rate limit', () => {
   afterEach(() => vi.mocked(toast.error).mockClear())
 

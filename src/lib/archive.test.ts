@@ -22,5 +22,8 @@ describe('selection archive', () => {
     expect(archiveError(new ApiError(422, { code: 'too_many_items', message: 'x', limit: 1000 }))).toBe('Слишком много элементов: не больше 1000 за раз')
     expect(archiveError(new ApiError(422, { code: 'storage_mismatch', message: 'x' }))).toBe('Архив собирается только из одного хранилища')
     expect(archiveError(new ApiError(500, { code: 'boom', message: 'x' }))).toBe('x (boom)')
+    expect(archiveError(new ApiError(413, { code: 'too_large', message: 'x', limit: 10 * 1024 ** 3 }))).toBe('Архив больше лимита сервера (10,0 GB) — выберите меньше')
+    expect(archiveError(new ApiError(413, { code: 'body_too_large', message: 'x', limit: 1048576 }))).toBe('Выбрано слишком много длинных путей — выберите меньше папок за раз')
+    expect(archiveError(new ApiError(409, { code: 'archive_in_progress', message: 'x' }))).toBe('Архив уже собирается — дождитесь его, потом начните следующий')
   })
 })
