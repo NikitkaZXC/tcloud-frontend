@@ -103,8 +103,13 @@ flowchart LR
 - Фронт и API всегда на одном origin, поэтому cookie `access`/`refresh` ходят без CORS (`credentials: same-origin`).
 - Прокси обязан сохранять `Host` (Vite по умолчанию, nginx — `proxy_set_header Host $http_host`): бэкенд сравнивает
   `Origin` с `Host`, иначе изменяющие запросы получают `403 cross_site_request`.
-- nginx для `/api/` выключает буферизацию запроса и ответа, `client_max_body_size 0`, таймауты 1 ч — загрузки и
-  скачивания идут потоком.
+- nginx для `/api/` выключает буферизацию ответа, таймауты 1 ч — скачивания идут потоком. Тело запроса в `/api/`
+  ограничено `client_max_body_size 1m` (больше — `413` от nginx, до бэкенда не доходит): иначе любой, ещё без
+  авторизации, мог бы слать гигабайтный JSON, например в `/api/auth/signin`. Без лимита и без буферизации запроса
+  (`client_max_body_size 0`, `proxy_request_buffering off`) — только маршруты, читающие тело потоком, в отдельном
+  regex-`location` `^/api/(uploads|uploads/sessions/[^/]+|storages/[^/]+/photo)$`: `POST /api/uploads` (ровно этот
+  путь, `/api/uploads/sessions`, `/from-url` и прочие под лимитом), `PUT /api/uploads/sessions/{id}` (чанки) и
+  `PUT /api/storages/{id}/photo`. Новый потоковый маршрут бэкенда нужно добавить в этот regex.
 - Заголовки безопасности — `docker/security-headers.conf`, `include` в `server` и в каждом `location` с собственным
   `add_header` (`/assets/`, `/fonts/`, `/`): `add_header` в `location` отменяет унаследованные с уровня `server`.
   Все `add_header` с `always` (и на 4xx/5xx). Бэкенд ставит те же заголовки, поэтому тот же файл скрывает их через
