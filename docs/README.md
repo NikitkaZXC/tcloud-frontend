@@ -13,10 +13,10 @@ Mermaid, сверенными с кодом.
 
 ## Разработка
 
-- CI (`.github/workflows/ci.yml`) на каждый push и pull request: `npm ci`, `npm run lint`, `npm test`,
+- CI (`.github/workflows/ci.yml`) на push в `main` и на pull request (повторный запуск отменяет предыдущий): `npm ci`, `npm run lint`, `npm test`,
   `npm run build` на Node 26 (как в `Dockerfile`, поднимать вместе).
-- Dependabot (`.github/dependabot.yml`) раз в неделю обновляет npm (minor/patch одним PR), базовые образы `Dockerfile`
-  и GitHub Actions.
+- Dependabot (`.github/dependabot.yml`) раз в месяц обновляет npm, базовые образы `Dockerfile`
+  и GitHub Actions: все обновления экосистемы одним PR, не больше 2 открытых PR на экосистему.
 - Проверено в Chrome и Safari (WebKit); Firefox не проверялся.
 
 Правило: изменение кода, которое меняет поток со схемы, обновляет документ и схему в том же коммите.
