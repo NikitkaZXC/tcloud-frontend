@@ -20,6 +20,8 @@ npm run preview    # отдать собранный dist/ локально
 npm run lint       # oxlint
 ```
 
+CI (`.github/workflows/ci.yml`) на каждый push и pull request гоняет `npm ci`, `npm run lint`, `npm test`, `npm run build` на Node 26 (как в `Dockerfile`). Dependabot (`.github/dependabot.yml`) раз в неделю обновляет npm (minor/patch одним PR), базовые образы `Dockerfile` и GitHub Actions.
+
 Переменные окружения:
 
 | Переменная | Где | По умолчанию | Зачем |

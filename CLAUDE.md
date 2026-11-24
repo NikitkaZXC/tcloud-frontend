@@ -16,6 +16,8 @@ npm run lint    # oxlint
 docker build -t tcloud-frontend .   # nginx, API_UPSTREAM env
 ```
 
+CI: `.github/workflows/ci.yml` (push + PR: `npm ci`, lint, test, build on Node 26, same as `Dockerfile`; bump both together). Dependabot: `.github/dependabot.yml` (weekly npm with minor/patch grouped, docker, github-actions).
+
 ## Architecture
 
 - `src/lib/api.ts`: every call goes through `request`/`api.*` (prefix `/api`, `credentials: same-origin`, one refresh on 401, errors as `ApiError` with backend `code`; 429 → one shared toast `notifyRateLimit` (id `rate-limited`, not on `/auth/*`), queries retry only after `retry_after` via `queryRetry`/`queryRetryDelay` in `main.tsx`; error toasts go through `showError`, which skips 429). `src/lib/types.ts` mirrors backend response schemas (`src/application/schemas` there) — update it when the API changes.
