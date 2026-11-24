@@ -42,6 +42,8 @@ export function hintTask(id: string, hint: Hint) {
 
 export const taskHint = (id: string) => hints.get(id)
 
+export const clearHints = () => hints.clear()
+
 export function taskPhases(task: Pick<Task, 'step' | 'archive'>, hint?: Hint): Phase[] {
   if (task.archive) return ['archive']
   const current = task.step ? PHASE_OF[task.step] : null

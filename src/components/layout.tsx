@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import {
   GaugeIcon,
   HardDriveIcon,
@@ -18,7 +17,7 @@ import {
 } from 'lucide-react'
 import { type ComponentType, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
-import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from 'react-router'
 import { SearchBar } from '@/components/search-bar'
 import { CommandPalette } from '@/components/command-palette'
 import { CornerHint, IoTag, Logo, StorageIcon, UploadPulse, WRITTEN } from '@/components/fx'
@@ -26,9 +25,10 @@ import { Extras, Tip } from '@/components/extras'
 import { TaskWatcher } from '@/components/task-watcher'
 import { ConflictDialog } from '@/components/upload-dialog'
 import { Button } from '@/components/ui/button'
-import { isAdmin, useMe } from '@/hooks/use-me'
+import { useAction } from '@/hooks/use-action'
+import { isAdmin, logout, useMe, useSignedOut } from '@/hooks/use-me'
 import { useStorageActivity, useStorageIo, useStorages } from '@/hooks/use-storages'
-import { ApiError, api, showError } from '@/lib/api'
+import { ApiError, showError } from '@/lib/api'
 import { openPalette } from '@/lib/commands'
 import { load, save } from '@/lib/prefs'
 import { isUnavailable, storageName } from '@/lib/names'
@@ -293,11 +293,11 @@ function Sidebar({
 export function Layout() {
   const me = useMe()
   const location = useLocation()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => load('sidebar') === 'collapsed')
   const ready = !!me.data
+  const signedOut = useSignedOut()
+  const signOut = useAction(logout, { onSuccess: signedOut })
 
   useEffect(() => {
     if (ready) migrateLegacy()
@@ -309,12 +309,6 @@ export function Layout() {
   if (me.isPending) return <div className="p-8 text-sm text-muted-foreground">{t('common.loading')}</div>
   if (me.error) return <div className="p-8 text-destructive">{me.error.message}</div>
 
-  async function logout() {
-    await api.post('/auth/logout').catch(() => undefined)
-    queryClient.clear()
-    navigate('/login')
-  }
-
   const close = () => setOpen(false)
   const toggle = () => {
     save('sidebar', collapsed ? 'expanded' : 'collapsed')
@@ -324,7 +318,7 @@ export function Layout() {
   return (
     <div className="min-h-svh md:flex">
       <aside className={cn('sticky top-0 hidden h-svh shrink-0 p-3 pr-0 transition-[width] duration-300 md:block', collapsed ? 'w-[5.25rem]' : 'w-[17rem]')}>
-        <Sidebar me={me.data} collapsed={collapsed} onCollapse={toggle} onNavigate={close} onLogout={logout} />
+        <Sidebar me={me.data} collapsed={collapsed} onCollapse={toggle} onNavigate={close} onLogout={() => signOut.mutate()} />
       </aside>
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <header className="fx-panel sticky! top-[max(0.5rem,env(safe-area-inset-top))] z-10 mx-[max(0.5rem,env(safe-area-inset-left))] mt-[max(0.5rem,env(safe-area-inset-top))] flex items-center gap-2 px-2 py-1.5 md:hidden">
@@ -352,7 +346,7 @@ export function Layout() {
                 <XIcon />
               </Button>
             </DialogPrimitive.Close>
-            <Sidebar me={me.data} collapsed={false} onNavigate={close} onLogout={logout} />
+            <Sidebar me={me.data} collapsed={false} onNavigate={close} onLogout={() => signOut.mutate()} />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>

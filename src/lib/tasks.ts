@@ -130,6 +130,10 @@ export function forgetTask(id: string) {
   write(ids.filter((x) => x !== id))
 }
 
+export function clearTasks() {
+  write([], [])
+}
+
 export function forgetTasks(remove: string[]) {
   write(ids.filter((x) => !remove.includes(x)))
 }

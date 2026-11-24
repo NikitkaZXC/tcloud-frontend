@@ -6,6 +6,12 @@ import { afterEach } from 'vitest'
 
 afterEach(cleanup)
 
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 export const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 export function renderApp(ui: ReactNode, { client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), path = '/' } = {}) {

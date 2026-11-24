@@ -1,8 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
 import { ApiError, errorBody, notifyRateLimit, refreshSession, retryAfter, showError, withQuery } from './api'
-import { hintTask } from './steps'
-import { trackTask } from './tasks'
+import { clearHints, hintTask } from './steps'
+import { clearTasks, trackTask } from './tasks'
 import type { SendAs, Task, UploadOptions, UploadSession } from './types'
 
 export interface Sending {
@@ -174,6 +174,15 @@ function releaseSession(id: string) {
 function forgetSession(id: string) {
   active.delete(id)
   writeSessions(readSessions(stored).filter((item) => item.session_id !== id))
+}
+
+export function forgetLocalUser() {
+  controllers.forEach((controller) => controller.abort())
+  active.clear()
+  writeSessions([])
+  setSending([])
+  clearTasks()
+  clearHints()
 }
 
 export const getPausedSessions = () => paused

@@ -1,7 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { LogOutIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router'
 import { PageTitle } from '@/components/fx'
 import { ApiKeys } from '@/components/api-keys'
 import { Confirm } from '@/components/confirm'
@@ -12,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAction } from '@/hooks/use-action'
-import { isAdmin, useMe } from '@/hooks/use-me'
+import { isAdmin, useMe, useSignedOut } from '@/hooks/use-me'
 import { api } from '@/lib/api'
 import { formatShortDate } from '@/lib/format'
 import type { UserSession } from '@/lib/types'
@@ -88,12 +87,7 @@ function PasswordCard() {
 }
 
 function Sessions() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const signedOut = () => {
-    queryClient.clear()
-    navigate('/login')
-  }
+  const signedOut = useSignedOut()
   const sessions = useQuery({ queryKey: ['sessions'], queryFn: () => api.get<UserSession[]>('/auth/sessions') })
   const revoke = useAction((session: UserSession) => api.del(`/auth/sessions/${session.id}`), {
     invalidate: [['sessions']],
