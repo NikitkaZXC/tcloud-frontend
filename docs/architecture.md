@@ -107,8 +107,15 @@ flowchart LR
   скачивания идут потоком.
 - Заголовки безопасности — `docker/security-headers.conf`, `include` в `server` и в каждом `location` с собственным
   `add_header` (`/assets/`, `/fonts/`, `/`): `add_header` в `location` отменяет унаследованные с уровня `server`.
-  Бэкенд ставит те же заголовки, поэтому тот же файл скрывает их через `proxy_hide_header`: в ответах `/api/` каждый
-  заголовок ровно один раз (от nginx).
+  Все `add_header` с `always` (и на 4xx/5xx). Бэкенд ставит те же заголовки, поэтому тот же файл скрывает их через
+  `proxy_hide_header`: в ответах `/api/` каждый заголовок ровно один раз (от nginx). Исключение —
+  `Content-Security-Policy`: CSP бэкенда (`default-src 'none'`, `sandbox` у скачиваний) не скрывается, браузер применяет
+  обе политики сразу, то есть строжайшую.
+- CSP статики: `default-src 'self'` (скрипты, шрифт, `/api` через `connect-src` — всё с того же origin, без CDN, `eval`
+  и воркеров); `style-src 'self' 'unsafe-inline'`, потому что sonner, Radix Select и `react-remove-scroll` вставляют
+  `<style>` во время работы; `img-src`/`media-src` с `data:`/`blob:` для превью; `frame-ancestors 'none'`,
+  `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`. HSTS: `max-age=31536000; includeSubDomains` (браузер
+  учитывает его только по HTTPS). Новый внешний источник (CDN, шрифт, iframe) потребует правки CSP.
 - gzip: статика (`text/html`, CSS, JS, SVG, JSON) от 1 КБ с `Vary: Accept-Encoding`; в `/api/` `gzip_types` сужен до
   `application/json`; `/files/{id}/download`, `/files/{id}/thumb` и `/tasks/{id}/archive` идут через отдельный
   regex-`location` с `gzip off` (те же настройки прокси), даже если файл сам JSON (ответы `206` nginx не сжимает вовсе):
