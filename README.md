@@ -47,7 +47,8 @@ nginx отдаёт сборку и проксирует `/api` на `API_UPSTREA
 `docker/nginx.conf.template` подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем), `/fonts/` тоже (`immutable`; адрес шрифта несёт `?v=1` в `index.html` и `src/index.css` — поднять при смене файла),
 остальное — `no-cache` с откатом на `index.html` (маршруты SPA). Заголовки безопасности (`nosniff`, `X-Frame-Options`,
 `Referrer-Policy`) лежат в `docker/security-headers.conf` и подключаются `include` в `server` и в каждый `location` со
-своим `add_header` (иначе nginx их не наследует).
+своим `add_header` (иначе nginx их не наследует); те же заголовки от бэкенда в `/api/` скрываются `proxy_hide_header`,
+чтобы каждый был в ответе один раз.
 gzip (от 1 КБ, `gzip_vary`) сжимает HTML, CSS, JS, SVG и JSON; в `/api/` — только `application/json`, а скачивания,
 превью и архивы (`/api/files/{id}/download|thumb`, `/api/tasks/{id}/archive`) — отдельный `location` с `gzip off`, чтобы
 они шли как есть, с `Content-Length` и `Range`, даже для JSON-файлов.

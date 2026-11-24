@@ -107,6 +107,8 @@ flowchart LR
   скачивания идут потоком.
 - Заголовки безопасности — `docker/security-headers.conf`, `include` в `server` и в каждом `location` с собственным
   `add_header` (`/assets/`, `/fonts/`, `/`): `add_header` в `location` отменяет унаследованные с уровня `server`.
+  Бэкенд ставит те же заголовки, поэтому тот же файл скрывает их через `proxy_hide_header`: в ответах `/api/` каждый
+  заголовок ровно один раз (от nginx).
 - gzip: статика (`text/html`, CSS, JS, SVG, JSON) от 1 КБ с `Vary: Accept-Encoding`; в `/api/` `gzip_types` сужен до
   `application/json`; `/files/{id}/download`, `/files/{id}/thumb` и `/tasks/{id}/archive` идут через отдельный
   regex-`location` с `gzip off` (те же настройки прокси), даже если файл сам JSON (ответы `206` nginx не сжимает вовсе).
