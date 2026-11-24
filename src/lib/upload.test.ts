@@ -203,6 +203,23 @@ describe('upload conflicts', () => {
     expect(getSending()).toEqual([])
   })
 
+  it('asks without a suggested name when the backend hides it', async () => {
+    const id = startSending('tcloud/s/c.txt', 10)
+    const hidden = new ApiError(409, { code: 'conflict', message: 'x' })
+    const calls: (Resolution | undefined)[] = []
+    const run = async (_: unknown, __: unknown, onConflict?: Resolution) => {
+      calls.push(onConflict)
+      if (calls.length === 1) throw hidden
+      return { id: 't-hidden', status: 'queued' } as Task
+    }
+    const done = sendTracked(queryClient, id, 'c.txt', false, run, { size: 1 })
+    await tick()
+    expect(getConflicts()).toMatchObject([{ id, path: 'tcloud/s/c.txt', suggested: null }])
+    answerConflict(getConflicts()[0], 'replace')
+    await done
+    expect(calls).toEqual([undefined, 'replace'])
+  })
+
   it('cancel sends nothing more and drops the upload', async () => {
     const id = startSending('tcloud/s/b.txt', 10)
     const { calls, run } = runner()

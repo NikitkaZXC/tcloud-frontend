@@ -46,6 +46,7 @@ describe('task folders', () => {
         { path: '/s3/docs', archive },
       ]),
     ).toEqual(['/s1/a/b', '/s1/a', '/s1', '/s2'])
+    expect(taskFolders([{ path: '/s1/a/x.txt', archive: null, file: null } as Task])).toEqual(['/s1/a', '/s1'])
   })
 })
 
