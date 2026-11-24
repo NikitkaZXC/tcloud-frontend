@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { api, ApiError } from '@/lib/api'
 import { hydrateSettings } from '@/lib/settings'
-import { forgetLocalUser } from '@/lib/upload'
+import { abortUploads, forgetLocalUser } from '@/lib/upload'
 import type { Me } from '@/lib/types'
 
 export function useMe() {
@@ -30,7 +30,9 @@ export function useSignedOut() {
   }
 }
 
-export const logout = () =>
-  api.post('/auth/logout').catch((error) => {
+export async function logout(url = '/auth/logout') {
+  await abortUploads()
+  await api.post(url).catch((error) => {
     if (!(error instanceof ApiError && error.status === 401)) throw error
   })
+}

@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Task, UploadOptions } from './types'
-import { answerConflict, type Batch, discardSession, forgetLocalUser, getConflicts, type Resolution, sendTracked, CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
+import { logout } from '@/hooks/use-me'
+import { abortUploads, answerConflict, type Batch, discardSession, forgetLocalUser, getConflicts, type Resolution, sendTracked, CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
 
 describe('sending', () => {
   afterEach(() => vi.useRealTimers())
@@ -76,7 +77,7 @@ describe('chunked upload', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   type Reply = { status: number; body?: unknown }
-  function fakeXhr(handle: (method: string, url: string) => Reply) {
+  function fakeXhr(handle: (method: string, url: string) => Reply | null) {
     const calls: string[] = []
     class Fake {
       status = 0
@@ -102,6 +103,7 @@ describe('chunked upload', () => {
         calls.push(this.target)
         const [method, url] = this.target.split(' ')
         const reply = handle(method, url)
+        if (!reply) return
         this.status = reply.status
         this.responseText = reply.body === undefined ? '' : JSON.stringify(reply.body)
         queueMicrotask(() => !this.aborted && this.onload?.())
@@ -194,15 +196,58 @@ describe('chunked upload', () => {
     expect(calls.filter((call) => call.startsWith('PUT'))).toHaveLength(2)
   })
 
-  it('cancel while the session is being created stores nothing and sends no part', async () => {
+  it('cancel while the session is being created deletes it once created and sends no part', async () => {
     const controller = new AbortController()
-    const calls = fakeXhr(() => {
+    const calls = fakeXhr((method) => {
+      if (method !== 'POST') return { status: 204 }
       controller.abort()
       return { status: 201, body: session(0) }
     })
     await expect(uploadFile(big, options, () => {}, controller.signal)).rejects.toSatisfy(isAbort)
-    expect(calls).toHaveLength(1)
+    expect(calls.map((call) => call.split('?')[0])).toEqual(['POST /api/uploads/sessions', 'DELETE /api/uploads/sessions/s1'])
     expect(getPausedSessions()).toEqual([])
+  })
+
+  it('cancel while the session is being created ends as a cancel, not a conflict', async () => {
+    const controller = new AbortController()
+    fakeXhr(() => {
+      controller.abort()
+      return { status: 409, body: { error: { code: 'conflict', message: 'x' } } }
+    })
+    await expect(uploadFile(big, options, () => {}, controller.signal)).rejects.toSatisfy(isAbort)
+  })
+
+  it('stops and forgets the session when the grant is revoked', async () => {
+    const calls = fakeXhr((method) => (method === 'POST' ? { status: 201, body: session(0) } : { status: 403, body: { error: { code: 'forbidden', message: 'x' } } }))
+    await expect(uploadFile(big, options, () => {})).rejects.toMatchObject({ code: 'forbidden' })
+    expect(calls.filter((call) => call.startsWith('PUT'))).toHaveLength(1)
+    expect(calls.some((call) => call.startsWith('DELETE'))).toBe(false)
+    expect(getPausedSessions()).toEqual([])
+    expect(JSON.parse(localStorage.getItem('tcloud.uploads.sessions')!)).toEqual([])
+  })
+
+  it('logout aborts uploads and deletes their sessions before signing out', async () => {
+    const calls = fakeXhr((method) => (method === 'POST' ? { status: 201, body: session(0) } : method === 'PUT' ? null : { status: 204 }))
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      calls.push(`fetch ${url}`)
+      return new Response(null, { status: 204 })
+    }))
+    const id = startSending('tcloud/s/big.bin', big.size)
+    const upload = uploadFile(big, options, () => {}, sendingSignal(id)).catch((e) => e)
+    await vi.waitFor(() => expect(calls.some((call) => call.startsWith('PUT'))).toBe(true))
+    await logout()
+    expect(isAbort(await upload)).toBe(true)
+    expect(calls.slice(-2)).toEqual(['DELETE /api/uploads/sessions/s1', 'fetch /api/auth/logout'])
+    finishSending(id)
+  })
+
+  it('waits for session deletes no longer than the bound', async () => {
+    fakeXhr(() => null)
+    const pending = discardSession('s8')
+    const started = Date.now()
+    await abortUploads(20)
+    expect(Date.now() - started).toBeLessThan(1000)
+    void pending
   })
 
   it('retries the session delete on transient errors', async () => {

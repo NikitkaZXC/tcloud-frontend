@@ -120,7 +120,25 @@ export const CHUNK_SIZE = 64 * 1024 * 1024
 
 export function uploadFile(file: File, options: UploadOptions, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
   if (file.size <= CHUNK_SIZE) return call<Task>('POST', withQuery('/api/uploads', { ...options }), file, onProgress, signal)
-  return uploadChunked(file, options, onProgress, signal)
+  return settle(uploadChunked(file, options, onProgress, signal))
+}
+
+const settling = new Set<Promise<unknown>>()
+
+function settle<T>(work: Promise<T>): Promise<T> {
+  settling.add(work)
+  const done = () => settling.delete(work)
+  work.then(done, done)
+  return work
+}
+
+export const ABORT_WAIT_MS = 3000
+
+export async function abortUploads(ms = ABORT_WAIT_MS) {
+  controllers.forEach((controller) => controller.abort())
+  let timer: ReturnType<typeof setTimeout> | undefined
+  await Promise.race([Promise.allSettled([...settling]), new Promise((resolve) => (timer = setTimeout(resolve, ms)))])
+  clearTimeout(timer)
 }
 
 export interface StoredSession {
@@ -228,7 +246,11 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
-export async function discardSession(id: string) {
+export function discardSession(id: string) {
+  return settle(deleteSession(id))
+}
+
+async function deleteSession(id: string) {
   forgetSession(id)
   for (let failures = 1; ; failures++) {
     try {
@@ -242,14 +264,22 @@ export async function discardSession(id: string) {
 }
 
 async function uploadChunked(file: File, options: UploadOptions, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
-  const created = await call<UploadSession | Task>('POST', withQuery('/api/uploads/sessions', { ...options, size: file.size }), null, () => {}, signal)
+  const cancelled = () => new DOMException('Upload cancelled', 'AbortError')
+  if (signal?.aborted) throw cancelled()
+  const created = await call<UploadSession | Task>('POST', withQuery('/api/uploads/sessions', { ...options, size: file.size }), null, () => {}).catch((e) => {
+    throw signal?.aborted ? cancelled() : e
+  })
   if (!('session_id' in created)) return created
+  if (signal?.aborted) {
+    await discardSession(created.session_id)
+    throw cancelled()
+  }
   const entry = { session_id: created.session_id, path: created.path, size: file.size, name: file.name, lastModified: file.lastModified, expires_at: created.expires_at, encrypt: options.encrypt }
   return sendChunks(entry, file, created, onProgress, signal)
 }
 
 export function resumeUpload(entry: StoredSession, file: File, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
-  return sendChunks(entry, file, null, onProgress, signal)
+  return settle(sendChunks(entry, file, null, onProgress, signal))
 }
 
 async function sendChunks(entry: StoredSession, file: File, session: UploadSession | null, onProgress: (loaded: number) => void, signal?: AbortSignal): Promise<Task> {
@@ -287,6 +317,8 @@ async function sendChunks(entry: StoredSession, file: File, session: UploadSessi
       const task = await call<Task>('GET', `/api/tasks/${id}`, null, () => {}).catch(() => null)
       if (task) return task
     } else if (transient(e) || (e instanceof ApiError && e.status === 401)) releaseSession(id)
+    else if (e instanceof ApiError && e.status === 403) forgetSession(id)
+    else if (isAbort(e)) await discardSession(id)
     else discardSession(id)
     throw e
   }

@@ -141,7 +141,7 @@ sequenceDiagram
         end
         B-->>U: 202 Task → убрать из L
     end
-    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>повторы кончились или 401 (refresh не удался): сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
+    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>отмена во время POST /sessions: POST не обрывается, пришёл session_id → сразу DELETE<br/>403 forbidden у PUT (грант отозван, сервер сессию уже удалил): убрать из L без DELETE, ошибка, без «пауза»<br/>повторы кончились или 401 (refresh не удался): сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
 ```
 
 - Прогресс — принятые сервером байты плюс `upload.onprogress` текущего куска, через тот же `updateSending`.

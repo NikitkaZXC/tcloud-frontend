@@ -88,9 +88,11 @@ flowchart TD
 
 - `TaskWatcher`, `CommandPalette`, `SearchBar` смонтированы вне `<main key={location.pathname}>`, поэтому живут при
   переходах между страницами (строка поиска не теряет фокус).
-- Выход (`logout` + `useSignedOut` в `hooks/use-me.ts`; сайдбар, «Выйти везде» на `/account`): `POST /api/auth/logout`
-  (`401` считается уже выполненным выходом) → `forgetLocalUser()` (`lib/upload.ts`: обрывает отправки, очищает
-  `tcloud.tasks`, `tcloud.tasks.pending`, `tcloud.uploads.sessions`, подсказки `hintTask`) → `queryClient.clear()` →
+- Выход (`logout(url)` + `useSignedOut` в `hooks/use-me.ts`; сайдбар — `/auth/logout`, «Выйти везде» на `/account` —
+  `/auth/logout/all`): сначала `abortUploads()` (`lib/upload.ts`: обрывает отправки и ждёт, пока сессии загрузок
+  частями удалятся на сервере — `DELETE` ещё с cookie, не дольше `ABORT_WAIT_MS` 3 с, `Promise.allSettled` + таймер),
+  затем `POST` выхода (`401` считается уже выполненным выходом) → `forgetLocalUser()` (очищает `tcloud.tasks`,
+  `tcloud.tasks.pending`, `tcloud.uploads.sessions`, подсказки `hintTask`) → `queryClient.clear()` →
   `/login`. Настройки-удобства (`tcloud.mirror`, `tcloud.sidebar`, копии `interface.*`) остаются. Ошибка выхода —
   тост через `useAction`, пользователь остаётся на странице.
 
