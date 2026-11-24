@@ -209,8 +209,13 @@ sequenceDiagram
             B-->>F: 401
             F-->>R: false
             R-->>C: throw ApiError(401)
-            C-->>L: useMe().error.status === 401
-            L->>L: Navigate /login, state.from
+            alt запрос /users/me
+                C-->>L: useMe().error.status === 401
+                L->>L: Navigate /login, state.from
+            else любой другой запрос или мутация
+                C-->>L: QueryCache / MutationCache onError → leaveOn401
+                L->>L: queryClient.clear(), navigate /login, state.from
+            end
         end
     end
 ```
@@ -232,8 +237,10 @@ sequenceDiagram
     end
 ```
 
-- Только `401` от `/users/me` уводит на `/login` (через `Layout`); другие запросы после неудачного refresh просто
-  показывают ошибку.
+- `401` от `/users/me` уводит на `/login` через `Layout` (`Navigate`, `state.from`). `401` любого другого запроса или
+  мутации (refresh уже не удался) ловят `QueryCache`/`MutationCache` `onError` в `main.tsx` → `leaveOn401`
+  (`lib/api.ts`): `queryClient.clear()` и `router.navigate('/login', {replace, state.from})`. Не срабатывает для
+  `invalid_credentials` (неверный пароль) и когда мы уже на `/login`, поэтому двойного перехода нет.
 - `GET /api/health` без действующего access cookie отвечает публичным `{status}` (200, без `workers`): `fetchHealth`
   (`hooks/use-health.ts`) тогда делает `refreshSession()` и повторяет запрос один раз, а если ответ снова публичный,
   бросает `ApiError(401, token_expired)`.

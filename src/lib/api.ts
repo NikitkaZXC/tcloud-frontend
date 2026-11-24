@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { formatBytes, formatDuration } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
@@ -79,6 +80,18 @@ export function refreshSession(): Promise<boolean> {
       refreshing = null
     })
   return refreshing
+}
+
+interface Router {
+  state: { location: { pathname: string; search: string } }
+  navigate: (to: string, options: { replace: boolean; state: unknown }) => unknown
+}
+
+export function leaveOn401(error: unknown, client: QueryClient, router: Router) {
+  const { pathname, search } = router.state.location
+  if (!(error instanceof ApiError && error.status === 401 && error.code !== 'invalid_credentials') || pathname === '/login') return
+  client.clear()
+  router.navigate('/login', { replace: true, state: { from: pathname + search } })
 }
 
 export async function request<T = void>(

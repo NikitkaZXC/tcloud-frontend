@@ -1,10 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { RouteError } from '@/components/extras'
 import { Toaster } from '@/components/ui/sonner'
-import { queryRetry, queryRetryDelay } from '@/lib/api'
+import { leaveOn401, queryRetry, queryRetryDelay } from '@/lib/api'
 import { resolveLang, setLang } from '@/lib/i18n'
 import { getSettings, subscribeSettings } from '@/lib/settings'
 import { applyTheme } from '@/lib/theme'
@@ -23,7 +23,11 @@ function applySettings() {
 applySettings()
 subscribeSettings(applySettings)
 
+const signedOut = (error: unknown) => leaveOn401(error, queryClient, router)
+
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: (error, query) => query.queryKey[0] !== 'me' && signedOut(error) }),
+  mutationCache: new MutationCache({ onError: signedOut }),
   defaultOptions: {
     queries: {
       retry: queryRetry,

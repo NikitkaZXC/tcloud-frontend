@@ -1,6 +1,7 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, api, errorMessage, queryRetry, queryRetryDelay, RATE_LIMIT_TOAST, retryAfter, showError, withQuery } from './api'
+import { ApiError, api, errorMessage, leaveOn401, queryRetry, queryRetryDelay, RATE_LIMIT_TOAST, retryAfter, showError, withQuery } from './api'
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
@@ -135,5 +136,31 @@ describe('rate limit', () => {
     expect(queryRetry(1, new ApiError(500, { code: 'x', message: 'x' }))).toBe(true)
     expect(queryRetryDelay(1, new TypeError('net'))).toBe(2000)
     expect(retryAfter(new ApiError(409, { code: 'x', message: 'x' }))).toBeNull()
+  })
+})
+
+describe('leaveOn401', () => {
+  const router = (pathname: string) => ({ state: { location: { pathname, search: '?x=1' } }, navigate: vi.fn() })
+  const client = () => ({ clear: vi.fn() }) as unknown as QueryClient
+
+  it('clears the cache and goes to /login once on a 401 after a failed refresh', () => {
+    const r = router('/files')
+    const c = client()
+    leaveOn401(new ApiError(401, { code: 'token_expired', message: 'x' }), c, r)
+    expect(c.clear).toHaveBeenCalledTimes(1)
+    expect(r.navigate).toHaveBeenCalledWith('/login', { replace: true, state: { from: '/files?x=1' } })
+  })
+
+  it('ignores wrong passwords, other errors and errors already on /login', () => {
+    for (const [error, path] of [
+      [new ApiError(401, { code: 'invalid_credentials', message: 'x' }), '/account'],
+      [new ApiError(403, { code: 'forbidden', message: 'x' }), '/files'],
+      [new ApiError(401, { code: 'unauthorized', message: 'x' }), '/login'],
+    ] as const) {
+      const r = router(path)
+      const c = client()
+      leaveOn401(error, c, r)
+      expect([c.clear, r.navigate].map((f) => vi.mocked(f).mock.calls.length)).toEqual([0, 0])
+    }
   })
 })
