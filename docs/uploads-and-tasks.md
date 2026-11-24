@@ -141,7 +141,7 @@ sequenceDiagram
         end
         B-->>U: 202 Task → убрать из L
     end
-    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>повторы кончились: сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
+    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>повторы кончились или 401 (refresh не удался): сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
 ```
 
 - Прогресс — принятые сервером байты плюс `upload.onprogress` текущего куска, через тот же `updateSending`.
@@ -212,7 +212,7 @@ stateDiagram-v2
     Conflict --> Sending: «Заменить» / «Оставить оба» (или Batch.choice)
     Conflict --> [*]: «Отмена» сразу, крестик — через 3 с
     Sending --> Aborted: «Отменить» → xhr.abort(), у сессии ещё DELETE
-    Sending --> Paused: сессия, повторы сети кончились
+    Sending --> Paused: сессия, повторы сети кончились или 401
     [*] --> Paused: перезагрузка с незаконченной сессией
     Paused --> Sending: «Выбрать файл» (тот же файл) → resumeUpload
     Paused --> [*]: крестик → DELETE / истекла / 404

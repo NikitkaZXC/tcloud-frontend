@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Task, UploadOptions } from './types'
-import { answerConflict, type Batch, getConflicts, type Resolution, sendTracked, CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
+import { answerConflict, type Batch, discardSession, forgetLocalUser, getConflicts, type Resolution, sendTracked, CANCELLED_HOLD_MS, cancelSending, CHUNK_RETRIES, CHUNK_SIZE, chunkRetryDelay, getPausedSessions, resumeUpload, sameFile, finishSending, getSending, isAbort, nextRate, SENDING_TICK_MS, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from './upload'
 
 describe('sending', () => {
   afterEach(() => vi.useRealTimers())
@@ -90,7 +90,11 @@ describe('chunked upload', () => {
       open(method: string, url: string) {
         this.target = `${method} ${url}`
       }
-      abort() {}
+      aborted = false
+      abort() {
+        this.aborted = true
+        this.onabort?.()
+      }
       getResponseHeader() {
         return null
       }
@@ -100,7 +104,7 @@ describe('chunked upload', () => {
         const reply = handle(method, url)
         this.status = reply.status
         this.responseText = reply.body === undefined ? '' : JSON.stringify(reply.body)
-        queueMicrotask(() => this.onload?.())
+        queueMicrotask(() => !this.aborted && this.onload?.())
       }
     }
     vi.stubGlobal('XMLHttpRequest', Fake)
@@ -164,6 +168,52 @@ describe('chunked upload', () => {
     expect(chunkRetryDelay(new ApiError(409, { code: 'conflict', message: 'x' }), 1)).toBeNull()
     expect(chunkRetryDelay(new DOMException('x', 'AbortError'), 1)).toBeNull()
     expect(chunkRetryDelay(new Error('network error'), CHUNK_RETRIES + 1)).toBeNull()
+  })
+
+  it('keeps the session paused when the login expires between parts', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 401 })))
+    const calls = fakeXhr((method) => (method === 'POST' ? { status: 201, body: session(0) } : { status: 401, body: { error: { code: 'token_expired', message: 'x' } } }))
+    await expect(uploadFile(big, options, () => {})).rejects.toMatchObject({ status: 401 })
+    expect(calls.some((call) => call.startsWith('DELETE'))).toBe(false)
+    expect(getPausedSessions().map((entry) => entry.session_id)).toEqual(['s1'])
+    forgetLocalUser()
+    expect(getPausedSessions()).toEqual([])
+  })
+
+  it('waits and repeats a part while the session is busy', async () => {
+    let busy = true
+    const calls = fakeXhr((method) => {
+      if (method === 'POST') return { status: 201, body: session(0) }
+      if (busy) {
+        busy = false
+        return { status: 409, body: { error: { code: 'upload_session_busy', message: 'x', retry_after: 0.001 } } }
+      }
+      return { status: 202, body: { id: 's1', status: 'queued' } }
+    })
+    expect(await uploadFile(big, options, () => {})).toMatchObject({ id: 's1' })
+    expect(calls.filter((call) => call.startsWith('PUT'))).toHaveLength(2)
+  })
+
+  it('cancel while the session is being created stores nothing and sends no part', async () => {
+    const controller = new AbortController()
+    const calls = fakeXhr(() => {
+      controller.abort()
+      return { status: 201, body: session(0) }
+    })
+    await expect(uploadFile(big, options, () => {}, controller.signal)).rejects.toSatisfy(isAbort)
+    expect(calls).toHaveLength(1)
+    expect(getPausedSessions()).toEqual([])
+  })
+
+  it('retries the session delete on transient errors', async () => {
+    let failed = false
+    const calls = fakeXhr(() => {
+      if (failed) return { status: 204 }
+      failed = true
+      return { status: 503, body: { error: { code: 'http_error', message: 'x', retry_after: 0.001 } } }
+    })
+    await discardSession('s9')
+    expect(calls).toEqual(['DELETE /api/uploads/sessions/s9', 'DELETE /api/uploads/sessions/s9'])
   })
 
   it('matches a re-picked file by name, size and modification time', () => {

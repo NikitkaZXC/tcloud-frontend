@@ -286,7 +286,7 @@ async function sendChunks(entry: StoredSession, file: File, session: UploadSessi
       forgetSession(id)
       const task = await call<Task>('GET', `/api/tasks/${id}`, null, () => {}).catch(() => null)
       if (task) return task
-    } else if (transient(e)) releaseSession(id)
+    } else if (transient(e) || (e instanceof ApiError && e.status === 401)) releaseSession(id)
     else discardSession(id)
     throw e
   }
