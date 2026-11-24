@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project
 
-Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian and English (`lib/i18n.ts`). Details in `README.md`; how it works, with Mermaid diagrams, in `docs/` (`architecture.md`, `data-flow.md`, `uploads-and-tasks.md`, `theming.md`).
+Web UI for `../tcloud-backend` (FastAPI, Telegram-backed file storage). Vite + React 19 + TS, Tailwind v4 + shadcn/ui (`src/components/ui`, add with `npx shadcn@latest add <name>`), TanStack Query, react-router. UI text is Russian and English (`lib/i18n.ts`). Overview in `README.md`; how it works, with Mermaid diagrams, in `docs/` (`architecture.md`, `data-flow.md`, `uploads-and-tasks.md`, `ui.md`, `theming.md`).
 
 ## Commands
 
@@ -51,6 +51,7 @@ CI: `.github/workflows/ci.yml` (push + PR: `npm ci`, lint, test, build on Node 2
 ## Rules
 
 - Plan first; important decisions go to the owner as multiple-choice questions.
-- No code comments; explanations go to README.md and `docs/`. Keep README.md, `docs/` and this file current.
+- No code comments; explanations go to `docs/`. Keep README.md, `docs/` and this file current.
+- README stays short: project overview, architecture diagram, main backend endpoints and pages, quick start, links to `docs/`. Implementation details go into `docs/` (UI behaviour → `docs/ui.md`).
 - When code changes a flow shown in `docs/`, update the doc and its diagram in the same commit.
 - Tests for new logic in `src/lib`. Commits: one-line English (`feat:`, `fix:`), **never push**.

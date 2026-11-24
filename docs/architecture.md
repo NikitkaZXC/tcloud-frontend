@@ -111,7 +111,13 @@ flowchart LR
   заголовок ровно один раз (от nginx).
 - gzip: статика (`text/html`, CSS, JS, SVG, JSON) от 1 КБ с `Vary: Accept-Encoding`; в `/api/` `gzip_types` сужен до
   `application/json`; `/files/{id}/download`, `/files/{id}/thumb` и `/tasks/{id}/archive` идут через отдельный
-  regex-`location` с `gzip off` (те же настройки прокси), даже если файл сам JSON (ответы `206` nginx не сжимает вовсе).
+  regex-`location` с `gzip off` (те же настройки прокси), даже если файл сам JSON (ответы `206` nginx не сжимает вовсе):
+  они идут как есть, с `Content-Length` и `Range`.
+- Образ двухэтапный (`Dockerfile`): `node` собирает `dist/`, `nginx` отдаёт его; шаблон `docker/nginx.conf.template`
+  подставляет `API_UPSTREAM` при старте. `/assets/` кэшируются на год (имена с хэшем), `/fonts/` тоже (`immutable`,
+  версия `?v=` в адресе шрифта), остальное — `no-cache` с откатом на `index.html` (маршруты SPA).
+- В проде перед nginx нужен HTTPS: cookie авторизации — `Secure`.
+- Своего `.env` у фронтенда нет, адрес API в сборку не зашивается: запросы всегда идут на тот же origin, `/api`.
 
 ### Клиент API
 
@@ -237,4 +243,9 @@ flowchart LR
   по `Intl.PluralRules(lang)` от `params.n`. Подстановки `{name}`.
 - Константы модулей хранят ключи, а не текст (текст вычисляется после перемонтирования). `tAll` склеивает перевод на
   обоих языках — для `keywords` команд Ctrl+K.
+- Даты (`formatDate`), размеры (`formatBytes`, десятичный разделитель) и сортировка имён (`Intl.Collator`) идут по
+  текущему языку. Переключатель RU/EN — в профиле боковой панели рядом с темой и пункт «Язык» на `/settings`.
+- Ошибки бэкенда переводятся по `code` (`error.<code>` в `errorMessage`/`errorText`, свои фразы — `describeError`,
+  `archiveError`, `settingsError`); неизвестный код показывается как есть. Departure Mono покрывает латиницу и
+  кириллицу (включая ё, №, «», —, стрелки).
 - До ответа `/users/me` язык берётся из `tcloud.mirror` (см. [data-flow.md](data-flow.md#настройки)) или браузера.
