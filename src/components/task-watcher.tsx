@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { ApiError, errorText } from '@/lib/api'
@@ -8,9 +9,12 @@ import { useStorages } from '@/hooks/use-storages'
 import { TASK_EVENT } from '@/lib/features'
 import { taskTitle } from '@/lib/names'
 import { forgetTasks, isPending, reportTask, taskFolders, useTrackedTasks } from '@/lib/tasks'
-import { useSending } from '@/lib/upload'
+import { parentPath } from '@/lib/format'
+import { getPausedSessions, useSending } from '@/lib/upload'
 import { t } from '@/lib/i18n'
 import type { Task } from '@/lib/types'
+
+let pausedShown = false
 
 export function TaskWatcher() {
   const ids = useTrackedTasks()
@@ -18,6 +22,19 @@ export function TaskWatcher() {
   const queryClient = useQueryClient()
   const uploading = useSending().some((item) => !item.cancelled)
   const storages = useStorages()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const paused = getPausedSessions()
+    if (pausedShown || !paused.length) return
+    pausedShown = true
+    const folder = parentPath(paused[0].path)
+    toast.info(t('uploads.pausedFound', { n: paused.length }), {
+      id: 'paused-uploads',
+      duration: 15000,
+      action: { label: t('folder.open'), onClick: () => navigate(`/files?path=${encodeURIComponent(folder)}`) },
+    })
+  }, [navigate])
 
   useEffect(() => {
     if (!uploading) return

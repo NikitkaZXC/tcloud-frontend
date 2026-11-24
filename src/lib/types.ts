@@ -248,6 +248,15 @@ export interface UploadOptions {
   encrypt: boolean
 }
 
+export interface UploadSession {
+  session_id: string
+  path: string
+  size: number
+  offset: number
+  chunk_size: number
+  expires_at: string
+}
+
 export interface FolderDeleteResponse {
   path: string
   deleted_files: number

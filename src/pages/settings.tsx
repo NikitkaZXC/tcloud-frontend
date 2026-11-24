@@ -115,6 +115,52 @@ const priorities = (): [Settings['uploads']['priority'], string][] => [
   ['high', t('priority.high')],
 ]
 
+const MIB = 1024 * 1024
+
+function MaxFileSize({ value }: { value: number }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const text = draft ?? (value ? String(Math.round(value / MIB)) : '')
+  const next = Math.max(0, Math.round(Number(text) || 0)) * MIB
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    try {
+      await updateSettings({ uploads: { max_file_size: next } })
+      setDraft(null)
+    } catch (e) {
+      toast.error(settingsError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Row label={t('settings.maxFileSize')} hint={t('settings.maxFileSizeHint')}>
+      {(ids) => (
+        <form onSubmit={submit} className="flex gap-2">
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            placeholder="0"
+            value={text}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-labelledby={ids.label}
+            aria-describedby={ids.hint}
+            className="w-32"
+          />
+          <Button type="submit" disabled={busy || next === value}>
+            {t('common.save')}
+          </Button>
+        </form>
+      )}
+    </Row>
+  )
+}
+
 function Webhook({ value }: { value: string | null }) {
   const [draft, setDraft] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -251,6 +297,7 @@ export function SettingsPage() {
               onChange={(previews) => updateSettings({ uploads: { previews } }).then(() => queryClient.invalidateQueries({ queryKey: ['account'] }), (error) => toast.error(settingsError(error)))}
             />
           )}
+          {me?.role === 'root' && <MaxFileSize value={uploads.max_file_size} />}
         </div>
       </Section>
 

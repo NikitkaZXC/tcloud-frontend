@@ -14,7 +14,7 @@ import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
 import { trackTask } from '@/lib/tasks'
 import type { BatchResponse, OnConflict, Priority, SendAs, Task, UploadOptions } from '@/lib/types'
 import { uploadOptions, useSettings } from '@/lib/settings'
-import { finishSending, isAbort, sendingSignal, startSending, updateSending, uploadFile, withSendAs } from '@/lib/upload'
+import { sendTracked, startSending, uploadFile, withSendAs } from '@/lib/upload'
 import { hintTask } from '@/lib/steps'
 import { t } from '@/lib/i18n'
 
@@ -121,16 +121,7 @@ export function UploadDialog({
     setOptions(null)
     toast.success(t('upload.queuedSend', { n: queue.length }))
     for (const { file, path, id } of queue) {
-      try {
-        const task = await uploadFile(file, { ...options, path }, (loaded) => updateSending(id, loaded), sendingSignal(id))
-        hintTask(task.id, { source: 'device', encrypt: options.encrypt })
-        queryClient.setQueryData<Task>(['task', task.id], task)
-        trackTask(task.id)
-      } catch (e) {
-        if (!isAbort(e)) showError(e, `${file.name}: `)
-      } finally {
-        finishSending(id)
-      }
+      await sendTracked(queryClient, id, file.name, options.encrypt, (onProgress, signal) => uploadFile(file, { ...options, path }, onProgress, signal))
     }
   }
 

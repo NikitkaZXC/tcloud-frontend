@@ -22,6 +22,7 @@ export interface Settings {
     on_conflict: OnConflict
     allow_unscannable: boolean
     previews: boolean
+    max_file_size: number
     webhook_url: string | null
   }
   archives: { format: ArchiveFormat; priority: Priority }
@@ -49,7 +50,7 @@ export interface Settings {
 export type SettingsPatch = { [G in keyof Settings]?: Partial<Settings[G]> }
 
 export const DEFAULT_SETTINGS: Settings = {
-  uploads: { encrypt: true, send_as: 'file', priority: 'normal', on_conflict: 'error', allow_unscannable: false, previews: true, webhook_url: null },
+  uploads: { encrypt: true, send_as: 'file', priority: 'normal', on_conflict: 'error', allow_unscannable: false, previews: true, max_file_size: 0, webhook_url: null },
   archives: { format: 'zip', priority: 'normal' },
   interface: {
     language: null,

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { XIcon } from 'lucide-react'
-import { useState } from 'react'
+import { UploadIcon, XIcon } from 'lucide-react'
+import { type ReactNode, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Confirm } from '@/components/confirm'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,7 @@ import { fileName, taskTitle } from '@/lib/names'
 import { useReads } from '@/lib/reads'
 import { forgetTask, stageLabel, statusLabel, taskFraction, useTrackedTasks } from '@/lib/tasks'
 import type { Task } from '@/lib/types'
-import { cancelSending, useSending } from '@/lib/upload'
+import { cancelSending, discardSession, resumeUpload, sameFile, sendTracked, startSending, type StoredSession, usePausedSessions, useSending } from '@/lib/upload'
 import { canCancel, isMeasured, phaseLabel, stepFraction, stepLabel, taskPhases, taskTrail, trail } from '@/lib/steps'
 import { t } from '@/lib/i18n'
 
@@ -44,6 +45,7 @@ function Row({
   onCancel,
   cancelDisabled,
   onForget,
+  actions,
 }: {
   name: string
   label: string
@@ -55,6 +57,7 @@ function Row({
   onCancel?: () => void
   cancelDisabled?: boolean
   onForget?: () => void
+  actions?: ReactNode
 }) {
   return (
     <li className="grid gap-1" data-muted={muted || undefined}>
@@ -64,6 +67,7 @@ function Row({
           {label}
           {fraction != null && ` · ${(fraction * 100).toFixed(0)}%`}
         </span>
+        {actions}
         {onCancel && (
           <Button size="icon-sm" variant="ghost" onClick={onCancel} disabled={cancelDisabled} aria-label={`${t('uploads.cancel')}: ${name}`} title={t('uploads.cancel')}>
             <XIcon />
@@ -81,6 +85,27 @@ function Row({
         {meta && <span className="text-xs text-muted-foreground tabular-nums">{meta}</span>}
       </div>
     </li>
+  )
+}
+
+function PickFile({ onPick }: { onPick: (file: File) => void }) {
+  const input = useRef<HTMLInputElement>(null)
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (file) onPick(file)
+        }}
+      />
+      <Button size="sm" variant="outline" onClick={() => input.current?.click()}>
+        <UploadIcon /> {t('uploads.pickFile')}
+      </Button>
+    </>
   )
 }
 
@@ -106,12 +131,13 @@ export function FolderUploads({ path }: { path: string }) {
   const inside = (item: string) => item.startsWith(`${path}/`)
   const name = (item: string) => item.slice(path.length + 1)
   const sending = useSending().filter((item) => inside(item.path))
+  const paused = usePausedSessions().filter((entry) => inside(entry.path))
   const ids = useTrackedTasks()
   const tasks = useTasks(ids)
     .map((result) => result.data)
     .filter((task): task is Task => !!task && !task.archive && inside(task.path) && ACTIVE.includes(task.status))
 
-  if (sending.length + tasks.length === 0) return null
+  if (sending.length + tasks.length + paused.length === 0) return null
 
   async function cancelTask(id: string) {
     setInFlight((list) => [...list, id])
@@ -123,6 +149,15 @@ export function FolderUploads({ path }: { path: string }) {
     } finally {
       setInFlight((list) => list.filter((x) => x !== id))
     }
+  }
+
+  function resume(entry: StoredSession, file: File) {
+    if (!sameFile(entry, file)) {
+      toast.error(t('uploads.wrongFile', { name: entry.name, size: formatBytes(entry.size) }))
+      return
+    }
+    const id = startSending(entry.path, entry.size, entry.encrypt)
+    sendTracked(queryClient, id, entry.name, entry.encrypt, (onProgress, signal) => resumeUpload(entry, file, onProgress, signal))
   }
 
   const openSending = sending.filter((item) => !item.cancelled)
@@ -162,6 +197,18 @@ export function FolderUploads({ path }: { path: string }) {
           steps={trail(taskPhases({ step: null, archive: null }, { source: 'device', encrypt: !!item.encrypt }), 'upload', item.cancelled ? 'cancelled' : 'running')}
           muted={item.cancelled}
           onCancel={item.cancelled ? undefined : () => cancelSending(item.id)}
+        />
+      ))}
+      {paused.map((entry) => (
+        <Row
+          key={entry.session_id}
+          name={name(entry.path)}
+          label={t('uploads.paused')}
+          meta={formatBytes(entry.size)}
+          steps={trail(taskPhases({ step: null, archive: null }, { source: 'device', encrypt: entry.encrypt }), 'upload', 'cancelled')}
+          muted
+          actions={<PickFile onPick={(file) => resume(entry, file)} />}
+          onCancel={() => discardSession(entry.session_id)}
         />
       ))}
       {tasks.map((task) => {

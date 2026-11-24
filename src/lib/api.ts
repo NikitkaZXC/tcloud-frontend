@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { formatBytes } from './format'
 import { DICTIONARIES, type Key, t } from './i18n'
 import type { ApiErrorBody } from './types'
 
@@ -115,12 +116,14 @@ function invalidField(body: ApiErrorBody): string | null {
   return field ? t('error.invalidField', { field, message: String(detail?.msg ?? body.message) }) : null
 }
 
+const errorParams = (body: ApiErrorBody) => (typeof body.limit === 'number' ? { limit: formatBytes(body.limit) } : undefined)
+
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'validation_error') return invalidField(error.body) ?? t('error.validation_error')
     if (error.code === 'http_error') return error.message
     const key = `error.${error.code}`
-    return key in DICTIONARIES.ru ? t(key as Key) : `${error.message} (${error.code})`
+    return key in DICTIONARIES.ru ? t(key as Key, errorParams(error.body)) : `${error.message} (${error.code})`
   }
   if (error instanceof TypeError) return t('error.network')
   if (error instanceof Error) return error.message
@@ -134,5 +137,5 @@ export function showError(error: unknown, prefix = '') {
 export function errorText(body: ApiErrorBody | null | undefined): string {
   if (!body) return ''
   const key = `error.${body.code}`
-  return key in DICTIONARIES.ru ? t(key as Key) : body.message
+  return key in DICTIONARIES.ru ? t(key as Key, errorParams(body)) : body.message
 }

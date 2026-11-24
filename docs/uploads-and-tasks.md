@@ -23,7 +23,7 @@ flowchart LR
     setFiles["FolderView: setFiles(Picked[])"] --> dialog["UploadDialog"]
     paletteUrl["Ctrl+K: url"] --> urlDialog["UrlUploadDialog"]
     btnUrl["кнопка «По ссылке»"] --> urlDialog
-    dialog --> xhr["POST /api/uploads (XHR)<br/>по одному файлу"]
+    dialog --> xhr["POST /api/uploads (XHR)<br/>по одному файлу;<br/>> 64 МиБ — сессия частями"]
     urlDialog --> batch["POST /api/uploads/batch"]
     archive["меню «Скачать папку»<br/>POST /api/folders/archive"] --> track
     sel["«Скачать архивом» выбранное<br/>POST /api/folders/archive/selection"] --> track
@@ -83,6 +83,52 @@ sequenceDiagram
   `beforeunload`, чтобы браузер спросил перед закрытием.
 - Ссылки: `parseUrlLines` (строка `url` или `url | имя`) → `POST /api/uploads/batch {items}`; для каждого элемента с
   `task` — `setQueryData(['task', id], task)` и `trackTask`, с `error` — уведомление.
+- После ответа (обычного или сессии) `sendTracked` делает `hintTask`, `setQueryData`, `trackTask`, а ошибку показывает
+  уведомлением «имя: ошибка» (отмена — молча). `413 too_large` и `chunk_too_large` показывают `limit` размером
+  (`errorParams` в `lib/api.ts`).
+
+### Большие файлы частями
+
+`uploadFile` отправляет файл больше `CHUNK_SIZE` (64 МиБ, как `UPLOAD_CHUNK_SIZE` бэкенда) сессией
+(backend `docs/flows/uploads.md`, «С устройства — частями»); меньшие — как раньше одним `POST /api/uploads`.
+
+```mermaid
+sequenceDiagram
+    participant D as UploadDialog / FolderUploads
+    participant U as lib/upload.ts
+    participant L as localStorage
+    participant B as Backend
+    D->>U: uploadFile (size > CHUNK_SIZE)
+    U->>B: POST /api/uploads/sessions?size=N&path=…&опции
+    alt 200 Task (on_conflict=skip)
+        B-->>U: задача done, сессии нет
+    else 409 conflict / 413 too_large / 429 / 507
+        B-->>U: ошибка → toast, как у POST /api/uploads
+    else 201 UploadSession
+        U->>L: tcloud.uploads.sessions += {session_id, path, size, name, lastModified, expires_at, encrypt}
+        loop offset < size
+            U->>B: PUT /sessions/{id}?offset=K (file.slice(K, K + chunk_size))
+            alt 200 UploadSession
+                B-->>U: новый offset, expires_at → L
+            else 409 offset_mismatch
+                B-->>U: offset — продолжить с него
+            else сеть / 5xx / 429 / upload_session_busy
+                U->>U: пауза chunkRetryDelay (1, 2, 4… с или retry_after), до 5 раз
+            end
+        end
+        B-->>U: 202 Task → убрать из L
+    end
+    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>повторы кончились: сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
+```
+
+- Прогресс — принятые сервером байты плюс `upload.onprogress` текущего куска, через тот же `updateSending`.
+- Сессии в `localStorage` `tcloud.uploads.sessions` (каждый доступ в try/catch; просроченные по `expires_at`
+  отбрасываются при чтении). Сессии, которые не идут в этой вкладке (`usePausedSessions`), — после перезагрузки или
+  исчерпанных повторов — видны в `FolderUploads` своей папки как «пауза — выберите файл снова» с кнопкой «Выбрать файл»
+  и крестиком (`discardSession`: `DELETE` и забыть). Выбранный файл сверяется по имени, размеру и `lastModified`
+  (`sameFile`; не тот — ошибка, можно выбрать снова), затем `resumeUpload`: `GET` сессии за `offset` и тот же цикл.
+- При старте приложения `TaskWatcher` один раз показывает уведомление «N незаконченных загрузок» с кнопкой «Открыть»
+  (папка первой).
 
 ## Отслеживание задач
 
@@ -139,7 +185,11 @@ stateDiagram-v2
     [*] --> Sending: startSending
     Sending --> Tracked: uploadFile ok → trackTask
     Sending --> [*]: ошибка отправки → toast
-    Sending --> Aborted: «Отменить» → xhr.abort()
+    Sending --> Aborted: «Отменить» → xhr.abort(), у сессии ещё DELETE
+    Sending --> Paused: сессия, повторы сети кончились
+    [*] --> Paused: перезагрузка с незаконченной сессией
+    Paused --> Sending: «Выбрать файл» (тот же файл) → resumeUpload
+    Paused --> [*]: крестик → DELETE / истекла / 404
     Aborted --> [*]: через 3 с
     [*] --> Tracked: batch / архив / повтор → trackTask
     Tracked --> Polling
