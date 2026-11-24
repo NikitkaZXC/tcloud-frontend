@@ -365,6 +365,7 @@ export const ru = {
   'palette.title': 'Командная строка',
   'palette.uploadFiles': 'Загрузить файлы',
   'palette.uploadUrl': 'Загрузить по ссылке',
+  'priority.highAdmin': 'высокий — только админ',
   'priority.high': 'высокий',
   'priority.low': 'низкий',
   'priority.normal': 'обычный',

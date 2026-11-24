@@ -6,7 +6,7 @@ import { Confirm } from '@/components/confirm'
 import { PageTitle, PixelToggle, Section } from '@/components/fx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useMe } from '@/hooks/use-me'
+import { isAdmin, useMe } from '@/hooks/use-me'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PAGE_SIZES, pageSize } from '@/lib/files'
 import { save as saveLocal } from '@/lib/prefs'
@@ -49,7 +49,7 @@ function Toggle({ label, hint, checked, disabled, onChange }: { label: string; h
   )
 }
 
-function Choice<T extends string>({ label, hint, value, options, onChange }: { label: string; hint?: string; value: T; options: [T, string][]; onChange: (next: T) => void }) {
+function Choice<T extends string>({ label, hint, value, options, onChange }: { label: string; hint?: string; value: T; options: [T, string, boolean?][]; onChange: (next: T) => void }) {
   return (
     <Row label={label} hint={hint}>
       {(ids) => (
@@ -58,8 +58,8 @@ function Choice<T extends string>({ label, hint, value, options, onChange }: { l
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {options.map(([option, text]) => (
-              <SelectItem key={option} value={option}>
+            {options.map(([option, text, disabled]) => (
+              <SelectItem key={option} value={option} disabled={disabled}>
                 {text}
               </SelectItem>
             ))}
@@ -109,10 +109,10 @@ function ThemePicker({ value, onChange }: { value: Theme; onChange: (next: Theme
   )
 }
 
-const priorities = (): [Settings['uploads']['priority'], string][] => [
-  ['low', t('priority.low')],
-  ['normal', t('priority.normal')],
-  ['high', t('priority.high')],
+const priorities = (admin: boolean): [Settings['uploads']['priority'], string, boolean][] => [
+  ['low', t('priority.low'), false],
+  ['normal', t('priority.normal'), false],
+  ['high', t(admin ? 'priority.high' : 'priority.highAdmin'), !admin],
 ]
 
 const MIB = 1024 * 1024
@@ -282,7 +282,7 @@ export function SettingsPage() {
             ]}
             onChange={(on_conflict) => save({ uploads: { on_conflict } })}
           />
-          <Choice label={t('settings.uploadPriority')} value={uploads.priority} options={priorities()} onChange={(priority) => save({ uploads: { priority } })} />
+          <Choice label={t('settings.uploadPriority')} value={uploads.priority} options={priorities(isAdmin(me))} onChange={(priority) => save({ uploads: { priority } })} />
           <Toggle
             label={t('settings.unscannable')}
             hint={t('settings.unscannableHint')}
@@ -310,7 +310,7 @@ export function SettingsPage() {
             options={(['zip', '7z', 'tar.gz', 'tar.bz2', 'tar.xz'] as const).map((format) => [format, format])}
             onChange={(format) => save({ archives: { format } })}
           />
-          <Choice label={t('settings.archivePriority')} value={archives.priority} options={priorities()} onChange={(priority) => save({ archives: { priority } })} />
+          <Choice label={t('settings.archivePriority')} value={archives.priority} options={priorities(isAdmin(me))} onChange={(priority) => save({ archives: { priority } })} />
         </div>
       </Section>
 

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { isAdmin, useMe } from '@/hooks/use-me'
 import { api, errorText, showError } from '@/lib/api'
 import type { Picked } from '@/lib/dir-upload'
 import { filesCount, formatBytes, joinPath, parseUrlLines } from '@/lib/format'
@@ -57,6 +58,7 @@ const SEND_AS_HINTS = { file: 'upload.sendAsFileHint', media: 'upload.sendAsMedi
 const CONFLICT_HINTS = { error: 'upload.conflictErrorHint', replace: 'upload.conflictReplaceHint', keep_both: 'upload.conflictKeepBothHint', skip: 'upload.conflictSkipHint' } as const
 
 function OptionsFields({ options, setOptions }: { options: Options; setOptions: (o: Options) => void }) {
+  const admin = isAdmin(useMe().data)
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field label={t('upload.sendAs')} hint={t(SEND_AS_HINTS[options.send_as])}>
@@ -90,7 +92,7 @@ function OptionsFields({ options, setOptions }: { options: Options; setOptions: 
             <SelectContent>
               <SelectItem value="low">{t('priority.low')}</SelectItem>
               <SelectItem value="normal">{t('priority.normal')}</SelectItem>
-              <SelectItem value="high">{t('priority.high')}</SelectItem>
+              <SelectItem value="high" disabled={!admin}>{t(admin ? 'priority.high' : 'priority.highAdmin')}</SelectItem>
             </SelectContent>
           </Select>
         )}

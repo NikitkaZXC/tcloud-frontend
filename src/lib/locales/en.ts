@@ -365,6 +365,7 @@ export const en: Record<Key, Entry> = {
   'palette.title': 'Command palette',
   'palette.uploadFiles': 'Upload files',
   'palette.uploadUrl': 'Upload from link',
+  'priority.highAdmin': 'high — admins only',
   'priority.high': 'high',
   'priority.low': 'low',
   'priority.normal': 'normal',

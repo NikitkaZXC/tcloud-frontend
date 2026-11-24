@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAction } from '@/hooks/use-action'
+import { isAdmin, useMe } from '@/hooks/use-me'
 import { isFinished, useTasks } from '@/hooks/use-tasks'
 import { api, errorText } from '@/lib/api'
 import { t, type Key } from '@/lib/i18n'
@@ -73,6 +74,7 @@ function TaskCard({ task }: { task: Task }) {
       queryClient.invalidateQueries({ queryKey: ['task', next.id] })
     },
   })
+  const admin = isAdmin(useMe().data)
   const priority = useAction((value: Priority) => api.post<Task>(`/tasks/${task.id}/priority`, { priority: value }), {
     onSuccess: update,
   })
@@ -109,7 +111,7 @@ function TaskCard({ task }: { task: Task }) {
                 <SelectContent>
                   <SelectItem value="low">{t('priority.low')}</SelectItem>
                   <SelectItem value="normal">{t('priority.normal')}</SelectItem>
-                  <SelectItem value="high">{t('priority.high')}</SelectItem>
+                  <SelectItem value="high" disabled={!admin}>{t(admin ? 'priority.high' : 'priority.highAdmin')}</SelectItem>
                 </SelectContent>
               </Select>
             )}
