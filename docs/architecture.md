@@ -122,6 +122,11 @@ flowchart LR
   `proxy_hide_header`: в ответах `/api/` каждый заголовок ровно один раз (от nginx). Исключение —
   `Content-Security-Policy`: CSP бэкенда (`default-src 'none'`, `sandbox` у скачиваний) не скрывается, браузер применяет
   обе политики сразу, то есть строжайшую.
+- Ещё в `security-headers.conf`: `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()` и
+  `Cross-Origin-Opener-Policy: same-origin` (у бэкенда свои, тоже скрываются). `server_tokens off` — без версии nginx в
+  `Server` и страницах ошибок.
+- `X-Forwarded-Proto` к бэкенду: значение внешнего прокси, если оно пришло, иначе `$scheme` (`map
+  $http_x_forwarded_proto $forwarded_proto` в начале шаблона), чтобы за TLS-прокси бэкенд видел `https`.
 - CSP статики: `default-src 'self'` (скрипты, шрифт, `/api` через `connect-src` — всё с того же origin, без CDN, `eval`
   и воркеров); `style-src 'self' 'unsafe-inline'`, потому что sonner, Radix Select и `react-remove-scroll` вставляют
   `<style>` во время работы; `img-src`/`media-src` с `data:`/`blob:` для превью; `frame-ancestors 'none'`,
