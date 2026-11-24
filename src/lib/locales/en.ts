@@ -31,7 +31,7 @@ export const en: Record<Key, Entry> = {
   'auth.invalidPhone': 'Telegram rejected the phone number',
   'auth.loginExpired': 'The sign-in has expired — start again',
   'auth.loginNotFound': 'The sign-in was not started or has expired — start again',
-  'auth.rateLimited': 'Too many sign-in attempts from this address',
+  'auth.rateLimited': 'Too many sign-in attempts, please wait',
   'auth.telegramUnauthorized': 'The required Telegram session is not authorized',
   'auth.userBlocked': 'The user is blocked — contact the administrator',
   'auth.validation': 'Enter the login and password',

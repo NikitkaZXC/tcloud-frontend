@@ -31,7 +31,7 @@ export const ru = {
   'auth.invalidPhone': 'Telegram не принял номер телефона',
   'auth.loginExpired': 'Время входа истекло — начните заново',
   'auth.loginNotFound': 'Вход не начат или истёк — начните заново',
-  'auth.rateLimited': 'Слишком много попыток входа с этого адреса',
+  'auth.rateLimited': 'Слишком много попыток входа, подождите',
   'auth.telegramUnauthorized': 'Нужная сессия Telegram не авторизована',
   'auth.userBlocked': 'Пользователь заблокирован — обратитесь к администратору',
   'auth.validation': 'Заполните логин и пароль',
