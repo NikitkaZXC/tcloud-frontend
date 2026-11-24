@@ -14,10 +14,10 @@ globalThis.ResizeObserver ??= class {
 
 export const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
-export function renderApp(ui: ReactNode, { client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), path = '/' } = {}) {
+export function renderApp(ui: ReactNode, { client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), path = '/', route = '*' } = {}) {
   const router = createMemoryRouter(
     [
-      { path: '*', element: ui },
+      { path: route, element: ui },
       { path: '/login', element: <p>login page</p> },
     ],
     { initialEntries: [path] },
