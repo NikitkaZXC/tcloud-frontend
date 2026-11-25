@@ -43,7 +43,10 @@ flowchart LR
 
 ## Быстрый старт
 
+Нужны Node 26 (как в CI и `Dockerfile`) и запущенный бэкенд. Своего `.env` нет.
+
 ```bash
+(cd ../tcloud-backend && make dev-up-all)   # API на 127.0.0.1:8000
 npm install
 npm run dev        # http://localhost:5173, /api → http://127.0.0.1:8000 (API_URL=... чтобы сменить)
 npm test           # vitest
@@ -55,8 +58,8 @@ docker build -t tcloud-frontend .
 docker run -p 8080:80 -e API_UPSTREAM=http://app:8000 tcloud-frontend
 ```
 
-Бэкенд должен быть запущен (`make dev-up-all` в tcloud-backend); вход — пользователем tcloud (root: `ROOT_LOGIN` /
-`ROOT_PASSWORD` из `.env` бэкенда). Своего `.env` нет. В проде перед nginx нужен HTTPS (cookie `Secure`).
+Вход — пользователем tcloud (root: `ROOT_LOGIN` / `ROOT_PASSWORD` из `../tcloud-backend/.env`). В проде перед nginx
+нужен HTTPS (cookie `Secure`).
 
 ## Документация
 
