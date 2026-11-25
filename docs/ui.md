@@ -28,6 +28,9 @@
 попыток с IP), `user_blocked`. У `account_locked`/`rate_limited` бэкенд отдаёт `retry_after` (с): обратный отсчёт,
 кнопка выключена до конца. Поток входа и refresh — [architecture.md](architecture.md#авторизация-и-обновление-сессии).
 
+На `/account` форма смены пароля скрыта у root: его пароль задаёт `ROOT_PASSWORD` бэкенда (`POST /api/auth/password`
+отвечает root ошибкой).
+
 ## Вход в Telegram
 
 `/telegram` (root): мастер «1 / 3 → 2 / 3 → 3 / 3» по сессиям `api`, `upload`, `download` (бэкенд требует три

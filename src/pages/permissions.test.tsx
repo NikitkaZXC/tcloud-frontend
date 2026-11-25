@@ -3,6 +3,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Me, Role, User } from '@/lib/types'
 import { json, renderApp } from '@/test-utils'
+import { AccountPage } from './account'
 import { DashboardPage } from './dashboard'
 import { UserPage } from './user'
 
@@ -59,5 +60,18 @@ describe('user page by role', () => {
     await screen.findByText('bob')
     await waitFor(() => expect(urls()).toContain('/api/users/u2/api-keys'))
     expect(urls().includes('/api/uploads/sessions')).toBe(shown)
+  })
+})
+
+describe('account page by role', () => {
+  it.each([
+    ['user', true],
+    ['admin', true],
+    ['root', false],
+  ] as const)('%s sees the password form: %s', async (role, shown) => {
+    const urls = serve()
+    renderApp(<AccountPage />, { client: client(role), path: '/account' })
+    await waitFor(() => expect(urls()).toContain('/api/auth/sessions'))
+    expect(screen.queryByLabelText('Текущий') !== null).toBe(shown)
   })
 })

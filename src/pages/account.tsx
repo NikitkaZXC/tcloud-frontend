@@ -27,7 +27,7 @@ export function AccountPage() {
         <Badge variant="outline">{me.role}</Badge>
       </PageTitle>
       <div className="grid gap-4 lg:grid-cols-2">
-        <PasswordCard />
+        {me.role !== 'root' && <PasswordCard />}
         <ApiKeys userId={me.id} />
         <Sessions />
         {!isAdmin(me) && (
