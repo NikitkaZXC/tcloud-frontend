@@ -1,23 +1,25 @@
-# Документация tcloud-frontend
+# tcloud-frontend documentation
 
-Точка входа — [README.md](../README.md) (обзор, схема, ручки, быстрый старт). Здесь — как всё устроено, со схемами
-Mermaid, сверенными с кодом.
+Start at [README.md](../README.md) (overview, diagram, endpoints, quick start). This folder explains how everything
+works, with Mermaid diagrams checked against the code.
 
-| Файл | О чём |
+| File | Topic |
 |---|---|
-| [architecture.md](architecture.md) | запуск, провайдеры, маршруты, оболочка `Layout`, прокси `/api` и nginx, авторизация и refresh, 429, события окна, i18n |
-| [data-flow.md](data-flow.md) | ключи TanStack Query, карта инвалидаций, сторы вне Query, настройки: загрузка, слияние, оптимистичное сохранение, перенос |
-| [uploads-and-tasks.md](uploads-and-tasks.md) | точки входа загрузок, XHR-отправка, загрузка частями, конфликты имён, отслеживание задач, `TaskWatcher`, статусы |
-| [ui.md](ui.md) | страницы и функции: вход, Telegram, навигация, поиск, листинг папки, настройки, дашборд, лампы чтения/записи, фишки |
-| [theming.md](theming.md) | стиль, темы и пресеты, `data-theme`/`.light`, токены, типографика, анимации, как добавить тему |
+| [architecture.md](architecture.md) | startup, providers, routes, the `Layout` shell, the `/api` proxy and nginx, auth and refresh, 429, window events, i18n |
+| [data-flow.md](data-flow.md) | TanStack Query keys, the invalidation map, stores outside Query, settings: loading, merging, optimistic saving, migration |
+| [uploads-and-tasks.md](uploads-and-tasks.md) | upload entry points, XHR sending, chunked uploads, name conflicts, task tracking, `TaskWatcher`, statuses |
+| [ui.md](ui.md) | pages and features: sign-in, Telegram, navigation, search, folder listing, settings, dashboard, read/write lamps, extras |
+| [theming.md](theming.md) | style, themes and presets, `data-theme`/`.light`, tokens, typography, animations, how to add a theme |
 
-## Разработка
+## Development
 
-- CI (`.github/workflows/ci.yml`) на push в `main` и на pull request (повторный запуск отменяет предыдущий): `npm ci`, `npm run lint`, `npm test`,
-  `npm run build` на Node 26 (как в `Dockerfile`, поднимать вместе).
-- Dependabot (`.github/dependabot.yml`) раз в месяц обновляет npm, базовые образы `Dockerfile`
-  и GitHub Actions: все обновления экосистемы одним PR, не больше 2 открытых PR на экосистему.
-- Проверено в Chrome и Safari (WebKit); Firefox не проверялся.
+- CI (`.github/workflows/ci.yml`) on push to `main` and on pull requests (a new run cancels the previous one): `npm ci`,
+  `npm run lint`, `npm test`, `npm run build` on Node 26 (same as the `Dockerfile`; bump both together).
+- Release (`.github/workflows/release.yml`): a `v*.*.*` tag builds the `Dockerfile` and pushes it to
+  `ghcr.io/nikitkazxc/tcloud-frontend`.
+- Dependabot (`.github/dependabot.yml`) updates npm, the `Dockerfile` base images and GitHub Actions once a month: all
+  updates of an ecosystem in one PR, at most 2 open PRs per ecosystem.
+- Tested in Chrome and Safari (WebKit); Firefox has not been tested.
 
-Правило: изменение кода, которое меняет поток со схемы, обновляет документ и схему в том же коммите.
-API бэкенда описан в `../tcloud-backend/docs/`.
+Rule: a code change that alters a flow shown in a diagram updates the document and the diagram in the same commit.
+The backend API is documented in [tcloud-backend/docs](https://github.com/NikitkaZXC/tcloud-backend/tree/main/docs).

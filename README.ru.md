@@ -65,7 +65,7 @@ docker run -p 8080:80 -e API_UPSTREAM=http://app:8000 tcloud-frontend
 
 ## Документация
 
-[docs/](docs/README.md): [архитектура, авторизация, nginx, i18n](docs/architecture.md) ·
+[docs/](docs/README.md) (на английском): [архитектура, авторизация, nginx, i18n](docs/architecture.md) ·
 [запросы, инвалидации, настройки](docs/data-flow.md) · [загрузки и задачи](docs/uploads-and-tasks.md) ·
 [страницы и функции](docs/ui.md) · [темы и стиль](docs/theming.md)
 

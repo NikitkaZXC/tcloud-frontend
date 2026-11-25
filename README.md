@@ -76,7 +76,7 @@ front of nginx (the cookie is `Secure`).
 
 ## Documentation
 
-[docs/](docs/README.md) (in Russian): [architecture, auth, nginx, i18n](docs/architecture.md) ·
+[docs/](docs/README.md): [architecture, auth, nginx, i18n](docs/architecture.md) ·
 [queries, invalidation, settings](docs/data-flow.md) · [uploads and tasks](docs/uploads-and-tasks.md) ·
 [pages and features](docs/ui.md) · [themes and style](docs/theming.md)
 

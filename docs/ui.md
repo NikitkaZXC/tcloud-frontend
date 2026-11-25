@@ -1,267 +1,282 @@
-# Интерфейс: страницы и функции
+# Interface: pages and features
 
-Что видит пользователь и где это в коде. Механику запросов и настроек см. в [data-flow.md](data-flow.md), загрузок и
-задач — в [uploads-and-tasks.md](uploads-and-tasks.md), стиля — в [theming.md](theming.md).
+What the user sees and where it is in the code. For the mechanics of queries and settings see
+[data-flow.md](data-flow.md), for uploads and tasks [uploads-and-tasks.md](uploads-and-tasks.md), for style
+[theming.md](theming.md).
 
-## Общие правила
+## General rules
 
-- **Права** не дублируются на фронте: кнопки видны всем, отказ бэкенда (`403`) приходит уведомлением. Скрыто только
-  то, что недоступно роли целиком: управление хранилищами и пользователями (admin), Telegram (root).
-- **Имена вместо id** (`src/lib/names.ts`): uuid хранилищ и файлов не показываются — имя файла (у архива — имя архива)
-  и путь «Хранилище › папка › подпапка» (`humanPath`, `taskTitle`, `storageName`; без названия — «хранилище»).
-  «Канал недоступен» — только при явном `available === false` (`isUnavailable`).
-- **Шифрование**: у зашифрованных файлов замок в листинге и карточке; `size` в ответе API — размер исходного файла.
-- **Скачивание** — обычные ссылки `/api/files/{id}/download` и `/api/tasks/{id}/archive` (cookie уходят сами). Превью
-  фото/видео/аудио в карточке файла грузится оттуда же, только при открытии карточки.
-- **Даты**: в таблицах, плитках, поиске, задачах, пользователях, сессиях, ключах и устройствах — короткие
-  (`formatShortDate`: `Intl.DateTimeFormat` short/short без секунд, кэш по языку), полная с секундами — в `title`;
-  полная дата на виду — только в карточке файла.
-- **Телефоны**: от 360 px без горизонтальной прокрутки; на сенсорных экранах кнопки, поля, пункты меню ≥ 44 px
-  (`pointer: coarse`), у флажков увеличена зона нажатия; в списке файлов колонки сворачиваются, действия файла — в меню
-  «…»; диалоги во весь экран, подтверждения снизу; учтены `safe-area-inset`.
+- **Permissions** are not duplicated in the frontend: buttons are visible to everyone, and a backend refusal (`403`)
+  arrives as a notification. Only what is unavailable to a role as a whole is hidden: storage and user management
+  (admin), Telegram (root).
+- **Names instead of ids** (`src/lib/names.ts`): storage and file uuids are never shown, only the file name (for an
+  archive, the archive name) and the path "Storage › folder › subfolder" (`humanPath`, `taskTitle`, `storageName`;
+  without a name, "storage"). "Channel unavailable" is shown only for an explicit `available === false`
+  (`isUnavailable`).
+- **Encryption**: encrypted files have a lock in the listing and the file card; `size` in the API answer is the size of
+  the original file.
+- **Downloads** are plain links `/api/files/{id}/download` and `/api/tasks/{id}/archive` (the cookies go along on their
+  own). The photo/video/audio preview in the file card loads from the same place, only when the card is opened.
+- **Dates**: tables, tiles, search, tasks, users, sessions, keys and devices use short dates (`formatShortDate`:
+  `Intl.DateTimeFormat` short/short without seconds, cached per language), the full date with seconds in `title`; a
+  full date is visible only in the file card.
+- **Phones**: no horizontal scroll from 360 px; on touch screens buttons, fields and menu items are ≥ 44 px
+  (`pointer: coarse`), checkboxes have a larger hit area; in the file list columns collapse and file actions move to a
+  "…" menu; dialogs are full screen, confirmations at the bottom; `safe-area-inset` is respected.
 
-## Вход
+## Sign-in
 
-`/login` (`pages/login.tsx`): автофокус на логине (`maxLength` 64, как у бэкенда), показать/скрыть пароль, предупреждение о Caps Lock, кнопка выключена
-во время запроса. Ошибки `POST /api/auth/signin` переводятся по `code` (`describeError` в `src/lib/auth.ts`):
-`invalid_credentials`, `account_locked` (после `JWT_MAX_FAILED_LOGINS` неверных паролей), `rate_limited` (лимит
-попыток с IP), `user_blocked`. У `account_locked`/`rate_limited` бэкенд отдаёт `retry_after` (с): обратный отсчёт,
-кнопка выключена до конца. Поток входа и refresh — [architecture.md](architecture.md#авторизация-и-обновление-сессии).
+`/login` (`pages/login.tsx`): autofocus on the login (`maxLength` 64, like the backend), show/hide password, a Caps Lock
+warning, the button is disabled during the request. `POST /api/auth/signin` errors are translated by `code`
+(`describeError` in `src/lib/auth.ts`): `invalid_credentials`, `account_locked` (after `JWT_MAX_FAILED_LOGINS` wrong
+passwords), `rate_limited` (attempt limit per IP), `user_blocked`. For `account_locked`/`rate_limited` the backend
+sends `retry_after` (s): a countdown, and the button stays disabled until it ends. The sign-in and refresh flow is in
+[architecture.md](architecture.md#auth-and-session-refresh).
 
-На `/account` форма смены пароля скрыта у root: его пароль задаёт `ROOT_PASSWORD` бэкенда (`POST /api/auth/password`
-отвечает root ошибкой).
+On `/account` the password change form is hidden for root: root's password comes from the backend's `ROOT_PASSWORD`
+(`POST /api/auth/password` answers root with an error).
 
-## Вход в Telegram
+## Telegram sign-in
 
-`/telegram` (root): мастер «1 / 3 → 2 / 3 → 3 / 3» по сессиям `api`, `upload`, `download` (бэкенд требует три
-отдельных входа, `tcloud-backend/docs/flows/auth.md`). Состояние — `GET /api/telegram`; авторизованные шаги отмечены и
-пропускаются, следующий шаг начинается сам (`nextSession`/`activeSession`). На шаге — QR (запрашивается сразу,
-`POST /api/telegram/{session}/qr`, и заново, когда истёк `expires_at` или вход упал с `login_expired` — `qrExpired`) или
-код по номеру (`/code`, `/sign-in`), затем пароль 2FA (`/password`), если нужен. `flood_wait` — отсчёт по
-`retry_after`. Выход из сессии — в строке шага; ниже — устройства и стойка состояния системы.
+`/telegram` (root): a "1 / 3 → 2 / 3 → 3 / 3" wizard over the `api`, `upload`, `download` sessions (the backend needs
+three separate sign-ins, `tcloud-backend/docs/flows/auth.md`). State comes from `GET /api/telegram`; authorized steps
+are marked and skipped, and the next step starts on its own (`nextSession`/`activeSession`). A step offers a QR code
+(requested at once, `POST /api/telegram/{session}/qr`, and again when `expires_at` passes or sign-in fails with
+`login_expired`, see `qrExpired`) or a code by phone number (`/code`, `/sign-in`), then the 2FA password (`/password`)
+if needed. `flood_wait` shows a countdown by `retry_after`. Signing a session out is in the step row; below are the
+devices and the system health rack.
 
-QR рисуется локально (`qrcode.react`): токен входа нельзя отдавать внешним генераторам. В центре — знак (`favicon.svg`,
-22 %, `excavate`, коррекция `H`), всегда чёрный на белом ([theming.md](theming.md#логотип)).
+The QR code is rendered locally (`qrcode.react`): the sign-in token must never be given to external generators. The
+center holds the logo (`favicon.svg`, 22 %, `excavate`, error correction `H`), always black on white
+([theming.md](theming.md#logo)).
 
-## Навигация
+## Navigation
 
-- **Боковая панель** (`components/layout.tsx`): Дашборд, Хранилища (список из `GET /api/storages` прямо под пунктом,
-  у каждого — пиксельная иконка накопителя с лампами чтения/записи), Задачи, Настройки; группа «Администрирование»
-  (Пользователи — admin/root, Telegram — root): точечный разделитель и подпись 11 px прописными (`role="group"`, не
-  кликается), в свёрнутой панели — только разделитель. Активный пункт обведён рамкой, которая переезжает между
-  пунктами (позиция — от элемента с `aria-current`). Панель сворачивается в колонку иконок (`tcloud.sidebar`).
-  Профиль — плитка внизу: логин, роль, аккаунт, тема, язык, выход. На узком экране панель выдвижная (Radix Dialog), в
-  шапке — кнопка поиска; на десктопе в углу подсказка «CTRL K».
-- **Командная строка** (`Ctrl/Cmd+K` или кнопка, `components/command-palette.tsx`): страницы, хранилища, подпапки
-  текущего листинга (из кэша), поиск файлов и папок через API и действия папки (загрузить файлы/папку/по ссылке, новая
-  папка, архив) — событием окна `tcloud:folder-action` (`src/lib/commands.ts`). `combobox` + `listbox`,
-  стрелки/Home/End/Enter. От двух символов — поиск по всем хранилищам (8 файлов и папки; файл открывает карточку,
-  папка — переход) и пункт «Все результаты». Команды ищутся на обоих языках (`keywords`, `tAll`).
-- **Чек-лист первого запуска** (дашборд, root, `src/lib/onboarding.ts`): «Войти в Telegram (3 сессии) → Создать
-  хранилище → Загрузить первый файл»; отметки — из `GET /api/telegram`, `GET /api/storages` (`files`) и отслеживаемых
-  задач (загрузка, завершённая в этом браузере, тоже засчитывается). Скрывается, когда всё готово, или крестиком
+- **Sidebar** (`components/layout.tsx`): Dashboard, Storages (the list from `GET /api/storages` right under the item,
+  each with a pixel storage icon with read/write lamps), Tasks, Settings; the "Administration" group (Users for
+  admin/root, Telegram for root): a dotted divider and an 11 px uppercase label (`role="group"`, not clickable), only
+  the divider in the collapsed panel. The active item has a frame that moves between items (its position comes from
+  the element with `aria-current`). The panel collapses into a column of icons (`tcloud.sidebar`). The profile is a
+  tile at the bottom: login, role, account, theme, language, sign-out. On a narrow screen the panel is a drawer (Radix
+  Dialog) with a search button in the header; on desktop a "CTRL K" hint sits in the corner.
+- **Command palette** (`Ctrl/Cmd+K` or a button, `components/command-palette.tsx`): pages, storages, subfolders of the
+  current listing (from the cache), file and folder search through the API, and folder actions (upload files/folder/by
+  URL, new folder, archive) via the `tcloud:folder-action` window event (`src/lib/commands.ts`). `combobox` +
+  `listbox`, arrows/Home/End/Enter. From two characters it searches all storages (8 files plus folders; a file opens
+  its card, a folder navigates) and adds an "All results" item. Commands match in both languages (`keywords`, `tAll`).
+- **First-run checklist** (dashboard, root, `src/lib/onboarding.ts`): "Sign in to Telegram (3 sessions) → Create a
+  storage → Upload the first file"; the checks come from `GET /api/telegram`, `GET /api/storages` (`files`) and tracked
+  tasks (an upload finished in this browser counts too). It hides when everything is done, or via its cross
   (`tcloud.onboarding.dismissed`).
 
-## Поиск
+## Search
 
-`components/search-bar.tsx`, страница `/search` (`pages/search.tsx`), логика — `src/lib/search.ts`.
+`components/search-bar.tsx`, the `/search` page (`pages/search.tsx`), logic in `src/lib/search.ts`.
 
-- Строка над содержимым любой страницы и область «Эта папка / Хранилище / Везде» (по умолчанию — текущая папка, в
-  корне хранилища — хранилище, вне папок — везде; область из папки помнится в параметре `in`). `/` фокусирует строку,
-  `Esc` очищает.
-- Ввод ждёт 300 мс и открывает `/search`; строка и фильтры живут в URL (`q`, `in`, `scope`, `kind` и `mime` повтором,
-  `size_min`/`size_max` в байтах, `from`/`to` — дни, `enc=1`, `sort`, `order`): ссылкой можно поделиться, «назад»
-  работает (набор текста заменяет запись истории, смена фильтров добавляет).
-- Запрос — `GET /api/files/search` (`searchQuery`: `path` из области, даты — целые локальные дни в ISO, `limit` 50,
-  «Показать ещё» — следующая страница по `offset`; `useSearch` — `useInfiniteQuery`; файл, съехавший между страницами
-  из-за новых загрузок, показывается один раз — `foundFiles` убирает повторы по `uuid`). Без строки и фильтров запрос не
-  уходит (`hasCriteria`; бэкенд ответил бы `422 empty_search`).
-- Фильтры (сворачиваются, на телефоне свёрнуты): тип — чипы (несколько), формат — список с галочками (до 50) из
-  `GET /api/files/search/mimes?path=` с числом файлов, размер от–до в KB/MB/GB, дата изменения (`updated_at`),
-  «только зашифрованные», сортировка (совпадение/имя/размер/дата, ▲/▼). Порядок задаёт бэкенд по `lang` = язык
-  интерфейса (ICU-сравнение имён сквозь страницы), клиент не пересортировывает.
-- Результат: сверху подходящие папки (бэкенд отдаёт их только на первой странице и без фильтров), ниже файлы —
-  миниатюра, имя (открывает карточку), место «Хранилище › папка» (`foundLocation`, клик — переход), размер, дата.
-- Фильтра по имени внутри листинга нет: поиск с областью «Эта папка» ищет и в подпапках.
+- A bar above the content of every page and a "This folder / Storage / Everywhere" scope (defaults: the current
+  folder, the storage at a storage root, everywhere outside folders; the scope from a folder is kept in the `in`
+  parameter). `/` focuses the bar, `Esc` clears it.
+- Input waits 300 ms and opens `/search`; the text and filters live in the URL (`q`, `in`, `scope`, repeated `kind` and
+  `mime`, `size_min`/`size_max` in bytes, `from`/`to` as days, `enc=1`, `sort`, `order`): the link can be shared and
+  "back" works (typing replaces the history entry, changing filters adds one).
+- The request is `GET /api/files/search` (`searchQuery`: `path` from the scope, dates as whole local days in ISO,
+  `limit` 50, "Show more" loads the next page by `offset`; `useSearch` is a `useInfiniteQuery`; a file that shifted
+  between pages because of new uploads is shown once, as `foundFiles` removes duplicates by `uuid`). Without text and
+  filters no request is sent (`hasCriteria`; the backend would answer `422 empty_search`).
+- Filters (collapsible, collapsed on phones): type as chips (several), format as a checkbox list (up to 50) from
+  `GET /api/files/search/mimes?path=` with file counts, size from–to in KB/MB/GB, modification date (`updated_at`),
+  "encrypted only", sort (relevance/name/size/date, ▲/▼). The backend sets the order by `lang` = the UI language (ICU
+  name comparison across pages); the client does not re-sort.
+- Results: matching folders first (the backend returns them only on the first page and without filters), then files
+  with a thumbnail, the name (opens the card), the location "Storage › folder" (`foundLocation`, click to navigate),
+  size and date.
+- There is no name filter inside a listing: search with the "This folder" scope also looks in subfolders.
 
-## Листинг папки
+## Folder listing
 
-`components/folder-view.tsx`, логика — `src/lib/files.ts`, столбцы — `src/lib/columns.ts`.
+`components/folder-view.tsx`, logic in `src/lib/files.ts`, columns in `src/lib/columns.ts`.
 
-- **Страницы**: по `interface.page_size` (20/50/100/200, по умолчанию 20; «Настройки» → «Интерфейс» → «Файлов за
-  раз»). Первая страница сразу, следующие при прокрутке (`useInfiniteQuery`,
-  `GET /api/folders?…&limit=<page_size>&cursor=<next_cursor>`; «часовой» в `IntersectionObserver` с запасом 600 px,
-  «Загрузка…», кнопка «Показать ещё (N)» для клавиатуры и браузеров без `IntersectionObserver`; после ошибки следующей страницы
-  (`isFetchNextPageError`) часовой не наблюдается, чтобы не крутить запросы в цикле, остаётся только кнопка).
-- **Сортировка** — на бэкенде (`sort_by`, `sort_order`, `folders_first`, `lang`), как в Проводнике Windows: клик по
-  «Имя», «Тип», «Размер», «Изменён» (`updated_at`), «Загружен» (`created_at`), повторный — обратный порядок, ▲/▼ и
-  `aria-sort`; в плитке и на телефоне — меню сортировки. Имена — естественный порядок ICU по `lang` (file2 < file10,
-  регистр не важен; в русском интерфейсе кириллица перед латиницей, в английском наоборот), равные размеры и даты — по
-  `id`. «Папки сверху» — переключатель (по умолчанию включён). Смена сортировки или размера страницы — снова с первой
-  страницы; после загрузки/удаления/переименования/задачи загруженные страницы перезапрашиваются, прокрутка остаётся.
-  Выбор хранится в `interface.sort_by`/`sort_order`/`folders_first` и меняется только в папке.
-- **Столбцы**: тип — расширение (у папки «папка»); у подпапок — объём и число файлов (`size`, `files`; сумма
-  поддерева, только читаемые файлы); у текущей папки рядом с хлебными крошками — `size` и `total_files` первой
-  страницы (`listingTotals`; на страницах по курсору итоги `null`). «Имя» забирает свободную ширину (обрезка
-  многоточием, полное — в `title`). Ширину меняют перетаскиванием границы заголовка (pointer events), двойной клик —
-  по самому широкому содержимому, с клавиатуры — ручка `role="separator"` (←/→ на 11 px, с Shift на 44 px); пределы:
-  имя 160, остальные 48, максимум 2000 px; шире экрана — горизонтальная прокрутка в контейнере таблицы. Ширины
-  сохраняются после отпускания (клавиши — через 500 мс) в `interface.file_columns`, «Сбросить ширину столбцов» — в
-  меню вида; уже 640 px ширины не применяются. Какие колонки видны, решает ширина самой таблицы (`fitColumns`,
-  `ResizeObserver` панели): по порядку размер → «Изменён» → «Загружен» → тип, пока влезают ширины по умолчанию; уже
-  `sm` — только имя.
-- **Вид** «список/плитка» — `interface.folder_view`. Плитки — `repeat(auto-fill, minmax(18rem, 1fr))`: колонки
-  следуют ширине контента, а не экрана.
-- **Миниатюры** (`Thumb`, `thumbUrl` в `src/lib/thumbs.ts`): `GET /api/files/{id}/thumb?v=<updated_at>` (JPEG ≤ 320 px
-  из сообщения Telegram; `v` сбрасывает кэш браузера после `replace`) — в плитке, квадратиком в строке, в поиске, у
-  видео в карточке как постер. У фото, видео, анимаций и документов, зашифрованных тоже, не у аудио; `loading="lazy"`,
-  `image-rendering: pixelated`. Ошибка (`404 thumbnail_not_found` — обычное дело для документов) — молча значок по
-  `kind`, адрес не запрашивается до перезагрузки вкладки (модульный `Set` в `thumb.tsx`). Полное фото из `/download`
-  в листинге не грузится.
-- **Выбор**: флажки (вид — [theming.md](theming.md#выделение-плиток)), Shift — диапазон (`selectRange`), «Выбрать все» и
-  `Ctrl/Cmd+A` берут загруженные строки, панель пишет «Выбрано N из M» (M — `total_folders + direct_files`). Действия:
-  «Удалить» (по одному `DELETE` на файл/папку) и «Скачать архивом».
-- **Архивы**: «Скачать папку» — в меню подпапки и над листингом (`POST /api/folders/archive?path=&format=`); архив
-  выбранного — `POST /api/folders/archive/selection` (`{files: [uuid], folders: [путь], format, priority}`,
-  `selectionPayload` в `src/lib/archive.ts`), всё из одного хранилища. Zip по умолчанию, остальные форматы в подменю.
-  По готовности задачи `TaskWatcher` показывает уведомление с кнопкой «Скачать» (`/api/tasks/{id}/archive`). Ошибки
-  (`empty_selection`, `too_many_items` с `limit` — элементов выбора или файлов после раскрытия папок, `too_large` с
-  `limit` в байтах, `storage_mismatch`, `forbidden`, `*_not_found`, `telegram_unauthorized`, `insufficient_storage`,
-  `body_too_large` — тело выбора больше 1 МиБ, тысячи длинных путей; `archive_in_progress` — у пользователя уже
-  собирается архив) — понятными фразами (`archiveError`). В корне хранилища фронт
-  передаёт `name` «<хранилище>-выбранное» (`archiveName`), иначе бэкенд назвал бы архив uuid; `taskTitle` везде
-  заменяет uuid хранилища в имени архива на название.
-- **Клавиши**: `/` — поиск, `Ctrl/Cmd+A` — выбрать всё, `Esc` — снять выбор, `Del`/`Backspace` — удалить выбранное (с
-  подтверждением). Скопировать путь и ссылку на скачивание — кнопкой в строке и в карточке файла.
-- **Загрузка папок**: «Загрузить папку» (`webkitdirectory`) и перетаскивание (`src/lib/dir-upload.ts`) сохраняют
-  относительный путь в `path` (`tcloud/<хранилище>/<папка>/a/b/file.jpg`), недостающие папки создаёт бэкенд, пустые
-  папки не загружаются. Ctrl+V в папке загружает файлы из буфера. Над листингом — загрузки этой папки
-  (`FolderUploads`). Подробно — [uploads-and-tasks.md](uploads-and-tasks.md).
+- **Pages**: by `interface.page_size` (20/50/100/200, default 20; "Settings" → "Interface" → "Files per page"). The
+  first page loads at once, the next ones on scroll (`useInfiniteQuery`,
+  `GET /api/folders?…&limit=<page_size>&cursor=<next_cursor>`; a sentinel in an `IntersectionObserver` with a 600 px
+  margin, "Loading…", a "Show more (N)" button for the keyboard and browsers without `IntersectionObserver`; after a
+  next-page error (`isFetchNextPageError`) the sentinel is no longer observed, so requests do not loop, and only the
+  button remains).
+- **Sorting** happens on the backend (`sort_by`, `sort_order`, `folders_first`, `lang`), like Windows Explorer: click
+  "Name", "Type", "Size", "Modified" (`updated_at`), "Uploaded" (`created_at`), click again for the reverse order, ▲/▼
+  and `aria-sort`; in the tile view and on phones there is a sort menu. Names use ICU natural order by `lang` (file2 <
+  file10, case-insensitive; in the Russian UI Cyrillic comes before Latin, in the English UI the other way round), equal
+  sizes and dates fall back to `id`. "Folders first" is a toggle (on by default). Changing the sort or page size starts
+  from the first page again; after an upload/delete/rename/task the loaded pages are refetched and the scroll stays.
+  The choice is stored in `interface.sort_by`/`sort_order`/`folders_first` and changes only inside a folder.
+- **Columns**: type is the extension ("folder" for a folder); subfolders show size and file count (`size`, `files`; a
+  subtree sum, readable files only); the current folder shows `size` and `total_files` of the first page next to the
+  breadcrumbs (`listingTotals`; cursor pages have `null` totals). "Name" takes the free width (cut with an ellipsis,
+  full name in `title`). Widths change by dragging the header border (pointer events), a double click fits the widest
+  content, and from the keyboard there is a `role="separator"` handle (←/→ by 11 px, with Shift by 44 px); limits:
+  name 160, others 48, at most 2000 px; wider than the screen scrolls horizontally inside the table container. Widths
+  are saved after release (keys after 500 ms) to `interface.file_columns`; "Reset column widths" is in the view menu;
+  below 640 px the widths are not applied. Which columns are shown depends on the table's own width (`fitColumns`,
+  the panel's `ResizeObserver`): in order size → "Modified" → "Uploaded" → type, while the default widths fit; below
+  `sm` only the name.
+- **View** "list/tiles" is `interface.folder_view`. Tiles use `repeat(auto-fill, minmax(18rem, 1fr))`: columns follow
+  the content width, not the screen.
+- **Thumbnails** (`Thumb`, `thumbUrl` in `src/lib/thumbs.ts`): `GET /api/files/{id}/thumb?v=<updated_at>` (a JPEG ≤
+  320 px from the Telegram message; `v` busts the browser cache after `replace`) in tiles, as a small square in rows,
+  in search, and as the video poster in the card. For photos, videos, animations and documents, encrypted ones too,
+  not for audio; `loading="lazy"`, `image-rendering: pixelated`. An error (`404 thumbnail_not_found` is normal for
+  documents) silently falls back to the `kind` icon, and the URL is not requested again until the tab reloads (a module
+  `Set` in `thumb.tsx`). The full photo from `/download` is never loaded in the listing.
+- **Selection**: checkboxes (look in [theming.md](theming.md#tile-selection)), Shift for a range (`selectRange`),
+  "Select all" and `Ctrl/Cmd+A` take the loaded rows, the toolbar says "N of M selected" (M = `total_folders +
+  direct_files`). Actions: "Delete" (one `DELETE` per file/folder) and "Download as archive".
+- **Archives**: "Download folder" is in the subfolder menu and above the listing
+  (`POST /api/folders/archive?path=&format=`); an archive of the selection is `POST /api/folders/archive/selection`
+  (`{files: [uuid], folders: [path], format, priority}`, `selectionPayload` in `src/lib/archive.ts`), all from one
+  storage. Zip by default, the other formats in a submenu. When the task is done, `TaskWatcher` shows a notification
+  with a "Download" button (`/api/tasks/{id}/archive`). Errors (`empty_selection`, `too_many_items` with `limit` for
+  selection items or files after expanding folders, `too_large` with `limit` in bytes, `storage_mismatch`, `forbidden`,
+  `*_not_found`, `telegram_unauthorized`, `insufficient_storage`, `body_too_large` for a selection body over 1 MiB with
+  thousands of long paths; `archive_in_progress` when the user already has an archive being built) get readable
+  phrases (`archiveError`). At a storage root the frontend sends `name` "<storage>-selection" (`archiveName`), otherwise
+  the backend would name the archive by uuid; `taskTitle` everywhere replaces the storage uuid in an archive name with
+  its name.
+- **Keys**: `/` search, `Ctrl/Cmd+A` select all, `Esc` clear the selection, `Del`/`Backspace` delete the selection
+  (with confirmation). Copy the path and the download link with a button in the row and in the file card.
+- **Folder uploads**: "Upload folder" (`webkitdirectory`) and drag and drop (`src/lib/dir-upload.ts`) keep the
+  relative path in `path` (`tcloud/<storage>/<folder>/a/b/file.jpg`); the backend creates missing folders, and empty
+  folders are not uploaded. Ctrl+V in a folder uploads files from the clipboard. Above the listing are this folder's
+  uploads (`FolderUploads`). Details in [uploads-and-tasks.md](uploads-and-tasks.md).
 
-## Настройки
+## Settings
 
-`/settings` (`pages/settings.tsx`, стор `src/lib/settings.ts`, механика — [data-flow.md](data-flow.md#настройки)).
-Каждое изменение сохраняется сразу (без кнопки «Сохранить»), кроме адреса вебхука: он сохраняется кнопкой, ошибки
-(`422 unsafe_url`, `validation_error` с `loc` `webhook_url`) — под полем (`settingsError`). Под адресом — «Показать
-ключ подписи» (`GET /api/account/webhook-secret` → `{user_id, secret}`, 64 hex; держится только в состоянии компонента,
-«Скрыть» и уход со страницы его забывают) с копированием и пояснением: `X-Tcloud-Signature: sha256=HMAC-SHA256(ключ,
-сырое тело)`, владелец — `X-Tcloud-User`. «Сбросить по умолчанию» —
-`DELETE` с подтверждением.
+`/settings` (`pages/settings.tsx`, store `src/lib/settings.ts`, mechanics in [data-flow.md](data-flow.md#settings)).
+Every change is saved at once (no "Save" button), except the webhook URL: it is saved with a button, and errors
+(`422 unsafe_url`, `validation_error` with `loc` `webhook_url`) show under the field (`settingsError`). Under the URL is
+"Show signing key" (`GET /api/account/webhook-secret` → `{user_id, secret}`, 64 hex; kept only in component state,
+"Hide" and leaving the page forget it) with copy and an explanation: `X-Tcloud-Signature: sha256=HMAC-SHA256(key, raw
+body)`, the owner in `X-Tcloud-User`. "Reset to defaults" sends a `DELETE` after confirmation.
 
-Группы:
+Groups:
 
-- **Загрузки**: как отправлять, шифрование, конфликт имён, приоритет, непроверяемые файлы; у root — превью
-  зашифрованных файлов для всех (`uploads.previews`) и наибольший размер файла `uploads.max_file_size` в МиБ кнопкой
-  «Сохранить» (0 или пусто — без ограничения; больше — `413 too_large` с лимитом).
-- **Архивы**: формат, приоритет. **Telegram**: `telegram.chat_folder` — каналы хранилищ в папке чатов «TCloud»
-  (выключение удаляет папку, каналы остаются). **Фишки** (`fx_*`), **Вебхуки**.
-- **Интерфейс**: тема, язык, стартовая страница, вид папки, файлов за раз, фильтр задач, анимации, подтверждение
-  удаления.
+- **Uploads**: how to send, encryption, name conflicts, priority, unscannable files; for root, previews of encrypted
+  files for everyone (`uploads.previews`) and the maximum file size `uploads.max_file_size` in MiB with a "Save"
+  button (0 or empty means no limit; larger files get `413 too_large` with the limit).
+- **Archives**: format, priority. **Telegram**: `telegram.chat_folder` puts storage channels into a "TCloud" chat folder
+  (turning it off deletes the folder, the channels stay). **Extras** (`fx_*`), **Webhooks**.
+- **Interface**: theme, language, start page, folder view, files per page, task filter, animations, delete
+  confirmation.
 
-Применение:
+How they apply:
 
-- Диалоги загрузки (файлы, перетаскивание, Ctrl+V, папки, ссылки) берут значения из `uploads` (`uploadOptions`) и
-  меняются только для этой загрузки; меню архивов ставят `archives.format` первым и шлют `archives.priority`.
-- Приоритет `high` выбирают только admin и root (`isAdmin`): у остальных пункт «высокий — только админ» неактивен в
-  настройках, диалоге загрузки и на «Задачах». Сохранённый раньше `high` у `user` бэкенд молча понижает до `normal`.
-- `/` и неизвестные адреса ведут на `start_page` (`startPath`), вход возвращает на исходную страницу или на `/`.
-- `tasks_filter = active_and_failed` скрывает готовые и отменённые на «Задачах» (переключатель «Все / Активные и
-  ошибки» там же сохраняет настройку) и в «Активности» дашборда (`visibleTasks`).
-- `confirm_delete = false` удаляет файл или папку без вопроса; удаление нескольких выбранных подтверждается всегда, как
-  и удаление хранилищ, пользователей, ключей и сессий.
+- Upload dialogs (files, drag and drop, Ctrl+V, folders, URLs) take values from `uploads` (`uploadOptions`) and change
+  only for that upload; archive menus put `archives.format` first and send `archives.priority`.
+- Only admin and root can choose `high` priority (`isAdmin`): for others the "high, admins only" item is disabled in
+  settings, the upload dialog and on Tasks. A `high` saved earlier by a `user` is silently lowered to `normal` by the
+  backend.
+- `/` and unknown addresses lead to `start_page` (`startPath`); sign-in returns to the original page or to `/`.
+- `tasks_filter = active_and_failed` hides done and cancelled tasks on Tasks (the "All / Active and failed" toggle there
+  saves the setting) and in the dashboard's "Activity" (`visibleTasks`).
+- `confirm_delete = false` deletes a file or folder without asking; deleting several selected items is always
+  confirmed, as is deleting storages, users, keys and sessions.
 
-## Дашборд
+## Dashboard
 
-`/dashboard` (стартовая по умолчанию, `pages/dashboard.tsx`, логика — `src/lib/dashboard.ts`). Только данные, которые
-API уже отдаёт.
+`/dashboard` (the default start page, `pages/dashboard.tsx`, logic in `src/lib/dashboard.ts`). Only data the API
+already returns.
 
-- **Итоги** (`summary`): крупные пиксельные цифры — файлов и объём (сумма `files`/`total_size` из `GET /api/storages`,
-  `null` не считается), хранилищ, задач в работе.
-- **Превью** (`previews`): число и объём (сумма `preview_count`/`preview_bytes`, `previewTotals`); блока нет, пока
-  бэкенд не отдаёт поля, и ни у кого, пока root выключил превью (`previews_enabled: false` в `GET /api/account`). Root
-  видит «Очистить» (подтверждение, `DELETE /api/files/previews` → `{cleared, bytes}`, уведомление «Удалено N превью ·
-  X», обновляются `storages` и `account`; `404`/`405` старого бэкенда — понятная ошибка) — единственное место очистки.
-- **Каналы** (`channels`): кольцо лимита (`channelUsage`: `channels_used` из `GET /api/account` против `channels_limit`,
-  иначе 500, с Premium 1000; `channels_used: null` — число хранилищ с подписью «всего каналов — нет данных»), кольца
-  Premium и размера части (`file_limit` — размер одного сообщения Telegram; большие файлы бэкенд хранит частями, загрузку
-  это не ограничивает). `GET /api/account` всегда `200`; до входа в Telegram `telegram_connected: false`, остальные
-  поля `null` — «Telegram не подключён», кольца Premium и части скрыты.
-- **Хранилища** (`storages`): карточки с иконкой накопителя, объёмом и числом файлов.
-- **Активность** (`tasks`): кольца задач по статусам из `GET /api/tasks/counts` (`taskRings`: без «готово», отменённые
-  не считаются ошибками и не входят в общее число) и кольцо с процентом на каждую идущую загрузку/архив.
-- **Карта загрузок** (`activity_map`): сетка по дням за год из `GET /api/files/activity` (`useFileActivity`,
-  `activityGrid`; нет эндпоинта — пустая сетка и «нет данных»).
-- **Система** (`system`): стойка `HealthRack` (`components/health.tsx`, строки `healthRows` по `HEALTH_GROUPS`;
-  `GET /api/health`, `useHealth`, опрос 15 с). Группы Telegram, Воркеры, Инфраструктура с лампой худшего статуса,
-  сверху «в норме / есть сбой · N из M». Строка — лампа, имя, «что делает», метрика из `details` (`latency_ms` → «3 мс»,
-  <1 → «<1 мс»; `last_seen_s` → «2 с назад»; локальные проверки Telegram и нет данных — «ok»). Сбой — красная мигающая
-  лампа (не мигает без анимаций) и «✗ нет сигнала 40 с» / «✗ сбой». На узком контейнере метрика под именем (container
-  queries). Та же стойка — на `/telegram`.
-- **Пользователи** (`users`): только admin/root, `GET /api/users`.
+- **Totals** (`summary`): large pixel numbers for files and size (the sum of `files`/`total_size` from
+  `GET /api/storages`, `null` not counted), storages, running tasks.
+- **Previews** (`previews`): count and size (the sum of `preview_count`/`preview_bytes`, `previewTotals`); the block is
+  absent while the backend does not return the fields, and for everyone while root has previews off
+  (`previews_enabled: false` in `GET /api/account`). Root sees "Clear" (confirmation, `DELETE /api/files/previews` →
+  `{cleared, bytes}`, a "Deleted N previews · X" notification, `storages` and `account` refresh; `404`/`405` from an
+  old backend is a readable error), the only place to clear them.
+- **Channels** (`channels`): the limit ring (`channelUsage`: `channels_used` from `GET /api/account` against
+  `channels_limit`, otherwise 500, 1000 with Premium; `channels_used: null` shows the storage count labelled "total
+  channels: no data"), the Premium and part size rings (`file_limit` is the size of one Telegram message; the backend
+  stores large files in parts, so it does not limit uploads). `GET /api/account` is always `200`; before Telegram
+  sign-in `telegram_connected: false` and the other fields are `null`, shown as "Telegram not connected", with the
+  Premium and part rings hidden.
+- **Storages** (`storages`): cards with the storage icon, size and file count.
+- **Activity** (`tasks`): task rings by status from `GET /api/tasks/counts` (`taskRings`: without "done", cancelled
+  ones are not counted as errors and not included in the total) and a ring with a percentage for each running
+  upload/archive.
+- **Upload map** (`activity_map`): a grid of days over a year from `GET /api/files/activity` (`useFileActivity`,
+  `activityGrid`; without the endpoint, an empty grid and "no data").
+- **System** (`system`): the `HealthRack` rack (`components/health.tsx`, rows `healthRows` by `HEALTH_GROUPS`;
+  `GET /api/health`, `useHealth`, polled every 15 s). Telegram, Workers and Infrastructure groups with a lamp for the
+  worst status, and "healthy / failing · N of M" on top. A row is a lamp, the name, "what it does", and a metric from
+  `details` (`latency_ms` → "3 ms", <1 → "<1 ms"; `last_seen_s` → "2 s ago"; local Telegram checks and no data → "ok").
+  A failure is a blinking red lamp (no blinking without animations) and "✗ no signal 40 s" / "✗ failing". In a narrow
+  container the metric goes under the name (container queries). The same rack is on `/telegram`.
+- **Users** (`users`): admin/root only, `GET /api/users`.
 
-Скрытый блок не рендерится, и его запрос не идёт.
+A hidden block is not rendered, and its query is not sent.
 
-**Порядок и видимость блоков.** «Настроить» включает режим правки: над каждым блоком в пунктирной рамке — ручка
-перетаскивания (pointer-события, мышь и палец), название, переключатель «Показывать» (скрытый блок виден приглушённым и
-зачёркнутым) и кнопки «выше/ниже» с `aria-label` (видны при наведении/фокусе, на сенсорных всегда; новое место
-объявляется через `aria-live`). «Отмена» или Esc отбрасывают черновик, «По умолчанию» — порядок по умолчанию и всё
-видно, «Готово» сохраняет `interface.dashboard_layout` и `interface.dashboard_hidden` (отдельный `PATCH`, только если
-менялись). Пока черновик не сохранён, уход по ссылке приложения спрашивает подтверждение (`useBlocker` + `Confirm`),
-закрытие вкладки — `beforeunload`. Id блоков — `DASHBOARD_BLOCKS`; чек-лист не двигается. Отрисовка (`blockOrder`):
-известные id в сохранённом порядке, затем недостающие в порядке по умолчанию, неизвестные пропускаются; перестановка —
-`moveBlock`, видимые — `visibleBlocks`. Старое `interface.activity_map = false`, пока сервер не отдаёт
-`dashboard_hidden`, читается как скрытая карта (`hiddenBlocks`).
+**Block order and visibility.** "Customize" turns on edit mode: above each block, in a dashed frame, there is a drag
+handle (pointer events, mouse and finger), the name, a "Show" toggle (a hidden block shows dimmed and struck through)
+and "up/down" buttons with `aria-label` (visible on hover/focus, always on touch; the new position is announced via
+`aria-live`). "Cancel" or Esc drop the draft, "Default" restores the default order with everything visible, "Done"
+saves `interface.dashboard_layout` and `interface.dashboard_hidden` (a separate `PATCH`, only if they changed). While
+the draft is unsaved, leaving through an app link asks for confirmation (`useBlocker` + `Confirm`), and closing the tab
+triggers `beforeunload`. Block ids are `DASHBOARD_BLOCKS`; the checklist does not move. Rendering (`blockOrder`): known
+ids in the saved order, then missing ones in the default order, unknown ones skipped; reordering is `moveBlock`,
+visible ones are `visibleBlocks`. The old `interface.activity_map = false`, while the server does not return
+`dashboard_hidden`, reads as a hidden map (`hiddenBlocks`).
 
-## Хранилища
+## Storages
 
-`/files` без `?path` (`components/storages.tsx`): итоги (файлов, объём, хранилищ), кольцо лимита каналов с
-напоминанием (нужно больше хранилищ — удалите ненужные каналы/группы в Telegram или ненужные хранилища) и карточки с
-объёмом и числом файлов (`total_size`, `files`; `null` — «нет данных»). Полос «заполненности» нет: у канала Telegram
-нет лимита объёма.
+`/files` without `?path` (`components/storages.tsx`): totals (files, size, storages), the channel limit ring with a
+reminder (to get more storages, delete unneeded channels/groups in Telegram or unneeded storages) and cards with size
+and file count (`total_size`, `files`; `null` shows "no data"). There are no "fill" bars: a Telegram channel has no
+size limit.
 
-Форма хранилища (`StorageForm`, только админам) при каждом открытии берёт поля из хранилища (`name: null` → пусто),
-«Отмена» сбрасывает черновик. Описание уходит как есть, пустая строка очищает его (`null` бэкенд понимает как «не
-менять»). Фото — только `image/jpeg|png|webp|heic|heif|gif` до 10 МБ (`PHOTO_MAX` бэкенда, проверяется до отправки).
-`PUT /storages/{id}/photo` идёт отдельной мутацией после успешного `POST`/`PATCH`: форма закрывается и список
-обновляется сразу, ошибка фото — свой тост «Хранилище сохранено, но фото не загрузилось», поэтому повторная отправка
-не создаёт второй канал.
+The storage form (`StorageForm`, admins only) takes its fields from the storage on every open (`name: null` → empty),
+and "Cancel" resets the draft. The description is sent as is, and an empty string clears it (the backend reads `null`
+as "do not change"). The photo must be `image/jpeg|png|webp|heic|heif|gif` up to 10 MB (the backend's `PHOTO_MAX`,
+checked before sending). `PUT /storages/{id}/photo` is a separate mutation after a successful `POST`/`PATCH`: the form
+closes and the list refreshes at once, and a photo error gets its own toast "Storage saved, but the photo failed to
+upload", so sending again does not create a second channel.
 
-## Лампы чтения и записи
+## Read and write lamps
 
-`StorageIcon`, `useStorageIo`, `storageIo`/`lingerIo` в `src/lib/dashboard.ts`. У каждой иконки накопителя две
-пиксельные лампы-стрелки.
+`StorageIcon`, `useStorageIo`, `storageIo`/`lingerIo` in `src/lib/dashboard.ts`. Each storage icon has two pixel arrow
+lamps.
 
 ```mermaid
 flowchart LR
-    send["отправки вкладки<br/>useSending"] --> w["запись (↓ янтарная)"]
-    up["задачи загрузки queued/running<br/>с путём в tcloud/&lt;id&gt;"] --> w
-    arch["архив хранилища<br/>stage: archiving"] --> r["чтение (↑ мятная/белая)"]
-    dl["скачивание / превью<br/>markRead → GET /storages/activity через 300 мс"] --> srv
-    srv["GET /api/storages/activity<br/>кто угодно, + 1 с хвоста"] --> merge["serverIo + mergeIo"]
+    send["tab sends<br/>useSending"] --> w["write (↓ amber)"]
+    up["upload tasks queued/running<br/>with a path in tcloud/&lt;id&gt;"] --> w
+    arch["storage archive<br/>stage: archiving"] --> r["read (↑ mint/white)"]
+    dl["download / preview<br/>markRead → GET /storages/activity after 300 ms"] --> srv
+    srv["GET /api/storages/activity<br/>anyone, + 1 s tail"] --> merge["serverIo + mergeIo"]
     w --> merge
     r --> merge
     merge --> lamp["StorageIcon, IoTag, IoBanner"]
 ```
 
-- У скачиваний и превью (`<a download>`, `<img>`, `<video>`) браузер не сообщает конец, поэтому их лампа только
-  серверная: `markRead` (`src/lib/reads.ts`) через `READ_POKE_MS` (300 мс) просит свежий `GET /api/storages/activity`, а
-  имя файла 5 с держит для строки «идёт чтение».
-- Локальная лампа гаснет в момент конца операции: отправка — на load/error/abort XHR (отменённая — сразу, хотя карточка
-  «Отменено» висит ещё 3 с), задача — когда опрос вернул `done/failed/cancelled`. Короткая операция горит не меньше
-  `IO_MIN_MS` (500 мс) от начала (`lingerIo`), длинная гаснет сразу.
-- После конца локальной операции серверное `true` того же вида для этого хранилища не учитывается, пока не придёт
-  ответ, полученный позже конца + 1 с (`endIo`, `freshServerIo`): иначе хвост сервера и старый ответ держали бы лампу.
-- Опрос `['storage-activity']` раз в `IO_FAST_POLL_MS` (500 мс), пока горит любая лампа, иначе раз в `IO_IDLE_POLL_MS`
-  (3 с), только пока вкладка видима.
-- Недоступный канал — обе лампы красные. Во время записи под иконкой — бегущая полоска «загружается N · P%»
-  (`useStorageActivity`), после — «записано»; рядом метка «запись»/«чтение» (`IoTag`), над листингом папки — «идёт
-  запись: <файл> · 42%» / «идёт чтение» (`IoBanner`).
+- For downloads and previews (`<a download>`, `<img>`, `<video>`) the browser reports no end, so their lamp is
+  server-only: `markRead` (`src/lib/reads.ts`) asks for a fresh `GET /api/storages/activity` after `READ_POKE_MS`
+  (300 ms) and keeps the file name for 5 s for the "reading" line.
+- A local lamp goes off the moment the operation ends: a send on XHR load/error/abort (a cancelled one at once, even
+  though the "Cancelled" card stays for 3 s), a task when polling returns `done/failed/cancelled`. A short operation
+  stays lit at least `IO_MIN_MS` (500 ms) from its start (`lingerIo`), a long one goes off at once.
+- After a local operation ends, the server's `true` of the same kind for that storage is ignored until an answer
+  received later than the end + 1 s (`endIo`, `freshServerIo`): otherwise the server's tail and a stale answer would
+  keep the lamp on.
+- `['storage-activity']` is polled every `IO_FAST_POLL_MS` (500 ms) while any lamp is lit, otherwise every
+  `IO_IDLE_POLL_MS` (3 s), only while the tab is visible.
+- An unavailable channel has both lamps red. During a write, a running strip "uploading N · P%" shows under the icon
+  (`useStorageActivity`), afterwards "written"; next to it a "write"/"read" tag (`IoTag`), and above the folder listing
+  "writing: <file> · 42%" / "reading" (`IoBanner`).
 
-## Дополнения за флагами
+## Extras behind flags
 
-`src/lib/features.ts`, флаги `interface.fx_*`, группа «Фишки» в настройках; по умолчанию выключены, кроме пасхалок и
-советов (`fx_easter_eggs: true`). 8-битные звуки через WebAudio без файлов (`src/lib/sounds.ts`: клик, готово, ошибка;
-события завершения шлёт `TaskWatcher` — `tcloud:task-finished`) и пасхалки (код Konami — секретная янтарная тема,
-`src/lib/eggs.ts`; пиксель-арт в пустой папке и на 404, случайный совет внизу страницы) — `components/extras.tsx`.
-Питомца, пиксельного курсора, конфетти и достижений больше нет: их флаги `fx_pet`/`fx_cursor`/`fx_confetti`
-игнорируются, `tcloud.achievements` удаляется вместе со старыми ключами (`migrateLegacy`).
+`src/lib/features.ts`, the `interface.fx_*` flags, the "Extras" group in settings; off by default except easter eggs
+and tips (`fx_easter_eggs: true`). 8-bit sounds via WebAudio without files (`src/lib/sounds.ts`: click, done, error;
+`TaskWatcher` sends the completion events as `tcloud:task-finished`) and easter eggs (the Konami code unlocks a secret
+amber theme, `src/lib/eggs.ts`; pixel art in an empty folder and on the 404 page, a random tip at the bottom of the
+page) live in `components/extras.tsx`. The pet, pixel cursor, confetti and achievements are gone: their
+`fx_pet`/`fx_cursor`/`fx_confetti` flags are ignored, and `tcloud.achievements` is removed with the other old keys
+(`migrateLegacy`).

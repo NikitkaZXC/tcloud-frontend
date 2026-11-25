@@ -1,47 +1,49 @@
-# Загрузки и задачи
+# Uploads and tasks
 
-У API нет списка «моих задач» (только по id или `batch_id`), поэтому браузер сам помнит id запущенных задач и опрашивает
-их пачкой: `taskLoader` (`lib/tasks.ts`) собирает id, запрошенные кэшами `['task', id]` в одном тике, в один
-`GET /api/tasks?ids=…` (`TASKS_PER_REQUEST` = 100 на запрос); id, которых нет в ответе, считаются пропавшими (как 404).
-Таймеры опроса задач с одним статусом идут синхронно (ответ приходит всем сразу), поэтому на каждый интервал — один
-запрос. Загрузка с устройства проходит два этапа: отправка тела в вкладке (XHR) и задача на сервере.
+The API has no "my tasks" list (only by id or `batch_id`), so the browser remembers the ids of the tasks it started and
+polls them in batches: `taskLoader` (`lib/tasks.ts`) collects the ids requested by the `['task', id]` caches within one
+tick into one `GET /api/tasks?ids=…` (`TASKS_PER_REQUEST` = 100 per request); ids missing from the answer count as gone
+(like a 404). Poll timers of tasks with the same status run in sync (the answer reaches all of them at once), so there
+is one request per interval. An upload from the device has two stages: sending the body from the tab (XHR) and a task
+on the server.
 
-## Точки входа
+## Entry points
 
-Все файлы с устройства попадают в `UploadDialog` (`components/upload-dialog.tsx`) через состояние `files` в
-`FolderView` (`components/folder-view.tsx`). Ссылки — в `UrlUploadDialog`.
+All files from the device reach `UploadDialog` (`components/upload-dialog.tsx`) through the `files` state in
+`FolderView` (`components/folder-view.tsx`). URLs go to `UrlUploadDialog`.
 
 ```mermaid
 flowchart LR
     pick["input file"] -- fromFiles --> setFiles
     dir["input webkitdirectory"] -- "fromFiles → choose" --> setFiles
     paste["Ctrl+V (paste)"] -- fromFiles --> setFiles
-    dropF["drop без entries"] -- fromFiles --> setFiles
-    dropD["drop папок<br/>webkitGetAsEntry"] -- "readEntries (lib/dir-upload.ts) → choose" --> setFiles
+    dropF["drop without entries"] -- fromFiles --> setFiles
+    dropD["drop folders<br/>webkitGetAsEntry"] -- "readEntries (lib/dir-upload.ts) → choose" --> setFiles
     palette["Ctrl+K: tcloud:folder-action<br/>upload / upload-folder"] --> pick
     palette --> dir
     setFiles["FolderView: setFiles(Picked[])"] --> dialog["UploadDialog"]
     paletteUrl["Ctrl+K: url"] --> urlDialog["UrlUploadDialog"]
-    btnUrl["кнопка «По ссылке»"] --> urlDialog
-    dialog --> xhr["POST /api/uploads (XHR)<br/>по одному файлу;<br/>> 64 МиБ — сессия частями"]
+    btnUrl["'By URL' button"] --> urlDialog
+    dialog --> xhr["POST /api/uploads (XHR)<br/>one file at a time;<br/>> 64 MiB as a chunked session"]
     urlDialog --> batch["POST /api/uploads/batch"]
-    archive["меню «Скачать папку»<br/>POST /api/folders/archive"] --> track
-    sel["«Скачать архивом» выбранное<br/>POST /api/folders/archive/selection"] --> track
-    retry["Задачи: «Повторить»<br/>POST /api/tasks/{id}/retry"] --> track
+    archive["'Download folder' menu<br/>POST /api/folders/archive"] --> track
+    sel["'Download as archive' for the selection<br/>POST /api/folders/archive/selection"] --> track
+    retry["Tasks: 'Retry'<br/>POST /api/tasks/{id}/retry"] --> track
     xhr --> track["trackTask(id)<br/>lib/tasks.ts"]
     batch --> track
 ```
 
-- `choose` пустой список не открывает диалог, а показывает «нет файлов»; пустые папки не загружаются.
-- `Picked.path` — относительный путь (`webkitRelativePath` или путь из обхода); итоговый путь
-  `joinPath(folder, path)`, недостающие папки создаёт бэкенд.
-- Параметры: `uploadOptions(settings.uploads)` как стартовые, правки в диалоге — только для этой загрузки;
-  `withSendAs` выключает `encrypt` для `media` и включает для `file`. Все параметры уходят явно в query-строке.
-- Диалог загрузки: список файлов (имя с многоточием, размер справа) прокручивается внутри себя, сам диалог не выше
-  экрана; поля «Отправить как», «Если файл есть», «Приоритет» с пояснением выбранного варианта под полем;
-  «Зашифровать» выключено (не скрыто), пока отправка не файлом; внизу слева «N файлов · размер», справа «Загрузить».
+- `choose` with an empty list does not open the dialog but shows "no files"; empty folders are not uploaded.
+- `Picked.path` is the relative path (`webkitRelativePath` or the path from the traversal); the final path is
+  `joinPath(folder, path)`, and the backend creates missing folders.
+- Options: `uploadOptions(settings.uploads)` as the starting values; changes in the dialog apply to this upload only;
+  `withSendAs` turns `encrypt` off for `media` and on for `file`. Every option is sent explicitly in the query string.
+- Upload dialog: the file list (name with an ellipsis, size on the right) scrolls inside itself and the dialog is never
+  taller than the screen; the "Send as", "If the file exists" and "Priority" fields show a hint for the chosen option
+  under the field; "Encrypt" is disabled (not hidden) unless sending as a file; at the bottom, "N files · size" on the
+  left and "Upload" on the right.
 
-## Отправка файлов
+## Sending files
 
 ```mermaid
 sequenceDiagram
@@ -50,68 +52,71 @@ sequenceDiagram
     participant U as lib/upload.ts
     participant B as Backend
     participant T as lib/tasks.ts
-    D->>U: startSending(path, size) для каждого файла
-    D->>D: onClose(), toast «в очереди: N»
-    loop файлы по очереди
+    D->>U: startSending(path, size) for each file
+    D->>D: onClose(), toast "queued: N"
+    loop files one by one
         D->>U: uploadFile(file, {...options, path}, onProgress, sendingSignal(id))
-        alt уже отменён (cancelSending до старта)
-            U-->>D: AbortError, без запроса
+        alt already cancelled (cancelSending before start)
+            U-->>D: AbortError, no request
         end
-        U->>B: XHR POST /api/uploads?path=…&send_as=…&encrypt=… (тело = файл)
+        U->>B: XHR POST /api/uploads?path=…&send_as=…&encrypt=… (body = file)
         B-->>U: upload.onprogress
-        U->>U: updateSending(id, loaded)<br/>не чаще SENDING_TICK_MS (250 мс), последний байт всегда,<br/>rate = nextRate (сглаживание 0.7/0.3)
+        U->>U: updateSending(id, loaded)<br/>at most every SENDING_TICK_MS (250 ms), the last byte always,<br/>rate = nextRate (smoothing 0.7/0.3)
         alt 401
             U->>B: POST /api/auth/refresh
-            U->>B: повтор XHR
+            U->>B: repeat the XHR
         end
         alt 2xx
             B-->>U: Task
             U-->>D: task
-            D->>T: hintTask(id, {encrypt}),<br/>setQueryData(['task', id], task), trackTask(task.id)<br/>(виджет сразу видит задачу, новый запрос — сразу при монтировании)
-        else 409 conflict (без «Применить ко всем» в этой пачке)
-            U->>U: askConflict: элемент «файл уже есть — ждёт решения», вопрос в очередь ConflictDialog
-            alt «Заменить» / «Оставить оба»
-                U->>B: тот же запрос с on_conflict=replace / keep_both (один раз)
-            else «Отмена» / крестик у элемента
-                U-->>D: ничего не отправлять, элемент убрать
+            D->>T: hintTask(id, {encrypt}),<br/>setQueryData(['task', id], task), trackTask(task.id)<br/>(the widget sees the task at once, a new request right on mount)
+        else 409 conflict (no "Apply to all" in this batch)
+            U->>U: askConflict: item "file exists, waiting for a decision", question queued in ConflictDialog
+            alt "Replace" / "Keep both"
+                U->>B: the same request with on_conflict=replace / keep_both (once)
+            else "Cancel" / the item's cross
+                U-->>D: send nothing, remove the item
             end
-        else «Отменить» (cancelSending → abort → xhr.abort())
-            U-->>D: AbortError — без уведомления
-        else ошибка
+        else "Cancel" (cancelSending → abort → xhr.abort())
+            U-->>D: AbortError, no notification
+        else error
             U-->>D: throw ApiError
-            D->>D: toast «имя: ошибка»
+            D->>D: toast "name: error"
         end
-        D->>U: finishSending(id)<br/>отменённый висит «Отменено» ещё CANCELLED_HOLD_MS (3 с)
+        D->>U: finishSending(id)<br/>a cancelled one stays as "Cancelled" for CANCELLED_HOLD_MS (3 s)
     end
 ```
 
-- Прогресс отправки живёт только в памяти вкладки (`useSending`); у каждого элемента свой `AbortController`
-  (`startSending`/`sendingSignal`/`cancelSending` в `lib/upload.ts`). Пока список не пуст, `TaskWatcher` вешает
-  `beforeunload`, чтобы браузер спросил перед закрытием.
-- Ссылки: `parseUrlLines` (строка `url` или `url | имя`; делится по первому « | » с пробелами, поэтому `|` внутри ссылки и « | » в имени не мешают; имя по умолчанию — последний сегмент пути, битые `%`-последовательности остаются как есть) → `POST /api/uploads/batch {items}`; для каждого элемента с
-  `task` — `setQueryData(['task', id], task)` и `trackTask`, с `error` — уведомление.
-- Конфликт имени: `UploadDialog` шлёт `on_conflict` из настроек/диалога; только если это `error` и путь занят, сервер
-  отвечает `409 conflict` с `suggested_name` (у `POST /api/uploads` и у создания сессии одинаково). `sendTracked` с
-  `Batch` (одна на «Загрузить») ставит вопрос в очередь (`askConflict`, `useConflicts`); `ConflictDialog` (в `Layout`,
-  `components/upload-dialog.tsx`) показывает первый: «Заменить» (повтор с `replace`; права на удаление фронт не знает —
-  кнопка есть всегда, `403` придёт обычной ошибкой), «Оставить оба» (повтор с `keep_both`, подпись «скорее всего получит
-  имя `suggested_name`»; без права чтения папки бэкенд `suggested_name` не присылает — подписи нет, кнопки те же),
-  «Отмена» (и Esc) — ничего не отправлять, элемент сразу пропадает. Флажок «Применить ко всем»
-  (если в пачке больше одного файла) отвечает сразу на все ждущие вопросы этой пачки и запоминается в `Batch.choice`
-  для следующих. Пока вопрос открыт, остальные файлы пачки ждут (отправка последовательная), элемент виден в
-  `FolderUploads` как «файл уже есть — ждёт решения»; крестик у него или «Отменить всё» снимают вопрос. Повтор
-  спрашивает не больше одного раза; `409 upload_in_progress` — по-прежнему уведомление. Продолжение сессии
-  (`resumeUpload`) не спрашивает: конфликт проверен при её создании.
-- Готовая задача с `skipped_exists` может прийти с `file: null` (грант только на загрузку): фронт `task.file` не
-  читает, заголовок и папки берёт из `task.path` (`taskTitle`, `taskFolders`).
-- После ответа (обычного или сессии) `sendTracked` делает `hintTask`, `setQueryData`, `trackTask`, а ошибку показывает
-  уведомлением «имя: ошибка» (отмена — молча). `413 too_large` и `chunk_too_large` показывают `limit` размером
-  (`errorParams` в `lib/api.ts`).
+- Sending progress lives only in the tab's memory (`useSending`); each item has its own `AbortController`
+  (`startSending`/`sendingSignal`/`cancelSending` in `lib/upload.ts`). While the list is not empty, `TaskWatcher` adds a
+  `beforeunload` handler so the browser asks before closing.
+- URLs: `parseUrlLines` (a line is `url` or `url | name`; split at the first " | " with spaces, so a `|` inside the URL
+  and " | " in the name do not interfere; the default name is the last path segment, broken `%` sequences stay as is) →
+  `POST /api/uploads/batch {items}`; for each item with a `task`, `setQueryData(['task', id], task)` and `trackTask`;
+  with an `error`, a notification.
+- Name conflict: `UploadDialog` sends `on_conflict` from the settings/dialog; only when it is `error` and the path is
+  taken does the server answer `409 conflict` with `suggested_name` (the same for `POST /api/uploads` and for session
+  creation). `sendTracked` with a `Batch` (one per "Upload") queues the question (`askConflict`, `useConflicts`);
+  `ConflictDialog` (in `Layout`, `components/upload-dialog.tsx`) shows the first one: "Replace" (retry with `replace`;
+  the frontend does not know the delete permission, so the button is always there and a `403` arrives as a regular
+  error), "Keep both" (retry with `keep_both`, captioned "will most likely be named `suggested_name`"; without read
+  access to the folder the backend sends no `suggested_name`, so there is no caption, same buttons), "Cancel" (and Esc)
+  sends nothing and the item disappears at once. The "Apply to all" checkbox (when the batch has more than one file)
+  answers all waiting questions of this batch at once and is remembered in `Batch.choice` for the next ones. While a
+  question is open, the other files of the batch wait (sending is sequential), and the item shows in `FolderUploads` as
+  "file exists, waiting for a decision"; its cross or "Cancel all" removes the question. A retry asks at most once;
+  `409 upload_in_progress` is still a notification. Resuming a session (`resumeUpload`) does not ask: the conflict was
+  checked when it was created.
+- A finished task with `skipped_exists` can arrive with `file: null` (an upload-only grant): the frontend does not read
+  `task.file` and takes the title and folders from `task.path` (`taskTitle`, `taskFolders`).
+- After the answer (plain or session), `sendTracked` calls `hintTask`, `setQueryData`, `trackTask`, and shows an error
+  as a "name: error" notification (a cancel stays silent). `413 too_large` and `chunk_too_large` show `limit` as a size
+  (`errorParams` in `lib/api.ts`).
 
-### Большие файлы частями
+### Large files in chunks
 
-`uploadFile` отправляет файл больше `CHUNK_SIZE` (64 МиБ, как `UPLOAD_CHUNK_SIZE` бэкенда) сессией
-(backend `docs/flows/uploads.md`, «С устройства — частями»); меньшие — как раньше одним `POST /api/uploads`.
+`uploadFile` sends a file larger than `CHUNK_SIZE` (64 MiB, like the backend's `UPLOAD_CHUNK_SIZE`) through a session
+(backend `docs/flows/uploads.md`, "From the device in chunks"); smaller ones go as before in one `POST /api/uploads`.
 
 ```mermaid
 sequenceDiagram
@@ -120,40 +125,42 @@ sequenceDiagram
     participant L as localStorage
     participant B as Backend
     D->>U: uploadFile (size > CHUNK_SIZE)
-    U->>B: POST /api/uploads/sessions?size=N&path=…&опции
+    U->>B: POST /api/uploads/sessions?size=N&path=…&options
     alt 200 Task (on_conflict=skip)
-        B-->>U: задача done, сессии нет
+        B-->>U: task done, no session
     else 409 conflict
-        B-->>U: вопрос ConflictDialog, как у POST /api/uploads, повтор с replace / keep_both
+        B-->>U: ConflictDialog question, like POST /api/uploads, retry with replace / keep_both
     else 413 too_large / 429 / 507 / upload_in_progress
-        B-->>U: ошибка → toast, как у POST /api/uploads
+        B-->>U: error → toast, like POST /api/uploads
     else 201 UploadSession
         U->>L: tcloud.uploads.sessions += {session_id, path, size, name, lastModified, expires_at, encrypt}
         loop offset < size
             U->>B: PUT /sessions/{id}?offset=K (file.slice(K, K + chunk_size))
             alt 200 UploadSession
-                B-->>U: новый offset, expires_at → L
+                B-->>U: new offset, expires_at → L
             else 409 offset_mismatch
-                B-->>U: offset — продолжить с него
-            else сеть / 5xx / 429 / upload_session_busy
-                U->>U: пауза chunkRetryDelay (1, 2, 4… с или retry_after), до 5 раз
+                B-->>U: offset, continue from it
+            else network / 5xx / 429 / upload_session_busy
+                U->>U: pause chunkRetryDelay (1, 2, 4… s or retry_after), up to 5 times
             end
         end
-        B-->>U: 202 Task → убрать из L
+        B-->>U: 202 Task → remove from L
     end
-    Note over U,B: отмена: abort XHR → DELETE /sessions/{id} (повтор на busy), убрать из L<br/>отмена во время POST /sessions: POST не обрывается, пришёл session_id → сразу DELETE<br/>403 forbidden у PUT (грант отозван, сервер сессию уже удалил): убрать из L без DELETE, ошибка, без «пауза»<br/>повторы кончились или 401 (refresh не удался): сессия остаётся в L — «пауза»<br/>404: GET /tasks/{id} (ответ на последний кусок мог потеряться), иначе ошибка и убрать из L<br/>другая ошибка API: DELETE и убрать из L
+    Note over U,B: cancel: abort XHR → DELETE /sessions/{id} (retried on busy), remove from L<br/>cancel during POST /sessions: the POST is not aborted, once session_id arrives → DELETE at once<br/>403 forbidden on PUT (grant revoked, the server already deleted the session): remove from L without DELETE, error, no "paused"<br/>retries exhausted or 401 (refresh failed): the session stays in L as "paused"<br/>404: GET /tasks/{id} (the answer to the last chunk may have been lost), otherwise error and remove from L<br/>other API error: DELETE and remove from L
 ```
 
-- Прогресс — принятые сервером байты плюс `upload.onprogress` текущего куска, через тот же `updateSending`.
-- Сессии в `localStorage` `tcloud.uploads.sessions` (каждый доступ в try/catch; просроченные по `expires_at`
-  отбрасываются при чтении). Сессии, которые не идут в этой вкладке (`usePausedSessions`), — после перезагрузки или
-  исчерпанных повторов — видны в `FolderUploads` своей папки как «пауза — выберите файл снова» с кнопкой «Выбрать файл»
-  и крестиком (`discardSession`: `DELETE` и забыть). Выбранный файл сверяется по имени, размеру и `lastModified`
-  (`sameFile`; не тот — ошибка, можно выбрать снова), затем `resumeUpload`: `GET` сессии за `offset` и тот же цикл.
-- При старте приложения `TaskWatcher` один раз показывает уведомление «N незаконченных загрузок» с кнопкой «Открыть»
-  (папка первой).
+- Progress is the bytes accepted by the server plus `upload.onprogress` of the current chunk, through the same
+  `updateSending`.
+- Sessions live in `localStorage` `tcloud.uploads.sessions` (every access in try/catch; ones expired by `expires_at`
+  are dropped on read). Sessions that are not running in this tab (`usePausedSessions`), after a reload or exhausted
+  retries, show in the `FolderUploads` of their folder as "paused, pick the file again" with a "Pick file" button and a
+  cross (`discardSession`: `DELETE` and forget). The picked file is checked by name, size and `lastModified`
+  (`sameFile`; a different one is an error and can be picked again), then `resumeUpload`: `GET` the session for its
+  `offset` and the same loop.
+- On app start, `TaskWatcher` shows a "N unfinished uploads" notification once, with an "Open" button (the first one's
+  folder).
 
-## Отслеживание задач
+## Task tracking
 
 ```mermaid
 sequenceDiagram
@@ -164,136 +171,138 @@ sequenceDiagram
     participant W as TaskWatcher
     participant C as QueryClient
     T-->>Q: useTrackedTasks(): id[]
-    loop queued — раз в 5 с, running — раз в 1 с (pollInterval), пока не done/failed/cancelled
-        Q->>Q: queryFn ['task', id] → loadTask(id) (taskLoader):<br/>id одного тика копятся (10 мс)
-        Q->>B: GET /api/tasks?ids=a&ids=b… (до 100 id на запрос, больше — несколько)
-        B-->>Q: {items, summary} — только видимые задачи
+    loop queued every 5 s, running every 1 s (pollInterval), until done/failed/cancelled
+        Q->>Q: queryFn ['task', id] → loadTask(id) (taskLoader):<br/>ids of one tick are collected (10 ms)
+        Q->>B: GET /api/tasks?ids=a&ids=b… (up to 100 ids per request, more means several)
+        B-->>Q: {items, summary}, visible tasks only
     end
-    Q-->>W: results (id, которого нет в items → ApiError 404)
-    alt 404 (задачи больше нет)
+    Q-->>W: results (an id missing from items → ApiError 404)
+    alt 404 (the task is gone)
         W->>T: forgetTasks(gone)
-    else статус завершённый и id в pending (isPending)
-        W->>T: reportTask(id, forget) — убрать из pending,<br/>done без архива — забыть совсем
-        W->>W: копит завершённые этого ответа
+    else finished status and the id is in pending (isPending)
+        W->>T: reportTask(id, forget): remove from pending,<br/>done without an archive is forgotten entirely
+        W->>W: collects the finished ones of this answer
         W->>W: dispatch tcloud:task-finished (detail = status)
         alt done + archive
-            W->>W: toast «архив готов» + кнопка «Скачать»<br/>markRead(path), location = /api/tasks/{id}/archive
+            W->>W: toast "archive ready" + "Download" button<br/>markRead(path), location = /api/tasks/{id}/archive
         else done
-            W->>W: toast «готово»
+            W->>W: toast "done"
         else failed
-            W->>W: toast с errorText(task.error)
+            W->>W: toast with errorText(task.error)
         end
     end
-    opt в этом ответе что-то завершилось
-        W->>C: invalidate task-counts; если есть не-архивы — ['folder', папка задачи и её предки] (taskFolders),<br/>storages, account, activity, search, mimes — сразу, один раз на ответ
+    opt something finished in this answer
+        W->>C: invalidate task-counts; if there are non-archives, ['folder', the task's folder and its ancestors] (taskFolders),<br/>storages, account, activity, search, mimes, at once, once per answer
     end
 ```
 
-`TaskWatcher` смонтирован в `Layout` один раз на всё приложение. `trackTask` кладёт id и в `tcloud.tasks`, и в
-`tcloud.tasks.pending` (задачи, о завершении которых ещё не сообщили); повтор задачи кладёт её в pending снова.
-Завершённая задача из pending вызывает уведомление ровно один раз, даже если уже завершена при первом опросе или
-завершилась, пока вкладка была закрыта; после `reportTask` перезагрузка страницы её не повторяет.
-Готовые задачи без архива забываются сразу после уведомления; `failed`/`cancelled` и готовые архивы (кнопка «Скачать» на «Задачах») остаются до «Забыть». Список ограничен
-`MAX_TASKS` (50): `trackTask` сначала выкидывает самые старые уже объявленные задачи, потом самые старые вообще.
-Завершённые задачи в кэше не устаревают (`staleTime: Infinity`), их не перезапрашивают при монтировании.
-Другие вкладки подхватывают оба ключа по событию `storage`.
-Инвалидация идёт сразу, одна на ответ пачки (все задачи одного `GET /tasks?ids=` обрабатываются за один проход эффекта, опрос идущих —
-раз в 1 с, так что чаще раза в секунду листинги не дёргаются); обновляются только
-листинги родительской папки каждой задачи и её предков (у папок показан размер), архивы листинги не трогают.
+`TaskWatcher` is mounted in `Layout` once for the whole app. `trackTask` puts the id into both `tcloud.tasks` and
+`tcloud.tasks.pending` (tasks whose completion has not been reported yet); retrying a task puts it into pending again.
+A finished task from pending triggers a notification exactly once, even if it was already finished at the first poll
+or finished while the tab was closed; after `reportTask` a page reload does not repeat it. Done tasks without an
+archive are forgotten right after the notification; `failed`/`cancelled` ones and finished archives (the "Download"
+button on Tasks) stay until "Forget". The list is capped at `MAX_TASKS` (50): `trackTask` first drops the oldest
+already reported tasks, then the oldest overall. Finished tasks never go stale in the cache (`staleTime: Infinity`)
+and are not refetched on mount. Other tabs pick up both keys via the `storage` event. Invalidation happens at once,
+one per batch answer (all tasks of one `GET /tasks?ids=` are handled in one effect pass, and running tasks are polled
+every 1 s, so listings are not hit more than once a second); only the listings of each task's parent folder and its
+ancestors are refreshed (folders show their size), and archives do not touch listings.
 
-### Жизнь элемента в браузере
+### Lifecycle of an item in the browser
 
 ```mermaid
 stateDiagram-v2
     [*] --> Sending: startSending
     Sending --> Tracked: uploadFile ok → trackTask
-    Sending --> [*]: ошибка отправки → toast
+    Sending --> [*]: send error → toast
     Sending --> Conflict: 409 conflict
-    Conflict --> Sending: «Заменить» / «Оставить оба» (или Batch.choice)
-    Conflict --> [*]: «Отмена» сразу, крестик — через 3 с
-    Sending --> Aborted: «Отменить» → xhr.abort(), у сессии ещё DELETE
-    Sending --> Paused: сессия, повторы сети кончились или 401
-    [*] --> Paused: перезагрузка с незаконченной сессией
-    Paused --> Sending: «Выбрать файл» (тот же файл) → resumeUpload
-    Paused --> [*]: крестик → DELETE / истекла / 404
-    Aborted --> [*]: через 3 с
-    [*] --> Tracked: batch / архив / повтор → trackTask
+    Conflict --> Sending: "Replace" / "Keep both" (or Batch.choice)
+    Conflict --> [*]: "Cancel" at once, the cross after 3 s
+    Sending --> Aborted: "Cancel" → xhr.abort(), plus DELETE for a session
+    Sending --> Paused: session, network retries exhausted or 401
+    [*] --> Paused: reload with an unfinished session
+    Paused --> Sending: "Pick file" (the same file) → resumeUpload
+    Paused --> [*]: cross → DELETE / expired / 404
+    Aborted --> [*]: after 3 s
+    [*] --> Tracked: batch / archive / retry → trackTask
     Tracked --> Polling
-    Polling --> Polling: GET /tasks?ids=… каждые 5 с (queued) / 1 с
+    Polling --> Polling: GET /tasks?ids=… every 5 s (queued) / 1 s
     Polling --> Finished: done / failed / cancelled
-    Polling --> Polling: «Отменить» → POST /tasks/{id}/cancel (setQueryData + сразу перезапрос)
+    Polling --> Polling: "Cancel" → POST /tasks/{id}/cancel (setQueryData + immediate refetch)
     Polling --> [*]: 404 → forgetTasks
-    Finished --> Polling: «Повторить» (setQueryData queued)
-    Finished --> [*]: done без архива — сразу после уведомления (reportTask)
-    Finished --> [*]: «Забыть» / «Убрать завершённые» (forgetTask)
-    Finished --> [*]: вытеснена лимитом MAX_TASKS (capTasks)
+    Finished --> Polling: "Retry" (setQueryData queued)
+    Finished --> [*]: done without an archive, right after the notification (reportTask)
+    Finished --> [*]: "Forget" / "Remove finished" (forgetTask)
+    Finished --> [*]: evicted by the MAX_TASKS cap (capTasks)
 ```
 
-### Статусы задачи (как их показывает фронт)
+### Task statuses (as the frontend shows them)
 
-`TASK_STATUS` и `TASK_STAGE` в `src/lib/tasks.ts`; `FINISHED` — в `hooks/use-tasks.ts`.
+`TASK_STATUS` and `TASK_STAGE` in `src/lib/tasks.ts`; `FINISHED` in `hooks/use-tasks.ts`.
 
 ```mermaid
 stateDiagram-v2
     [*] --> queued
     queued --> running
-    queued --> cancelled: отмена
+    queued --> cancelled: cancel
     running --> done
     running --> failed
-    running --> cancelled: отмена
-    failed --> queued: retry (только задачи по ссылке)
-    cancelled --> queued: retry (только задачи по ссылке)
+    running --> cancelled: cancel
+    failed --> queued: retry (URL tasks only)
+    cancelled --> queued: retry (URL tasks only)
     done --> [*]
 ```
 
-Шаги — `task.step`, см. ниже «Шаги и отмена». Стадии — подписи `TASK_STAGE` (запасные, когда `step` ещё `null`) (`downloading`, `scanning`, `uploading_tg`, `archiving`, `done`); порядок стадий и
-правила повторов задаёт бэкенд (`tcloud-backend/docs/flows/uploads.md`, `docs/background-tasks.md`). Повтор
-возвращает ту же задачу (тот же id) в `queued`. Кнопка «Повторить» — только при `task.retryable` (бэкенд: `source = url` в
-`failed`/`cancelled`). `task.progress` — проценты 0–100, во фронте только через
-`taskFraction` (0–1).
+Steps are `task.step`, see "Steps and cancel" below. Stages are the `TASK_STAGE` labels (fallbacks while `step` is still
+`null`) (`downloading`, `scanning`, `uploading_tg`, `archiving`, `done`); the stage order and retry rules are set by the
+backend (`tcloud-backend/docs/flows/uploads.md`, `docs/background-tasks.md`). A retry returns the same task (same id)
+to `queued`. The "Retry" button appears only with `task.retryable` (backend: `source = url` in `failed`/`cancelled`).
+`task.progress` is a percent 0–100, used in the frontend only through `taskFraction` (0–1).
 
-Ожидание и предупреждения переводятся по кодам бэкенда (`waitingText`, `warningText` в `lib/tasks.ts`):
-`task.waiting.code` → ключ `taskWaiting.<code>` (для `queue` — `taskWaiting.queue.<params.queue>`), каждый
-`task.warning_details[]` → `taskWarning.<code>` с `params` (`count` идёт в плюрал как `n`, `limit` в байтах форматируется `formatBytes`, напр. `too_big_to_scan`). Неизвестный код (и `other`)
-показывается английским текстом бэкенда (`reason` / `message`). Таблица кодов — `tcloud-backend/docs/flows/uploads.md`.
+Waiting reasons and warnings are translated by backend codes (`waitingText`, `warningText` in `lib/tasks.ts`):
+`task.waiting.code` → the `taskWaiting.<code>` key (for `queue`, `taskWaiting.queue.<params.queue>`), each
+`task.warning_details[]` → `taskWarning.<code>` with `params` (`count` goes into the plural as `n`, a `limit` in bytes
+is formatted by `formatBytes`, e.g. `too_big_to_scan`). An unknown code (and `other`) is shown as the backend's English
+text (`reason` / `message`). The code table is in `tcloud-backend/docs/flows/uploads.md`.
 
-### Шаги и отмена в виджете загрузок
+### Steps and cancel in the upload widget
 
-`task.step` (код шага бэкенда, таблица — `tcloud-backend/docs/flows/uploads.md`, «Шаги») подписывается `stepLabel`
-(ключи `step.<code>`, неизвестный код — как есть), `stepFraction` даёт полосу из `step_progress` (`null` → полосатая
-неопределённая `Progress`), скорость/остаток показываются только у измеряемых шагов (`isMeasured`: `downloading`,
-`analyzing`, `scanning`, `encrypting`, `sending`, `archiving`); `progress`/`speed`/`eta` относятся к текущему шагу.
-Цепочка этапов (`lib/steps.ts`):
+`task.step` (the backend step code, table in `tcloud-backend/docs/flows/uploads.md`, "Steps") is labelled by
+`stepLabel` (`step.<code>` keys, an unknown code as is); `stepFraction` gives the bar from `step_progress` (`null` → a
+striped indeterminate `Progress`); speed/remaining time are shown only for measured steps (`isMeasured`:
+`downloading`, `analyzing`, `scanning`, `encrypting`, `sending`, `archiving`); `progress`/`speed`/`eta` refer to the
+current step. The phase chain (`lib/steps.ts`):
 
 ```mermaid
 flowchart LR
-    upload["загрузить<br/>XHR в браузере"] --> check
-    download["скачать<br/>queued_for_download, downloading"] --> check
-    check["проверить<br/>queued_for_prepare, analyzing,<br/>scanning, converting"] --> encrypt["зашифровать<br/>encrypting, previewing"]
+    upload["upload<br/>XHR in the browser"] --> check
+    download["download<br/>queued_for_download, downloading"] --> check
+    check["check<br/>queued_for_prepare, analyzing,<br/>scanning, converting"] --> encrypt["encrypt<br/>encrypting, previewing"]
     check --> send
-    encrypt --> send["отправить<br/>queued_for_telegram, sending, finishing"]
-    archive["собрать<br/>queued_for_archive, archiving"]
+    encrypt --> send["send<br/>queued_for_telegram, sending, finishing"]
+    archive["build<br/>queued_for_archive, archiving"]
 ```
 
-`taskPhases` берёт только применимые этапы: архив (`archive` или `source = archive`) — один «собрать»;
-«загрузить»/«скачать» — по `task.source` (`device`/`url`), «зашифровать» — по подсказке `hintTask(id, {encrypt})`,
-которую диалоги кладут в память вкладки при создании задачи. Без них (`source: null` у старых задач, подсказки нет
-после перезагрузки) этапы угадываются по текущему шагу: «скачать» видно только пока идёт скачивание, «зашифровать» —
-пока идёт шифрование/превью. `trail` закрашивает этапы до текущего (`done`), текущий — `active`, у `failed`/`cancelled` —
-`stopped` (где задача остановилась), у `done` закрашено всё.
+`taskPhases` takes only the phases that apply: an archive (`archive` or `source = archive`) has a single "build";
+"upload"/"download" depend on `task.source` (`device`/`url`), "encrypt" on the `hintTask(id, {encrypt})` hint that the
+dialogs keep in the tab's memory when the task is created. Without them (`source: null` on old tasks, no hint after a
+reload) the phases are guessed from the current step: "download" shows only while downloading, "encrypt" only while
+encrypting/previewing. `trail` fills the phases before the current one (`done`), the current one is `active`, for
+`failed`/`cancelled` it is `stopped` (where the task stopped), and for `done` everything is filled.
 
-Отмена: крестик у файла без подтверждения; «Отменить всё» (если открытых больше одного) — через `Confirm`. Отправка в
-браузере — `cancelSending` (XHR обрывается, задачи нет); задача — `POST /api/tasks/{id}/cancel`, ответ кладётся в кэш,
-кнопка выключена, пока запрос идёт или `cancel_requested` (`canCancel`), подпись «Отмена…», затем «Отменено»
-(`409 task_finished` молча). `TaskWatcher` не показывает «готово» для `cancelled`. Отменённые задачи остаются в виджете до
-крестика «Забыть», как ошибки.
+Cancel: the cross on a file has no confirmation; "Cancel all" (when more than one is open) goes through `Confirm`.
+Sending in the browser is cancelled by `cancelSending` (the XHR is aborted, there is no task); a task by
+`POST /api/tasks/{id}/cancel`, with the answer put into the cache; the button is disabled while the request runs or
+while `cancel_requested` (`canCancel`), labelled "Cancelling…", then "Cancelled" (`409 task_finished` silently).
+`TaskWatcher` shows no "done" for `cancelled`. Cancelled tasks stay in the widget until the "Forget" cross, like
+errors.
 
-## Кто читает задачи и отправки
+## Who reads tasks and sends
 
-| Потребитель | Что показывает |
+| Consumer | What it shows |
 |---|---|
-| `components/folder-uploads.tsx` | над листингом: отправки и не-архивные задачи `queued/running/failed/cancelled` внутри текущей папки — шаг, полоса, цепочка этапов, отмена по одному и «Отменить всё» |
-| `pages/tasks.tsx` | все отслеживаемые задачи, подпись шага (`stepLabel`, у failed/cancelled — где остановилась), фильтр `visibleTasks(tasks_filter)` (переключатель сохраняет `interface.tasks_filter`), отмена/приоритет/повтор/забыть |
-| `pages/dashboard.tsx` | «Активность»: кольца по статусам из `GET /api/tasks/counts` (`useTaskCounts`, свои задачи за 7 дней, опрос 5 с; `taskRings`: при `tasks_filter = active_and_failed` без «готово» и отменённых), прогресс идущих отслеживаемых, чек-лист первого запуска (`lib/onboarding.ts`) |
-| `hooks/use-storages.ts` `useStorageIo` | лампы чтения/записи хранилищ: отправки (не отменённые) + задачи загрузки = запись, `archiving` = чтение, плюс `GET /api/storages/activity` (кто угодно, пока идёт операция + 1 с; опрос 500 мс, пока горит лампа, иначе 3 с, только при видимой вкладке, `serverIo`/`mergeIo`); `markRead` (скачивание/превью) сразу запрашивает сервер; после конца локальной операции серверное `true` игнорируется до свежего ответа (`endIo`/`freshServerIo`); короткие горят ≥ `IO_MIN_MS` (`lingerIo`) |
-| `components/extras.tsx` | реакции на `tcloud:task-finished` (за флагами `fx_*`) |
+| `components/folder-uploads.tsx` | above the listing: sends and non-archive `queued/running/failed/cancelled` tasks inside the current folder, with step, bar, phase chain, per-item cancel and "Cancel all" |
+| `pages/tasks.tsx` | all tracked tasks, the step label (`stepLabel`, for failed/cancelled where it stopped), the `visibleTasks(tasks_filter)` filter (the toggle saves `interface.tasks_filter`), cancel/priority/retry/forget |
+| `pages/dashboard.tsx` | "Activity": rings by status from `GET /api/tasks/counts` (`useTaskCounts`, own tasks for 7 days, polled every 5 s; `taskRings`: with `tasks_filter = active_and_failed` without "done" and cancelled), progress of running tracked tasks, the first-run checklist (`lib/onboarding.ts`) |
+| `hooks/use-storages.ts` `useStorageIo` | storage read/write lamps: sends (not cancelled) + upload tasks = write, `archiving` = read, plus `GET /api/storages/activity` (anyone, while an operation runs + 1 s; polled every 500 ms while a lamp is lit, otherwise 3 s, only in a visible tab, `serverIo`/`mergeIo`); `markRead` (download/preview) queries the server at once; after a local operation ends, the server's `true` is ignored until a fresh answer (`endIo`/`freshServerIo`); short ones stay lit ≥ `IO_MIN_MS` (`lingerIo`) |
+| `components/extras.tsx` | reactions to `tcloud:task-finished` (behind the `fx_*` flags) |

@@ -1,56 +1,57 @@
-# Данные: запросы, инвалидация, настройки
+# Data: queries, invalidation, settings
 
-Серверное состояние живёт в TanStack Query. То, чего нет на сервере или что нужно мгновенно, — в маленьких
-модульных сторах на `useSyncExternalStore`.
+Server state lives in TanStack Query. What the server does not have, or what is needed instantly, lives in small module
+stores on `useSyncExternalStore`.
 
-## Ключи запросов
+## Query keys
 
-Все запросы идут через `api.*` (`src/lib/api.ts`). Умолчания `QueryClient` — в [architecture.md](architecture.md#запуск-приложения).
+Every request goes through `api.*` (`src/lib/api.ts`). The `QueryClient` defaults are in
+[architecture.md](architecture.md#app-startup).
 
-| Ключ | Запрос | Где | Особенности |
+| Key | Request | Where | Notes |
 |---|---|---|---|
-| `['me']` | `GET /users/me` | `hooks/use-me.ts` | `queryFn` вызывает `hydrateSettings(me.settings)` |
-| `['storages']` | `GET /storages` | `hooks/use-storages.ts` | `staleTime` 5 с (`STORAGES_STALE_MS`): свои изменения инвалидируют сразу, чужие видны не позже чем через 5 с при следующем монтировании |
-| `['folder', path, {sort_by, sort_order, folders_first, lang, limit}]` (`listingKey`) | `GET /folders?path=&sort_by=&sort_order=&folders_first=&lang=&limit=&cursor=` | `components/folder-view.tsx` (`useInfiniteQuery`) | страницы по `limit` = `interface.page_size` (20/50/100/200, по умолчанию 20; `pageSizeOf`, пока сервер не отдаёт поле — копия `tcloud.page_size`), следующая — по `next_cursor`, когда «часовой» под списком входит в `IntersectionObserver` с запасом 600 px (или кнопкой «Показать ещё»); порядок — от бэкенда, клиент не сортирует; итоги (`size`, `total_files`, `total_folders`, `direct_files`) есть только в первой странице, на страницах по курсору — `null`, шапка и «выбрано N из M» берут их через `listingTotals`; смена сортировки/языка/размера страницы = новый ключ = снова с первой страницы (`placeholderData` держит старый список до ответа); инвалидация перезапрашивает загруженные страницы последовательно с первой (курсоры заново), прокрутка не сбрасывается; палитра читает кэш по `listingKey` текущей сортировки; наведение мыши (`pointerType === 'mouse'`, не на тач) или фокус с клавиатуры (`:focus-visible`) на ссылке папки делает `prefetchInfiniteQuery` её первой страницы с теми же `listingKey`/`limit`/сортировкой (`listingOf`, свежесть `PREFETCH_STALE_MS` 10 с — повторное наведение не шлёт запрос); при переходе страница рисуется из кэша и обновляется фоном |
-| `['task', id]` | `GET /tasks?ids=…` (пачкой через `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 с для `queued`, 1 с иначе (`pollInterval`), пока не `done/failed/cancelled`; завершённые — `staleTime: Infinity` |
-| `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 с; `TaskWatcher` инвалидирует пачкой |
-| `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 мс, пока горит любая лампа, иначе 3 с (в фоне не опрашивается); `markRead` → `refetch` через 300 мс; сливается с локальными лампами `mergeIo`, после конца локальной операции её вид игнорируется до ответа позже конца + 1 с (`freshServerIo`) |
-| `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, страницы по `offset`; `lang` (язык интерфейса) входит в `apiQuery`, порядок по имени — от бэкенда |
-| `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | от 2 символов, `retry: false` |
-| `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `retry: false`; без `staleTime`, чтобы фасеты форматов сразу видели новые/удалённые файлы |
-| `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; не монтируется, если блок `activity_map` скрыт (`interface.dashboard_hidden`) |
-| `['account']` | `GET /account` | `useAccount` (`hooks/use-storages.ts`) на дашборде, в `components/storages.tsx`, `pages/telegram.tsx` | `staleTime` 60 с (`ACCOUNT_STALE_MS`; задачи, создание и удаление хранилища (`storageChangeKeys`, кольцо каналов сразу) и переключатель превью инвалидируют сразу); всегда `200`; до входа в Telegram `telegram_connected: false` и `null` в остальных полях |
-| `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) на `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 с; `details` (задержка проб, возраст пульса воркеров) — метрики стойки |
-| `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | на `/telegram` опрос 2 с, пока шаг `qr`/`starting` |
+| `['me']` | `GET /users/me` | `hooks/use-me.ts` | `queryFn` calls `hydrateSettings(me.settings)` |
+| `['storages']` | `GET /storages` | `hooks/use-storages.ts` | `staleTime` 5 s (`STORAGES_STALE_MS`): own changes invalidate at once, other people's show up within 5 s on the next mount |
+| `['folder', path, {sort_by, sort_order, folders_first, lang, limit}]` (`listingKey`) | `GET /folders?path=&sort_by=&sort_order=&folders_first=&lang=&limit=&cursor=` | `components/folder-view.tsx` (`useInfiniteQuery`) | pages of `limit` = `interface.page_size` (20/50/100/200, default 20; `pageSizeOf`, the `tcloud.page_size` copy while the server omits the field), the next one by `next_cursor` when the sentinel under the list enters the `IntersectionObserver` with a 600 px margin (or via the "Show more" button); the order comes from the backend, the client does not sort; totals (`size`, `total_files`, `total_folders`, `direct_files`) are only in the first page, cursor pages carry `null`, and the header and "N of M selected" read them through `listingTotals`; a new sort/language/page size = a new key = back to the first page (`placeholderData` keeps the old list until the answer); invalidation refetches the loaded pages one by one from the first (fresh cursors) without resetting the scroll; the palette reads the cache by the `listingKey` of the current sort; mouse hover (`pointerType === 'mouse'`, not touch) or keyboard focus (`:focus-visible`) on a folder link runs `prefetchInfiniteQuery` for its first page with the same `listingKey`/`limit`/sort (`listingOf`, freshness `PREFETCH_STALE_MS` 10 s, so hovering again sends no request); on navigation the page renders from the cache and refreshes in the background |
+| `['task', id]` | `GET /tasks?ids=…` (batched by `taskLoader`) | `hooks/use-tasks.ts` (`useQueries`) | `refetchInterval` 5 s for `queued`, 1 s otherwise (`pollInterval`), until `done/failed/cancelled`; finished ones get `staleTime: Infinity` |
+| `['task-counts']` | `GET /tasks/counts` | `hooks/use-tasks.ts` (`useTaskCounts`), `pages/dashboard.tsx` | `refetchInterval` 5 s; `TaskWatcher` invalidates per batch |
+| `['storage-activity']` | `GET /storages/activity` | `hooks/use-storages.ts` (`useStorageIo`) | `refetchInterval` 500 ms while any lamp is lit, otherwise 3 s (not polled in the background); `markRead` → `refetch` after 300 ms; merged with the local lamps by `mergeIo`; after a local operation ends, the server's view of it is ignored until an answer later than the end + 1 s (`freshServerIo`) |
+| `['search', apiQuery]` | `GET /files/search?…` | `hooks/use-search.ts` (`useInfiniteQuery`) | `enabled: hasCriteria`, `retry: false`, pages by `offset`; `lang` (the UI language) is part of `apiQuery`, the name order comes from the backend |
+| `['search', 'palette', term]` | `GET /files/search?…&limit=8` | `components/command-palette.tsx` | from 2 characters, `retry: false` |
+| `['mimes', path]` | `GET /files/search/mimes` | `hooks/use-search.ts` | `retry: false`; no `staleTime`, so the format facets see new/deleted files at once |
+| `['activity', path]` | `GET /files/activity` | `hooks/use-activity.ts` | `retry: false`; not mounted if the `activity_map` block is hidden (`interface.dashboard_hidden`) |
+| `['account']` | `GET /account` | `useAccount` (`hooks/use-storages.ts`) on the dashboard, in `components/storages.tsx`, `pages/telegram.tsx` | `staleTime` 60 s (`ACCOUNT_STALE_MS`; tasks, storage create and delete (`storageChangeKeys`, so the channels ring updates at once) and the previews switch invalidate at once); always `200`; before Telegram sign-in `telegram_connected: false` and `null` in the other fields |
+| `['health']` | `GET /health` | `hooks/use-health.ts` (`useHealth`) → `components/health.tsx` (`HealthRack`) on `pages/dashboard.tsx`, `pages/telegram.tsx` | `refetchInterval` 15 s; `details` (probe latency, worker heartbeat age) are the rack metrics |
+| `['telegram']` | `GET /telegram` | `pages/dashboard.tsx` (root), `pages/telegram.tsx` | on `/telegram` polled every 2 s while the step is `qr`/`starting` |
 | `['telegram-devices']` | `GET /telegram/sessions` | `pages/telegram.tsx` | `retry: false` |
 | `['users']` | `GET /users` | `pages/users.tsx`, `pages/dashboard.tsx` (admin) | |
 | `['user', id]` | `GET /users/{id}` | `pages/user.tsx` | |
 | `['grants', userId]` | `GET /users/{id}/grants` | `pages/user.tsx` | |
 | `['api-keys', userId]` | `GET /users/{id}/api-keys` | `components/api-keys.tsx` | |
-| `['upload-sessions', userId]` | `GET /uploads/sessions?user_id=` | `pages/user.tsx` | карточка «Незаконченные загрузки» (root — любой, admin — роль `user`), крестик — `DELETE /uploads/sessions/{id}` |
+| `['upload-sessions', userId]` | `GET /uploads/sessions?user_id=` | `pages/user.tsx` | the "Unfinished uploads" card (root sees anyone, admin the `user` role), the cross sends `DELETE /uploads/sessions/{id}` |
 | `['sessions']` | `GET /auth/sessions` | `pages/account.tsx` | |
 
-## Мутации и инвалидация
+## Mutations and invalidation
 
-Мутации — `useAction` (`hooks/use-action.ts`): `useMutation`, на успех `invalidateQueries` по каждому ключу из
-`invalidate` (префиксное совпадение: `['folder']` задевает все `['folder', path, …]`, `['folder', path]` — все сортировки этой папки), `toast.success`, `onSuccess`; на
-ошибку `toast.error(describe ?? errorMessage)`.
+Mutations use `useAction` (`hooks/use-action.ts`): `useMutation`; on success `invalidateQueries` for every key in
+`invalidate` (prefix match: `['folder']` hits every `['folder', path, …]`, `['folder', path]` every sort of that
+folder), `toast.success`, `onSuccess`; on error `toast.error(describe ?? errorMessage)`.
 
 ```mermaid
 flowchart LR
-    subgraph files["Файлы и папки (folder-view.tsx)"]
+    subgraph files["Files and folders (folder-view.tsx)"]
         delFile["DELETE /files/{id}"]
         delFolder["DELETE /folders"]
-        bulk["bulkDelete: DELETE по одному"]
+        bulk["bulkDelete: DELETE one by one"]
         mkdir["POST /folders"]
     end
-    subgraph st["Хранилища (storages.tsx)"]
+    subgraph st["Storages (storages.tsx)"]
         stCreate["POST /storages<br/>+ PUT photo"]
         stSave["PATCH /storages/{id}<br/>+ PUT photo"]
         stPhoto["DELETE /storages/{id}/photo"]
         stDel["DELETE /storages/{id}"]
     end
-    subgraph adm["Пользователи (users.tsx, user.tsx, api-keys.tsx)"]
+    subgraph adm["Users (users.tsx, user.tsx, api-keys.tsx)"]
         uCreate["POST /users"]
         uPatch["PATCH /users/{id}"]
         uDel["DELETE /users/{id}"]
@@ -58,13 +59,13 @@ flowchart LR
         key["POST/DELETE api-keys"]
         upSess["DELETE /uploads/sessions/{id}"]
     end
-    subgraph acc["Аккаунт и Telegram"]
+    subgraph acc["Account and Telegram"]
         pwd["POST /auth/password"]
         sess["DELETE /auth/sessions/{id}"]
-        tgStep["вход/выход сессии Telegram<br/>useRefreshTelegram"]
+        tgStep["Telegram session sign-in/out<br/>useRefreshTelegram"]
         dev["DELETE /telegram/sessions/{id}"]
     end
-    watcher["TaskWatcher:<br/>задача завершилась"]
+    watcher["TaskWatcher:<br/>a task finished"]
 
     delFile & delFolder & bulk --> kDeleted["folder, storages, account,<br/>activity, search, mimes"]
     mkdir --> kFolderP["folder, parent"]
@@ -85,7 +86,7 @@ flowchart LR
     tgStep --> kTelegram["telegram"]
     tgStep --> kHealth["health"]
     dev --> kDevices["telegram-devices"]
-    watcher --> kFolderT["folder, папка задачи + предки<br/>(сразу, один раз на ответ пачки)"]
+    watcher --> kFolderT["folder, the task's folder + ancestors<br/>(at once, once per batch response)"]
     watcher --> kStorages
     watcher --> kAccount["account"]
     watcher --> kActivity["activity"]
@@ -93,18 +94,21 @@ flowchart LR
     watcher --> kSearch["search, mimes"]
 ```
 
-Без инвалидации:
+Without invalidation:
 
-- Действия на «Задачах» (`pages/tasks.tsx`: отмена, приоритет, повтор) и отмена в виджете загрузок (`FolderUploads`) кладут ответ прямо в кэш
-  `setQueryData(['task', id], task)`; отмена сразу перезапрашивает задачу (`invalidateQueries(['task', id])`), повтор ещё и `trackTask`.
-- Загрузка с устройства (после XHR load) и по ссылкам кладут ответ-задачу в кэш (`setQueryData`) перед `trackTask`.
-- Архивы (`POST /folders/archive`, `/folders/archive/selection`) только `trackTask`: листинг обновит `TaskWatcher`.
-- Вход и выход: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, «Выйти везде» и завершение текущей сессии в
-  `pages/account.tsx`).
-- `search`/`mimes` инвалидируют удаления (`DELETED` в `folder-view.tsx`, удаление хранилища) и `TaskWatcher` при
-  завершении задач с папкой (загрузки); иначе они перезапрашиваются при смене ключа (новый запрос) или монтировании.
+- Actions on Tasks (`pages/tasks.tsx`: cancel, priority, retry) and cancel in the upload widget (`FolderUploads`) put the
+  answer straight into the cache with `setQueryData(['task', id], task)`; cancel also refetches the task at once
+  (`invalidateQueries(['task', id])`), retry also calls `trackTask`.
+- Uploads from the device (after the XHR load) and by URL put the task answer into the cache (`setQueryData`) before
+  `trackTask`.
+- Archives (`POST /folders/archive`, `/folders/archive/selection`) only call `trackTask`: `TaskWatcher` refreshes the
+  listing.
+- Sign-in and sign-out: `queryClient.clear()` (`pages/login.tsx`, `Layout.logout`, "Sign out everywhere" and ending the
+  current session in `pages/account.tsx`).
+- `search`/`mimes` are invalidated by deletes (`DELETED` in `folder-view.tsx`, storage delete) and by `TaskWatcher` when
+  tasks with a folder (uploads) finish; otherwise they refetch when the key changes (a new query) or on mount.
 
-## Сторы вне TanStack Query
+## Stores outside TanStack Query
 
 ```mermaid
 flowchart LR
@@ -116,93 +120,94 @@ flowchart LR
     end
     settings["lib/settings.ts<br/>useSettings"] -- "theme, language" --> mirror
     tasks["lib/tasks.ts<br/>useTrackedTasks: id[]"] <--> tasksLs
-    sending["lib/upload.ts<br/>useSending: Sending[] (память вкладки)"]
-    reads["lib/reads.ts<br/>useReads: имя 5 с после markRead"]
+    sending["lib/upload.ts<br/>useSending: Sending[] (tab memory)"]
+    reads["lib/reads.ts<br/>useReads: name for 5 s after markRead"]
     lang["lib/i18n.ts<br/>useLang"]
     io["hooks/use-storages.ts<br/>useStorageIo: endIo + freshServerIo + lingerIo"]
-    srvIo["['storage-activity']<br/>GET /storages/activity<br/>500 мс горит / 3 с нет"] --> io
-    sending -- "не отменённые" --> io
+    srvIo["['storage-activity']<br/>GET /storages/activity<br/>500 ms lit / 3 s idle"] --> io
+    sending -- "not cancelled" --> io
     tasks --> io
-    reads -- "onRead → refetch через 300 мс" --> srvIo
+    reads -- "onRead → refetch after 300 ms" --> srvIo
     settings --> lang
-    settings -- "dashboard_layout, dashboard_hidden (копии)" --> layout
-    settings -- "file_columns, page_size (копии)" --> cols
+    settings -- "dashboard_layout, dashboard_hidden (copies)" --> layout
+    settings -- "file_columns, page_size (copies)" --> cols
 ```
 
-Каждый стор — модульная переменная + `Set` слушателей + `useSyncExternalStore`. Прочие ключи `localStorage`
-(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` / `tcloud.dashboard.hidden` — копии
-`interface.dashboard_layout` / `interface.dashboard_hidden`, `tcloud.file_columns` / `tcloud.page_size` — копии `interface.file_columns` / `interface.page_size`; все читаются, только если сервер не отдал поле) — удобства, через `lib/prefs.ts` или
-`try/catch`.
+Each store is a module variable + a `Set` of listeners + `useSyncExternalStore`. The other `localStorage` keys
+(`tcloud.sidebar`, `tcloud.onboarding.dismissed`, `tcloud.dashboard.layout` / `tcloud.dashboard.hidden` as copies of
+`interface.dashboard_layout` / `interface.dashboard_hidden`, `tcloud.file_columns` / `tcloud.page_size` as copies of
+`interface.file_columns` / `interface.page_size`; all read only when the server omitted the field) are conveniences,
+accessed through `lib/prefs.ts` or `try/catch`.
 
-## Настройки
+## Settings
 
-`src/lib/settings.ts`. Источник правды — сервер (`GET/PATCH/DELETE /api/account/settings`, `settings` в
-`/users/me`). Стор держит два значения: `confirmed` (последний ответ сервера) и `current` (то, что видит UI).
+`src/lib/settings.ts`. The source of truth is the server (`GET/PATCH/DELETE /api/account/settings`, `settings` in
+`/users/me`). The store holds two values: `confirmed` (the last server answer) and `current` (what the UI shows).
 
-### Загрузка и слияние
+### Loading and merging
 
 ```mermaid
 flowchart TD
     def["DEFAULT_SETTINGS"] --> boot["confirmed = current =<br/>mergeSettings(DEFAULT, {interface: readMirror()})"]
     mirror[("localStorage tcloud.mirror<br/>theme, language")] --> boot
-    boot --> apply1["main.tsx applySettings: тема, язык до ответа сервера"]
-    me["useMe: GET /users/me"] --> hyd{"hydrateSettings:<br/>есть settings и pending == 0?"}
-    hyd -- нет --> skip["игнор (идёт сохранение)"]
-    hyd -- да --> merge["confirmed = mergeSettings(DEFAULT, server)"]
+    boot --> apply1["main.tsx applySettings: theme, language before the server answers"]
+    me["useMe: GET /users/me"] --> hyd{"hydrateSettings:<br/>settings present and pending == 0?"}
+    hyd -- no --> skip["ignored (a save is in progress)"]
+    hyd -- yes --> merge["confirmed = mergeSettings(DEFAULT, server)"]
     merge --> pub["publish(confirmed)"]
     pub --> mirrorW["writeMirror"]
-    pub --> listeners["слушатели: useSettings, applySettings"]
+    pub --> listeners["listeners: useSettings, applySettings"]
 ```
 
-`mergeSettings` сливает по группам (`uploads`, `archives`, `interface`, `telegram`) поверх значений по умолчанию,
-поэтому отсутствующие на сервере ключи получают умолчания.
+`mergeSettings` merges per group (`uploads`, `archives`, `interface`, `telegram`) over the defaults, so keys missing on
+the server get their defaults.
 
-### Оптимистичное сохранение
+### Optimistic saving
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as Компонент
+    participant UI as Component
     participant S as settings store
     participant B as Backend
     UI->>S: updateSettings(patch)
     S->>S: id = ++pending
     S->>S: publish(mergeSettings(current, patch))
-    Note over S: UI сразу видит новое значение,<br/>hydrateSettings игнорируется
-    S->>S: queue = queue.then(send) — ждёт предыдущий PATCH/DELETE
-    S->>B: PATCH /api/account/settings (только patch)
+    Note over S: the UI sees the new value at once,<br/>hydrateSettings is ignored
+    S->>S: queue = queue.then(send), waits for the previous PATCH/DELETE
+    S->>B: PATCH /api/account/settings (patch only)
     alt 2xx
-        B-->>S: полные Settings
-        S->>S: confirmed = merge(DEFAULT, ответ)
-        S->>S: если id == pending: publish(confirmed)
-    else ошибка
+        B-->>S: full Settings
+        S->>S: confirmed = merge(DEFAULT, answer)
+        S->>S: if id == pending: publish(confirmed)
+    else error
         B-->>S: ApiError
-        S->>S: если id == pending: publish(confirmed) — откат
+        S->>S: if id == pending: publish(confirmed), a revert
         S-->>UI: throw → toast (settingsError / errorMessage)
     end
-    S->>S: если id == pending: pending = 0
+    S->>S: if id == pending: pending = 0
 ```
 
-- Только последнее из одновременных сохранений публикует результат; промежуточные ответы обновляют `confirmed`.
-- Запросы уходят строго по одному (`queue` в `commit`): бэкенд сливает патч с сохранённым read-modify-write без
-  блокировки, и два параллельных PATCH теряли одно изменение (так «Готово» на дашборде теряло `dashboard_layout`,
-  отправленный вместе с `dashboard_hidden`).
-- `resetSettings()` — то же с `DEFAULT_SETTINGS` и `DELETE /api/account/settings`.
-- Кто пишет: `pages/settings.tsx` (каждое поле сразу, вебхук — кнопкой), `FolderView` (сортировка `sortPatch`, вид
-  `folder_view`), `Layout` (тема `setTheme`, язык).
+- Only the last of concurrent saves publishes its result; intermediate answers update `confirmed`.
+- Requests go strictly one at a time (`queue` in `commit`): the backend merges the patch with the stored value as a
+  read-modify-write without a lock, and two parallel PATCHes lost one change (that is how "Done" on the dashboard lost
+  `dashboard_layout` sent together with `dashboard_hidden`).
+- `resetSettings()` does the same with `DEFAULT_SETTINGS` and `DELETE /api/account/settings`.
+- Who writes: `pages/settings.tsx` (each field at once, the webhook via a button), `FolderView` (sort `sortPatch`, view
+  `folder_view`), `Layout` (theme `setTheme`, language).
 
-### Перенос старых ключей
+### Migrating old keys
 
-`migrateLegacy()` вызывается `Layout` один раз, когда `me.data` готов.
+`Layout` calls `migrateLegacy()` once, when `me.data` is ready.
 
 ```mermaid
 flowchart TD
-    start["migrateLegacy()"] --> any{"есть хоть один из LEGACY_KEYS<br/>tcloud.view / sort / theme / feature.* / achievements?"}
-    any -- нет --> done["ничего"]
-    any -- да --> patch["migrationPatch(current, read)"]
-    patch --> def{"interface на сервере = умолчания<br/>и есть отличия?"}
-    def -- нет --> clear["удалить ключи"]
-    def -- да --> upd["updateSettings(patch)"]
-    upd -- успех --> clear
-    upd -- ошибка --> keep["ключи остаются до следующего входа"]
+    start["migrateLegacy()"] --> any{"any of LEGACY_KEYS present?<br/>tcloud.view / sort / theme / feature.* / achievements"}
+    any -- no --> done["nothing"]
+    any -- yes --> patch["migrationPatch(current, read)"]
+    patch --> def{"server interface = defaults<br/>and there are differences?"}
+    def -- no --> clear["remove the keys"]
+    def -- yes --> upd["updateSettings(patch)"]
+    upd -- success --> clear
+    upd -- error --> keep["keys stay until the next sign-in"]
 ```

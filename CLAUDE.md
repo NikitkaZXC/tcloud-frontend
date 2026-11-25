@@ -52,7 +52,7 @@ CI: `.github/workflows/ci.yml` (push to `main` + PR, concurrency cancels older r
 ## Rules
 
 - Plan first; important decisions go to the owner as multiple-choice questions.
-- No code comments; explanations go to `docs/`. Keep README.md (English) and README.ru.md (Russian) in sync, `docs/` and this file current.
+- No code comments; explanations go to `docs/`. Keep README.md (English) and README.ru.md (Russian) in sync, `docs/` (English) and this file current.
 - README stays short: project overview, architecture diagram, main backend endpoints and pages, quick start, links to `docs/`. Implementation details go into `docs/` (UI behaviour → `docs/ui.md`).
 - When code changes a flow shown in `docs/`, update the doc and its diagram in the same commit.
 - Tests for new logic in `src/lib`. Component tests (`*.test.tsx`, jsdom is the default environment) render through `renderApp` in `src/test-utils.tsx` (QueryClient + memory router with `/login`, cleanup, `ResizeObserver` stub) and stub `fetch`. Commits: one-line English (`feat:`, `fix:`), **never push**.
