@@ -90,10 +90,13 @@ function PasswordCard() {
 function Sessions() {
   const signedOut = useSignedOut()
   const sessions = useQuery({ queryKey: ['sessions'], queryFn: () => api.get<UserSession[]>('/auth/sessions') })
-  const revoke = useAction((session: UserSession) => api.del(`/auth/sessions/${session.id}`), {
+  const revoke = useAction((session: UserSession) => {
+    const end = () => api.del(`/auth/sessions/${session.id}`)
+    return session.is_current ? logout(end) : end()
+  }, {
     invalidate: [['sessions']],
   })
-  const logoutAll = useAction(() => logout('/auth/logout/all'), { onSuccess: signedOut })
+  const logoutAll = useAction(() => logout(() => api.post('/auth/logout/all')), { onSuccess: signedOut })
 
   return (
     <Card>

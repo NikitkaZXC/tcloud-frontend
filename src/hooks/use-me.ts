@@ -30,9 +30,9 @@ export function useSignedOut() {
   }
 }
 
-export async function logout(url = '/auth/logout') {
+export async function logout(send: () => Promise<unknown> = () => api.post('/auth/logout')) {
   await abortUploads()
-  await api.post(url).catch((error) => {
+  await send().catch((error) => {
     if (!(error instanceof ApiError && error.status === 401)) throw error
   })
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError } from './api'
+import { api, ApiError } from './api'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Task, UploadOptions } from './types'
 import { logout } from '@/hooks/use-me'
@@ -238,6 +238,21 @@ describe('chunked upload', () => {
     await logout()
     expect(isAbort(await upload)).toBe(true)
     expect(calls.slice(-2)).toEqual(['DELETE /api/uploads/sessions/s1', 'fetch /api/auth/logout'])
+    finishSending(id)
+  })
+
+  it('ending the current session aborts uploads and deletes their sessions first', async () => {
+    const calls = fakeXhr((method) => (method === 'POST' ? { status: 201, body: session(0) } : method === 'PUT' ? null : { status: 204 }))
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push(`fetch ${init?.method} ${url}`)
+      return new Response(null, { status: 204 })
+    }))
+    const id = startSending('tcloud/s/big.bin', big.size)
+    const upload = uploadFile(big, options, () => {}, sendingSignal(id)).catch((e) => e)
+    await vi.waitFor(() => expect(calls.some((call) => call.startsWith('PUT'))).toBe(true))
+    await logout(() => api.del('/auth/sessions/x1'))
+    expect(isAbort(await upload)).toBe(true)
+    expect(calls.slice(-2)).toEqual(['DELETE /api/uploads/sessions/s1', 'fetch DELETE /api/auth/sessions/x1'])
     finishSending(id)
   })
 
